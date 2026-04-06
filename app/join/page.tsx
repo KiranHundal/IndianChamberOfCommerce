@@ -230,16 +230,132 @@ export default function JoinPage() {
             <Divider className="mx-auto mt-6" />
           </div>
 
-          <div className="mt-12 bg-white border border-ivory-200 rounded-lg p-8 text-center min-h-[400px] flex items-center justify-center">
-            <div>
-              <p className="text-body text-mid">
-                Membership application form will appear here
+          <div className="mt-12 max-w-2xl mx-auto bg-white border border-ivory-200 rounded-lg p-8">
+            <form className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="fullName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                    placeholder="Your full name"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="applyEmail" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    Email
+                  </label>
+                  <input
+                    id="applyEmail"
+                    type="email"
+                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="applyPhone" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    Phone
+                  </label>
+                  <input
+                    id="applyPhone"
+                    type="tel"
+                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                    placeholder="(559) 555-0100"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="city" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    City
+                  </label>
+                  <select
+                    id="city"
+                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                  >
+                    <option value="">Select city</option>
+                    <option value="Fresno">Fresno</option>
+                    <option value="Clovis">Clovis</option>
+                    <option value="Visalia">Visalia</option>
+                    <option value="Bakersfield">Bakersfield</option>
+                    <option value="Modesto">Modesto</option>
+                    <option value="Madera">Madera</option>
+                    <option value="Hanford">Hanford</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="businessName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                  Business Name
+                </label>
+                <input
+                  id="businessName"
+                  type="text"
+                  className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                  placeholder="Your business name"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="sector" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    Industry Sector
+                  </label>
+                  <select
+                    id="sector"
+                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                  >
+                    <option value="">Select sector</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="Legal">Legal</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Hospitality">Hospitality</option>
+                    <option value="Agriculture">Agriculture</option>
+                    <option value="Education">Education</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="membershipTier" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    Membership Tier
+                  </label>
+                  <select
+                    id="membershipTier"
+                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                  >
+                    <option value="">Select tier</option>
+                    <option value="Individual">Individual — $150/year</option>
+                    <option value="Business">Business — $300/year</option>
+                    <option value="Corporate">Corporate — $500/year</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="about" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                  Tell Us About Yourself
+                </label>
+                <textarea
+                  id="about"
+                  rows={4}
+                  className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all resize-none"
+                  placeholder="Brief description of your business and what you hope to gain from membership"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3 rounded-sm hover:bg-gold-900 transition-all shadow-card hover:shadow-hover"
+              >
+                Submit Application
+              </button>
+              <p className="text-caption text-hint text-center mt-3">
+                Our team will review your application and reach out within 2 business days.
               </p>
-              <p className="text-small text-hint mt-2">
-                Powered by Tally.so — form will be embedded once live
-              </p>
-              {/* <iframe data-tally-src="https://tally.so/embed/mRxVYa?alignLeft=1&hideTitle=1&transparentBackground=1" width="100%" height="500" frameBorder="0" title="Membership Application"></iframe> */}
-            </div>
+            </form>
           </div>
         </div>
       </section>
