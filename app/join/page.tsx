@@ -77,7 +77,7 @@ export default function JoinPage() {
         <div className="max-w-[75rem] mx-auto px-8">
           <div className="text-center">
             <SectionLabel>Why Join</SectionLabel>
-            <SectionTitle className="mt-4">Membership Benefits</SectionTitle>
+            <SectionTitle className="mt-4">What You Get</SectionTitle>
             <Divider className="mx-auto mt-6" />
           </div>
 
