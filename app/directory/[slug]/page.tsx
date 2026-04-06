@@ -61,7 +61,7 @@ export default async function MemberProfilePage({
       <section className="bg-navy-900 py-24">
         <div className="max-w-[75rem] mx-auto px-8">
           <Link
-            href="/members"
+            href="/directory"
             className="inline-flex items-center gap-2 text-small text-white/60 hover:text-white transition-all mb-8"
           >
             <ArrowLeft className="w-4 h-4" />

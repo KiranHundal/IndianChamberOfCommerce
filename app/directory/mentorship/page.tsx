@@ -102,7 +102,7 @@ export default function MentorshipPage() {
                   </p>
                   <div className="mt-4">
                     <Link
-                      href={`/members/${mentor.slug.current}`}
+                      href={`/directory/${mentor.slug.current}`}
                       className="text-accent text-small hover:underline"
                     >
                       Connect &rarr;
