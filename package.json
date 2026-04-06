@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "tokens": "ts-node --project tsconfig.scripts.json scripts/generate-tokens.ts",
-    "generate-members": "ts-node --project tsconfig.scripts.json scripts/generate-members.ts",
+    "tokens": "npx ts-node --project tsconfig.scripts.json scripts/generate-tokens.ts",
+    "generate-members": "npx ts-node --project tsconfig.scripts.json scripts/generate-members.ts",
     "dev": "npm run tokens && next dev",
     "build": "npm run tokens && npm run generate-members && next build",
     "start": "next start",
