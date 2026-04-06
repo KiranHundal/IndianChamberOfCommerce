@@ -5,6 +5,7 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
+    "types": ["node"],
     "baseUrl": ".",
     "paths": { "@/*": ["./*"] }
   },
