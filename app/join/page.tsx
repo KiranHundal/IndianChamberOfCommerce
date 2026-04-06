@@ -1,4 +1,6 @@
-import type { Metadata } from 'next'
+'use client'
+
+import { useState, FormEvent } from 'react'
 import {
   Users,
   BookOpen,
@@ -6,16 +8,11 @@ import {
   Handshake,
   Megaphone,
   Heart,
+  CheckCircle,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
-
-export const metadata: Metadata = {
-  title: 'Join the Chamber',
-  description:
-    'Become a member of the Central Valley Indian Chamber of Commerce and unlock networking events, mentorship, business directory listing, and more.',
-}
 
 const benefits = [
   {
@@ -26,7 +23,7 @@ const benefits = [
   {
     icon: BookOpen,
     title: 'Business Directory',
-    description: 'Get listed in our member directory and increase your visibility to potential clients and partners.',
+    description: 'Get listed in our business directory and increase your visibility to potential clients and partners.',
   },
   {
     icon: UserCheck,
@@ -50,7 +47,57 @@ const benefits = [
   },
 ]
 
+const inputClass =
+  'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
+
 export default function JoinPage() {
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setStatus('submitting')
+    setErrorMsg('')
+
+    const form = e.currentTarget
+    const data = {
+      name: (form.elements.namedItem('fullName') as HTMLInputElement).value.trim(),
+      email: (form.elements.namedItem('applyEmail') as HTMLInputElement).value.trim(),
+      phone: (form.elements.namedItem('applyPhone') as HTMLInputElement).value.trim(),
+      city: (form.elements.namedItem('city') as HTMLSelectElement).value,
+      businessName: (form.elements.namedItem('businessName') as HTMLInputElement).value.trim(),
+      sector: (form.elements.namedItem('sector') as HTMLSelectElement).value,
+      about: (form.elements.namedItem('about') as HTMLTextAreaElement).value.trim(),
+    }
+
+    if (!data.name || !data.email || !data.businessName) {
+      setStatus('error')
+      setErrorMsg('Please fill in your name, email, and business name.')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        setStatus('error')
+        setErrorMsg(result.error || 'Something went wrong.')
+        return
+      }
+
+      setStatus('success')
+    } catch {
+      setStatus('error')
+      setErrorMsg('Network error. Please try again.')
+    }
+  }
+
   return (
     <>
       {/* Hero */}
@@ -67,7 +114,8 @@ export default function JoinPage() {
           </SectionTitle>
           <Divider className="mx-auto mt-6" />
           <p className="text-body text-white/55 mt-6 max-w-xl mx-auto">
-            Submit your request below and our team will review your application. We&apos;ll be in touch shortly.
+            Submit your request below and our team will review your application.
+            Once approved, your business will appear in our directory.
           </p>
         </div>
       </section>
@@ -115,115 +163,116 @@ export default function JoinPage() {
           </div>
 
           <div className="mt-12 max-w-2xl mx-auto bg-white border border-ivory-200 rounded-lg p-8">
-            <form className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label htmlFor="fullName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
-                    Full Name
-                  </label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
-                    placeholder="Your full name"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="applyEmail" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
-                    Email
-                  </label>
-                  <input
-                    id="applyEmail"
-                    type="email"
-                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
-                    placeholder="you@example.com"
-                  />
-                </div>
+            {status === 'success' ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-16 h-16 text-accent mx-auto" />
+                <h3 className="font-display text-h3 text-brand mt-6">
+                  Application Received
+                </h3>
+                <p className="text-body text-mid mt-3 max-w-md mx-auto">
+                  Thank you for your interest in joining the Central Valley Indian Chamber of Commerce.
+                  Our team will review your application and your business will appear in the directory once approved.
+                </p>
+                <button
+                  onClick={() => setStatus('idle')}
+                  className="mt-6 text-accent text-small font-medium hover:text-gold-900 transition-colors"
+                >
+                  Submit another application
+                </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label htmlFor="applyPhone" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
-                    Phone
-                  </label>
-                  <input
-                    id="applyPhone"
-                    type="tel"
-                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
-                    placeholder="(559) 555-0100"
-                  />
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label htmlFor="fullName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                      Full Name *
+                    </label>
+                    <input id="fullName" type="text" required className={inputClass} placeholder="Your full name" />
+                  </div>
+                  <div>
+                    <label htmlFor="applyEmail" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                      Email *
+                    </label>
+                    <input id="applyEmail" type="email" required className={inputClass} placeholder="you@example.com" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label htmlFor="applyPhone" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                      Phone
+                    </label>
+                    <input id="applyPhone" type="tel" className={inputClass} placeholder="(559) 555-0100" />
+                  </div>
+                  <div>
+                    <label htmlFor="city" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                      City
+                    </label>
+                    <select id="city" className={inputClass}>
+                      <option value="">Select city</option>
+                      <option value="Fresno">Fresno</option>
+                      <option value="Clovis">Clovis</option>
+                      <option value="Visalia">Visalia</option>
+                      <option value="Bakersfield">Bakersfield</option>
+                      <option value="Modesto">Modesto</option>
+                      <option value="Madera">Madera</option>
+                      <option value="Hanford">Hanford</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
                 <div>
-                  <label htmlFor="city" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
-                    City
+                  <label htmlFor="businessName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    Business Name *
                   </label>
-                  <select
-                    id="city"
-                    className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
-                  >
-                    <option value="">Select city</option>
-                    <option value="Fresno">Fresno</option>
-                    <option value="Clovis">Clovis</option>
-                    <option value="Visalia">Visalia</option>
-                    <option value="Bakersfield">Bakersfield</option>
-                    <option value="Modesto">Modesto</option>
-                    <option value="Madera">Madera</option>
-                    <option value="Hanford">Hanford</option>
+                  <input id="businessName" type="text" required className={inputClass} placeholder="Your business name" />
+                </div>
+                <div>
+                  <label htmlFor="sector" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    Industry Sector
+                  </label>
+                  <select id="sector" className={inputClass}>
+                    <option value="">Select sector</option>
+                    <option value="Healthcare">Healthcare</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="Legal">Legal</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Hospitality">Hospitality</option>
+                    <option value="Agriculture">Agriculture</option>
+                    <option value="Education">Education</option>
+                    <option value="Finance">Finance</option>
                     <option value="Other">Other</option>
                   </select>
                 </div>
-              </div>
-              <div>
-                <label htmlFor="businessName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
-                  Business Name
-                </label>
-                <input
-                  id="businessName"
-                  type="text"
-                  className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
-                  placeholder="Your business name"
-                />
-              </div>
-              <div>
-                <label htmlFor="sector" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
-                  Industry Sector
-                </label>
-                <select
-                  id="sector"
-                  className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                <div>
+                  <label htmlFor="about" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    Tell Us About Your Business
+                  </label>
+                  <textarea
+                    id="about"
+                    rows={4}
+                    className={`${inputClass} resize-none`}
+                    placeholder="Brief description of your business and why you'd like to join"
+                  />
+                </div>
+
+                {status === 'error' && (
+                  <p className="text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
+                    {errorMsg}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={status === 'submitting'}
+                  className="w-full bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3 rounded-sm hover:bg-gold-900 transition-all shadow-card hover:shadow-hover disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="">Select sector</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Real Estate">Real Estate</option>
-                  <option value="Legal">Legal</option>
-                  <option value="Technology">Technology</option>
-                  <option value="Hospitality">Hospitality</option>
-                  <option value="Agriculture">Agriculture</option>
-                  <option value="Education">Education</option>
-                  <option value="Finance">Finance</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="about" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
-                  Tell Us About Yourself
-                </label>
-                <textarea
-                  id="about"
-                  rows={4}
-                  className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all resize-none"
-                  placeholder="Brief description of your business and why you'd like to join"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3 rounded-sm hover:bg-gold-900 transition-all shadow-card hover:shadow-hover"
-              >
-                Submit Request
-              </button>
-              <p className="text-caption text-hint text-center mt-3">
-                Our team will review your request and reach out within 2 business days.
-              </p>
-            </form>
+                  {status === 'submitting' ? 'Submitting...' : 'Submit Application'}
+                </button>
+                <p className="text-caption text-hint text-center mt-3">
+                  Your business will appear in our directory once reviewed and approved.
+                </p>
+              </form>
+            )}
           </div>
         </div>
       </section>

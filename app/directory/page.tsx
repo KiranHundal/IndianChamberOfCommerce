@@ -52,11 +52,25 @@ function MemberDirectoryInner() {
     setMentorOnly(mentor)
   }, [searchParams])
 
-  // Fetch members
+  // Fetch members — try Sanity API first, fall back to static JSON
   useEffect(() => {
-    fetch('/members.json')
-      .then((r) => r.json())
-      .then((data: PublicMember[]) => setAllMembers(data))
+    async function loadMembers() {
+      try {
+        const res = await fetch('/api/directory')
+        const data = await res.json()
+        if (data && Array.isArray(data) && data.length > 0) {
+          setAllMembers(data)
+          return
+        }
+      } catch {
+        // API failed, fall through to static
+      }
+      // Fallback to static members.json
+      const res = await fetch('/members.json')
+      const data: PublicMember[] = await res.json()
+      setAllMembers(data)
+    }
+    loadMembers()
   }, [])
 
   // Sync filters to URL
