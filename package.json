@@ -5,10 +5,10 @@
   "scripts": {
     "tokens": "npx ts-node --project tsconfig.scripts.json scripts/generate-tokens.ts",
     "generate-members": "npx ts-node --project tsconfig.scripts.json scripts/generate-members.ts",
-    "dev": "npm run tokens && npx next dev",
-    "build": "npm run tokens && npm run generate-members && npx next build",
-    "start": "npx next start",
-    "lint": "npx next lint"
+    "dev": "npm run tokens && ./node_modules/.bin/next dev",
+    "build": "npm run tokens && npm run generate-members && ./node_modules/.bin/next build",
+    "start": "./node_modules/.bin/next start",
+    "lint": "./node_modules/.bin/next lint"
   },
   "dependencies": {
     "@portabletext/react": "^6.0.3",
