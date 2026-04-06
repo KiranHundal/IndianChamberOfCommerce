@@ -73,7 +73,7 @@ function MemberDirectoryInner() {
       if (params.city) sp.set('city', params.city)
       if (params.mentor) sp.set('mentor', 'true')
       const qs = sp.toString()
-      router.push(qs ? `/members?${qs}` : '/members', { scroll: false })
+      router.push(qs ? `/directory?${qs}` : '/directory', { scroll: false })
     },
     [router]
   )
@@ -106,7 +106,7 @@ function MemberDirectoryInner() {
     setSelectedSectors([])
     setSelectedCity('')
     setMentorOnly(false)
-    router.push('/members', { scroll: false })
+    router.push('/directory', { scroll: false })
   }
 
   // Derived data
@@ -143,7 +143,7 @@ function MemberDirectoryInner() {
         <div className="max-w-[75rem] mx-auto px-8">
           <SectionLabel dark>Our Members</SectionLabel>
           <h1 className="font-display text-hero-sm md:text-hero-md font-light text-white mt-4">
-            Member Directory
+            Business Directory
           </h1>
         </div>
       </section>
@@ -253,7 +253,7 @@ function MemberDirectoryInner() {
                     )}
                     <div className="mt-3">
                       <Link
-                        href={`/members/${member.slug}`}
+                        href={`/directory/${member.slug}`}
                         className="text-accent text-small hover:underline"
                       >
                         View Profile &rarr;

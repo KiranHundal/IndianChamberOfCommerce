@@ -32,10 +32,10 @@ export default function Hero() {
 
         <div className="mt-8 flex flex-wrap gap-4">
           <Link
-            href="/members"
+            href="/directory"
             className="bg-accent text-white rounded-sm px-6 py-3 font-label text-label tracking-label uppercase hover:bg-gold-900 transition-all"
           >
-            Explore Our Members
+            Business Directory
           </Link>
           <Link
             href="/events"
