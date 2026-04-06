@@ -2,7 +2,6 @@ import Hero from '@/components/sections/Hero'
 import StatsBar from '@/components/sections/StatsBar'
 import SocialStrip from '@/components/layout/SocialStrip'
 import SectorGrid from '@/components/sections/SectorGrid'
-import FeaturedMembers from '@/components/sections/FeaturedMembers'
 import UpcomingEvents from '@/components/sections/UpcomingEvents'
 import SocialFeed from '@/components/sections/SocialFeed'
 import JoinCTA from '@/components/sections/JoinCTA'
@@ -34,7 +33,6 @@ export default function HomePage() {
       <StatsBar />
       <SocialStrip />
       <SectorGrid />
-      <FeaturedMembers />
       <UpcomingEvents />
       <SocialFeed />
       <JoinCTA />
