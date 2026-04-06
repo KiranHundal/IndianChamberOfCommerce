@@ -82,6 +82,6 @@ const css = `:root {
 }
 `
 
-const outPath = path.resolve(__dirname, '..', 'styles', 'tokens.css')
+const outPath = path.resolve(process.cwd(), 'styles', 'tokens.css')
 fs.writeFileSync(outPath, css, 'utf-8')
 console.log(`[generate-tokens] wrote ${outPath}`)

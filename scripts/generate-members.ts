@@ -32,6 +32,6 @@ const members: PublicMember[] = mockMembers.map((m) => ({
   photoUrl: null,
 }))
 
-const outPath = path.resolve(__dirname, '..', 'public', 'members.json')
+const outPath = path.resolve(process.cwd(), 'public', 'members.json')
 fs.writeFileSync(outPath, JSON.stringify(members, null, 2), 'utf-8')
 console.log(`[generate-members] wrote ${outPath} (${members.length} members)`)
