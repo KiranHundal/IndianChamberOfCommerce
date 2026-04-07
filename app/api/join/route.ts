@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeClient } from '@/lib/sanity'
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,9 +20,12 @@ export async function POST(req: NextRequest) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '')
 
-    // Check if Sanity is configured
-    if (!process.env.SANITY_API_TOKEN) {
-      // No Sanity token — log the submission and return success
+    // Check if Sanity is configured with a real token
+    const token = process.env.SANITY_API_TOKEN
+    const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
+
+    if (!token || !projectId || projectId === 'placeholder') {
+      // No Sanity configured — log the submission and return success
       console.log('[Join] Sanity not configured. Submission:', body)
       return NextResponse.json({
         success: true,
@@ -31,10 +33,12 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Create a draft member document in Sanity
-    // Draft documents have _id prefixed with "drafts."
-    // They won't appear in public queries until published by admin
-    const doc = {
+    // Dynamically import write client only when we know Sanity is configured
+    const { writeClient } = await import('@/lib/sanity')
+
+    // Create member document in Sanity
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc: any = {
       _type: 'member',
       name,
       slug: { _type: 'slug', current: slug },
@@ -57,9 +61,7 @@ export async function POST(req: NextRequest) {
         { name: sector }
       )
       if (sectorDoc) {
-        Object.assign(doc, {
-          sector: { _type: 'reference', _ref: sectorDoc },
-        })
+        doc.sector = { _type: 'reference', _ref: sectorDoc }
       }
     }
 
