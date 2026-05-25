@@ -72,7 +72,7 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="max-w-[75rem] mx-auto px-8 border-t border-white/10 mt-0 pt-6 pb-6 flex justify-between text-caption text-white/35">
-        <span>&copy; 2025 Central Valley Indian Chamber of Commerce</span>
+        <span>&copy; 2026 Central Valley Indian Chamber of Commerce &middot; <em className="italic">Building Community. Creating Opportunities.</em></span>
         <span className="text-accent">Built by AATHOPS</span>
       </div>
     </footer>
