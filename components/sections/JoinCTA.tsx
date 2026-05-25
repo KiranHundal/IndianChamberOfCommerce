@@ -12,21 +12,23 @@ export default function JoinCTA() {
         <SectionLabel dark>Become a Member</SectionLabel>
 
         <h2 className="font-display text-h1 md:text-display font-light text-white mt-4">
-          Join the Central Valley&rsquo;s Premier Indian Business Network
+          Together, We Connect.
+          <br />
+          <em className="italic text-gold-600">Empower. Grow.</em>
         </h2>
 
         <p className="font-body text-body text-white/55 mt-4">
-          Connect with over 200 Indian-American business owners, access
-          exclusive events, mentorship programs, and grow your business with the
-          support of a thriving community.
+          Join the Central Valley&rsquo;s premier Indian business network.
+          Individual memberships starting at{' '}
+          <span className="text-gold-400 font-medium">$95/year</span>.
         </p>
 
         <div className="mt-8 flex justify-center gap-4 flex-wrap">
           <Link
-            href="/membership"
+            href="/join"
             className="bg-accent text-white rounded-sm px-6 py-3 font-label text-label tracking-label uppercase hover:bg-gold-900 transition-all"
           >
-            Apply for Membership
+            Join Today
           </Link>
           <Link
             href="/contact"
