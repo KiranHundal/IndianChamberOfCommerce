@@ -1,16 +1,31 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
-import { mockSiteSettings } from '@/lib/mock-data'
+import { mockSiteSettings, mockLeadership } from '@/lib/mock-data'
 
 export function generateMetadata(): Metadata {
   return {
-    title: 'About Us',
+    title: 'About Us — CVICC',
     description:
       'Learn about the Central Valley Indian Chamber of Commerce (CVICC) mission to empower, connect, and elevate Indian-American businesses across the Central Valley.',
   }
+}
+
+const HEADSHOT_MAP: Record<string, string> = {
+  'Harpreet Singh': '/headshots/harpreet-singh.jpg',
+  'Anil Varma': '/headshots/anil-varma.jpg',
+  'Gurpreet Kaur': '/headshots/gurpreet-kaur.jpg',
+  'Kiran Shah': '/headshots/kiran-shah.jpg',
+  'Ramesh Kulkarni': '/headshots/ramesh-kulkarni.jpg',
+  'Sunita Rao': '/headshots/sunita-rao.jpg',
+  'Deepak Nair': '/headshots/deepak-nair.jpg',
+  'Pooja Agarwal': '/headshots/pooja-agarwal.jpg',
+  'Sanjay Bhatt': '/headshots/sanjay-bhatt.jpg',
 }
 
 const values = [
@@ -42,11 +57,12 @@ const stats = [
 ]
 
 export default function AboutPage() {
+  const topLeaders = mockLeadership.slice(0, 4)
+
   return (
     <>
       {/* Hero */}
       <section className="bg-navy-900 py-32 text-center relative overflow-hidden">
-        {/* Corner marks */}
         <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
         <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
         <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
@@ -130,6 +146,56 @@ export default function AboutPage() {
               </AnimatedSection>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Board Preview */}
+      <section className="bg-page-bg py-24">
+        <div className="max-w-6xl mx-auto px-8">
+          <div className="text-center">
+            <AnimatedSection>
+              <SectionLabel>Leadership</SectionLabel>
+            </AnimatedSection>
+            <AnimatedSection delay={1}>
+              <SectionTitle className="mt-4">Board of Directors</SectionTitle>
+            </AnimatedSection>
+            <AnimatedSection delay={2}>
+              <Divider className="mx-auto mt-6" />
+            </AnimatedSection>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
+            {topLeaders.map((leader, i) => (
+              <AnimatedSection key={leader._id} delay={i + 3}>
+                <div className="text-center group">
+                  <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden ring-2 ring-ivory-200 group-hover:ring-accent transition-all">
+                    <Image
+                      src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
+                      alt={leader.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <h4 className="font-display text-h5 text-brand mt-4">{leader.name}</h4>
+                  <p className="font-label text-micro tracking-widest uppercase text-accent mt-1">
+                    {leader.role}
+                  </p>
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+
+          <AnimatedSection delay={7}>
+            <div className="text-center mt-10">
+              <Link
+                href="/about/leadership"
+                className="inline-flex items-center gap-2 font-label text-label tracking-label uppercase text-accent hover:text-gold-900 transition-colors"
+              >
+                View Full Board
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </AnimatedSection>
         </div>
       </section>
     </>

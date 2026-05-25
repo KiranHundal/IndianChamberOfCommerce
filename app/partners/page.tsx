@@ -13,12 +13,6 @@ export const metadata: Metadata = {
     'Our partners and sponsors help make the Central Valley Indian Chamber of Commerce possible. Learn about partnership opportunities.',
 }
 
-const tierConfig = {
-  Gold: { borderColor: 'border-t-accent', bgColor: 'bg-gold-100' },
-  Silver: { borderColor: 'border-t-hint', bgColor: 'bg-navy-100' },
-  Community: { borderColor: 'border-t-ivory-200', bgColor: 'bg-page-alt' },
-}
-
 export default function PartnersPage() {
   const goldPartners = mockPartners.filter((p) => p.tier === 'Gold')
   const silverPartners = mockPartners.filter((p) => p.tier === 'Silver')

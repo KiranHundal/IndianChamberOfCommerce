@@ -4,6 +4,7 @@ import LogoPlaceholder from '../ui/LogoPlaceholder';
 
 const quickLinks = [
   { label: 'About', href: '/about' },
+  { label: 'Board of Directors', href: '/about/leadership' },
   { label: 'Directory', href: '/directory' },
   { label: 'Events', href: '/events' },
   { label: 'Partners', href: '/partners' },
