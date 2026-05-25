@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { client } from '@/lib/sanity'
 
 const SANITY_MEMBERS_QUERY = `*[_type == "member"] | order(order asc) {
   name,
@@ -18,9 +17,9 @@ const SANITY_MEMBERS_QUERY = `*[_type == "member"] | order(order asc) {
 
 export async function GET() {
   try {
-    // Only try Sanity if project ID is configured (not placeholder)
     const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
     if (projectId && projectId !== 'placeholder') {
+      const { client } = await import('@/lib/sanity')
       const members = await client.fetch(SANITY_MEMBERS_QUERY)
       if (members && members.length > 0) {
         return NextResponse.json(members)
@@ -30,6 +29,5 @@ export async function GET() {
     console.log('[Directory] Sanity fetch failed, falling back to static data:', error)
   }
 
-  // Fallback: return null to signal client should use static members.json
   return NextResponse.json(null)
 }
