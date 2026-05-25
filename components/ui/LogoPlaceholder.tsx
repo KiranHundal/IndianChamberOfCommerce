@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 interface LogoPlaceholderProps {
   dark?: boolean;
@@ -7,10 +8,12 @@ interface LogoPlaceholderProps {
 export default function LogoPlaceholder({ dark = false }: LogoPlaceholderProps) {
   return (
     <div className="flex items-center gap-3">
-      <div
-        className={`w-14 h-14 rounded-full border-2 border-accent ${
-          dark ? "bg-white/10" : "bg-brand"
-        }`}
+      <Image
+        src="/logo.png"
+        alt="CVICC"
+        width={48}
+        height={48}
+        className="rounded-full"
       />
       <div>
         <p
