@@ -9,7 +9,7 @@ export default function LogoPlaceholder({ dark = false }: LogoPlaceholderProps) 
   return (
     <div className="flex items-center gap-3">
       <Image
-        src="/logo.png"
+        src="/logo.jpeg"
         alt="CVICC"
         width={48}
         height={48}
