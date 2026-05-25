@@ -19,18 +19,17 @@ const PARTICLES = Array.from({ length: 18 }, (_, i) => {
 export default function Hero() {
   return (
     <section className="relative min-h-screen bg-navy-900 overflow-hidden flex items-center">
-      {/* Optional ambient video layer — drops in cleanly when a file exists at /hero-ambient.mp4 */}
+      {/* Ambient video background */}
       <video
-        className="absolute inset-0 w-full h-full object-cover opacity-[0.18] pointer-events-none"
+        className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none mix-blend-screen"
         autoPlay
         muted
         loop
         playsInline
-        preload="none"
+        preload="auto"
         aria-hidden="true"
-      >
-        <source src="/hero-ambient.mp4" type="video/mp4" />
-      </video>
+        src="/hero-ambient.mp4"
+      />
 
       {/* Base gradient wash */}
       <div className="absolute inset-0 bg-gradient-to-br from-navy-900 via-navy-900 to-[#0A1830]" />
