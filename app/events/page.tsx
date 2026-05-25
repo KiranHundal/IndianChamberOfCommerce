@@ -68,7 +68,7 @@ export default function EventsPage() {
 
                 {/* Body */}
                 <div className="p-6">
-                  <p className="font-label text-micro tracking-widest uppercase text-accent">
+                  <p className="font-label text-micro tracking-widest uppercase text-brand/70">
                     {formatDate(event.date)}
                   </p>
                   <h3 className="font-display text-h4 text-brand mt-2">
@@ -137,7 +137,7 @@ export default function EventsPage() {
 
                 {/* Body */}
                 <div className="p-6">
-                  <p className="font-label text-micro tracking-widest uppercase text-accent">
+                  <p className="font-label text-micro tracking-widest uppercase text-brand/70">
                     {formatDate(event.date)}
                   </p>
                   <h3 className="font-display text-h4 text-brand mt-2">

@@ -25,7 +25,7 @@ export default function LogoPlaceholder({ dark = false }: LogoPlaceholderProps) 
         </p>
         <p
           className={`font-label text-micro tracking-widest uppercase ${
-            dark ? "text-white" : "text-accent"
+            dark ? "text-white" : "text-brand"
           }`}
         >
           Indian Chamber of Commerce
