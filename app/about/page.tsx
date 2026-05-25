@@ -140,7 +140,7 @@ export default function AboutPage() {
             {stats.map((stat, i) => (
               <AnimatedSection key={stat.label} delay={i}>
                 <p className="font-display text-h1 text-brand">{stat.value}</p>
-                <p className="font-label text-micro tracking-widest uppercase text-accent mt-2">
+                <p className="font-label text-micro tracking-widest uppercase text-brand/70 mt-2">
                   {stat.label}
                 </p>
               </AnimatedSection>
@@ -177,7 +177,7 @@ export default function AboutPage() {
                     />
                   </div>
                   <h4 className="font-display text-h5 text-brand mt-4">{leader.name}</h4>
-                  <p className="font-label text-micro tracking-widest uppercase text-accent mt-1">
+                  <p className="font-label text-micro tracking-widest uppercase text-brand/70 mt-1">
                     {leader.role}
                   </p>
                 </div>

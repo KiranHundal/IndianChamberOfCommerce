@@ -97,7 +97,7 @@ export default function ContactPage() {
                       <Icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="font-label text-label tracking-label uppercase text-accent">
+                      <p className="font-label text-label tracking-label uppercase text-brand">
                         {item.label}
                       </p>
                       <p className="text-body text-brand group-hover:text-accent transition-colors mt-1">
@@ -111,7 +111,7 @@ export default function ContactPage() {
 
             {/* Social Links */}
             <div className="mt-10">
-              <p className="font-label text-label tracking-label uppercase text-accent">
+              <p className="font-label text-label tracking-label uppercase text-brand">
                 Follow Us
               </p>
               <div className="flex gap-4 mt-4">
@@ -140,7 +140,7 @@ export default function ContactPage() {
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-label text-label tracking-label uppercase text-accent">
+                  <p className="font-label text-label tracking-label uppercase text-brand">
                     Office Hours
                   </p>
                   <p className="text-body text-brand mt-1">
@@ -160,7 +160,7 @@ export default function ContactPage() {
             <form className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label htmlFor="firstName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                  <label htmlFor="firstName" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                     First Name
                   </label>
                   <input
@@ -171,7 +171,7 @@ export default function ContactPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="lastName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                  <label htmlFor="lastName" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                     Last Name
                   </label>
                   <input
@@ -183,7 +183,7 @@ export default function ContactPage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="email" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                <label htmlFor="email" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                   Email
                 </label>
                 <input
@@ -194,7 +194,7 @@ export default function ContactPage() {
                 />
               </div>
               <div>
-                <label htmlFor="phone" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                <label htmlFor="phone" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                   Phone (optional)
                 </label>
                 <input
@@ -205,7 +205,7 @@ export default function ContactPage() {
                 />
               </div>
               <div>
-                <label htmlFor="subject" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                <label htmlFor="subject" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                   Subject
                 </label>
                 <select
@@ -222,7 +222,7 @@ export default function ContactPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="message" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                <label htmlFor="message" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                   Message
                 </label>
                 <textarea

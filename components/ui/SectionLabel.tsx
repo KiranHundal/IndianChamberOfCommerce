@@ -12,7 +12,7 @@ export default function SectionLabel({
   return (
     <p
       className={`font-label text-label tracking-widest uppercase ${
-        dark ? "text-gold-600" : "text-accent"
+        dark ? "text-gold-400" : "text-brand"
       }`}
     >
       {children}

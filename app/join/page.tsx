@@ -307,13 +307,13 @@ export default function JoinPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label htmlFor="fullName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    <label htmlFor="fullName" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                       Full Name *
                     </label>
                     <input id="fullName" type="text" required className={inputClass} placeholder="Your full name" />
                   </div>
                   <div>
-                    <label htmlFor="applyEmail" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    <label htmlFor="applyEmail" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                       Email *
                     </label>
                     <input id="applyEmail" type="email" required className={inputClass} placeholder="you@example.com" />
@@ -321,13 +321,13 @@ export default function JoinPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label htmlFor="applyPhone" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    <label htmlFor="applyPhone" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                       Phone
                     </label>
                     <input id="applyPhone" type="tel" className={inputClass} placeholder="(559) 555-0100" />
                   </div>
                   <div>
-                    <label htmlFor="city" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                    <label htmlFor="city" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                       City
                     </label>
                     <select id="city" className={inputClass}>
@@ -344,13 +344,13 @@ export default function JoinPage() {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="businessName" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                  <label htmlFor="businessName" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                     Business Name *
                   </label>
                   <input id="businessName" type="text" required className={inputClass} placeholder="Your business name" />
                 </div>
                 <div>
-                  <label htmlFor="sector" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                  <label htmlFor="sector" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                     Industry Sector
                   </label>
                   <select id="sector" className={inputClass}>
@@ -367,7 +367,7 @@ export default function JoinPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="about" className="font-label text-micro tracking-widest uppercase text-accent block mb-2">
+                  <label htmlFor="about" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                     Tell Us About Your Business
                   </label>
                   <textarea

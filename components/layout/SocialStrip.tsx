@@ -5,7 +5,7 @@ export default function SocialStrip() {
     <div className="bg-gold-100 border-y border-accent/20 py-3">
       <div className="max-w-[75rem] mx-auto px-8 flex items-center justify-between flex-wrap gap-2">
         {/* Left label */}
-        <span className="font-label text-micro tracking-widest uppercase text-accent">
+        <span className="font-label text-micro tracking-widest uppercase text-brand">
           Follow Us
         </span>
 
