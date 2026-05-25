@@ -24,7 +24,7 @@ export default function SocialStrip() {
 
         {/* Right text */}
         <span className="text-caption text-mid font-body">
-          Join our community of 200+ businesses
+          Join our community of 100+ businesses
         </span>
       </div>
     </div>

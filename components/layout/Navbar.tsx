@@ -8,9 +8,9 @@ import LogoPlaceholder from '../ui/LogoPlaceholder';
 const navLinks = [
   { label: 'About', href: '/about' },
   { label: 'Board', href: '/about/leadership' },
-  { label: 'Directory', href: '/directory' },
-  { label: 'Events', href: '/events' },
-  { label: 'Partners', href: '/partners' },
+  // { label: 'Directory', href: '/directory' },
+  // { label: 'Events', href: '/events' },
+  // { label: 'Partners', href: '/partners' },
   { label: 'Contact', href: '/contact' },
 ];
 

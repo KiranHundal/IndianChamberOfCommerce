@@ -1,8 +1,7 @@
 const stats = [
-  { value: "200+", label: "Members" },
-  { value: "12", label: "Sectors" },
-  { value: "40+", label: "Events/Year" },
-  { value: "15", label: "Years" },
+  { value: "100+", label: "Members" },
+  { value: "8", label: "Sectors" },
+  { value: "4", label: "Counties Served" },
 ];
 
 export default function StatsBar() {

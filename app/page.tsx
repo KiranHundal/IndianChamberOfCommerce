@@ -1,9 +1,9 @@
 import Hero from '@/components/sections/Hero'
 import StatsBar from '@/components/sections/StatsBar'
 import SocialStrip from '@/components/layout/SocialStrip'
-import SectorGrid from '@/components/sections/SectorGrid'
-import UpcomingEvents from '@/components/sections/UpcomingEvents'
-import SocialFeed from '@/components/sections/SocialFeed'
+// import SectorGrid from '@/components/sections/SectorGrid'
+// import UpcomingEvents from '@/components/sections/UpcomingEvents'
+// import SocialFeed from '@/components/sections/SocialFeed'
 import JoinCTA from '@/components/sections/JoinCTA'
 
 const organizationJsonLd = {
@@ -32,9 +32,9 @@ export default function HomePage() {
       <Hero />
       <StatsBar />
       <SocialStrip />
-      <SectorGrid />
-      <UpcomingEvents />
-      <SocialFeed />
+      {/* <SectorGrid /> */}
+      {/* <UpcomingEvents /> */}
+      {/* <SocialFeed /> */}
       <JoinCTA />
     </>
   )
