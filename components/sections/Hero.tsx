@@ -39,7 +39,7 @@ export default function Hero() {
         className="hero-aurora"
         style={{
           top: "-12%", left: "-6%", width: "60vw", height: "60vw",
-          background: "radial-gradient(circle, rgba(58,106,175,0.35), transparent 60%)",
+          background: "radial-gradient(circle, rgba(43,81,135,0.35), transparent 60%)",
           animation: "aurora-a 22s ease-in-out infinite",
         }}
       />
@@ -47,7 +47,7 @@ export default function Hero() {
         className="hero-aurora"
         style={{
           bottom: "-18%", right: "-10%", width: "55vw", height: "55vw",
-          background: "radial-gradient(circle, rgba(184,150,12,0.22), transparent 60%)",
+          background: "radial-gradient(circle, rgba(181,139,46,0.22), transparent 60%)",
           animation: "aurora-b 28s ease-in-out infinite",
         }}
       />
@@ -55,7 +55,7 @@ export default function Hero() {
         className="hero-aurora"
         style={{
           top: "35%", left: "40%", width: "40vw", height: "40vw",
-          background: "radial-gradient(circle, rgba(212,172,42,0.12), transparent 65%)",
+          background: "radial-gradient(circle, rgba(212,168,48,0.12), transparent 65%)",
           animation: "aurora-c 34s ease-in-out infinite",
         }}
       />

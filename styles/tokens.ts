@@ -7,13 +7,14 @@ export const tokens = {
   // ── Layer 1: Primitive tokens ──────────────────────────────
   primitive: {
     navy: {
-      950: '#081830', 900: '#0F2447', 800: '#1B3A6B', 700: '#254D8A',
-      600: '#3A6AAF', 100: '#EEF3FB', 50: '#F5F8FD',
+      950: '#0A1A30', 900: '#112847', 800: '#1E3A5F', 700: '#2B5187',
+      600: '#3A6AAF', 100: '#D3EAEE', 50: '#E8F4F8',
     },
     gold: {
-      900: '#8A6D04', 800: '#B8960C', 600: '#D4AC2A', 400: '#F0C040',
-      100: '#FBF6E4', 50: '#FEFCF5',
+      900: '#8A6D04', 800: '#B58B2E', 600: '#D4A830', 400: '#F7C65F',
+      100: '#FBF3DC', 50: '#FEFCF5',
     },
+    river: { 500: '#6FB3D8', 300: '#A3D1E8', 100: '#D3EAEE' },
     ivory: { 200: '#EDE4D0', 100: '#F5EFE0', 50: '#FAF7F2' },
     neutral: {
       900: '#2C2C2C', 700: '#3D3D3D', 600: '#5A5550', 400: '#9A9490',
@@ -24,23 +25,24 @@ export const tokens = {
   // ── Layer 2: Semantic color tokens ─────────────────────────
   color: {
     brand: {
-      primary: '#1B3A6B', primaryDark: '#0F2447', primaryMid: '#254D8A',
-      primaryLight: '#3A6AAF', primaryPale: '#EEF3FB',
-      accent: '#B8960C', accentLight: '#D4AC2A', accentBright: '#F0C040', accentPale: '#FBF6E4',
+      primary: '#1E3A5F', primaryDark: '#112847', primaryMid: '#2B5187',
+      primaryLight: '#3A6AAF', primaryPale: '#D3EAEE',
+      accent: '#B58B2E', accentLight: '#D4A830', accentBright: '#F7C65F', accentPale: '#FBF3DC',
+      river: '#6FB3D8',
     },
     bg: {
       page: '#F5EFE0', pageAlt: '#FAF7F2', card: '#FFFFFF',
-      dark: '#0F2447', darkMid: '#1B3A6B', navyTint: '#EEF3FB', goldTint: '#FBF6E4',
+      dark: '#112847', darkMid: '#1E3A5F', navyTint: '#D3EAEE', goldTint: '#FBF3DC',
     },
     text: {
       primary: '#2C2C2C', secondary: '#5A5550', hint: '#9A9490',
       onDark: '#FFFFFF', onDarkMuted: 'rgba(255,255,255,0.55)',
-      onDarkHint: 'rgba(255,255,255,0.35)', brand: '#1B3A6B',
-      accent: '#B8960C', accentOnDark: '#D4AC2A',
+      onDarkHint: 'rgba(255,255,255,0.35)', brand: '#1E3A5F',
+      accent: '#B58B2E', accentOnDark: '#D4A830',
     },
     border: {
       default: '#EDE4D0', light: '#D5D1CB', strong: '#9A9490',
-      brand: '#1B3A6B', accent: '#B8960C', onDark: 'rgba(255,255,255,0.12)',
+      brand: '#1E3A5F', accent: '#B58B2E', onDark: 'rgba(255,255,255,0.12)',
     },
   },
 
@@ -84,11 +86,11 @@ export const tokens = {
 
   // ── Layer 7: Shadow tokens ────────────────────────────────
   shadow: {
-    none: 'none', sm: '0 1px 2px rgba(27,58,107,0.06)',
-    card: '0 1px 3px rgba(27,58,107,0.08), 0 1px 2px rgba(27,58,107,0.04)',
-    hover: '0 4px 16px rgba(27,58,107,0.12), 0 2px 4px rgba(27,58,107,0.06)',
-    navy: '0 8px 32px rgba(15,36,71,0.24)', gold: '0 4px 20px rgba(184,150,12,0.20)',
-    focus: '0 0 0 3px rgba(58,106,175,0.30)',
+    none: 'none', sm: '0 1px 2px rgba(30,58,95,0.06)',
+    card: '0 1px 3px rgba(30,58,95,0.08), 0 1px 2px rgba(30,58,95,0.04)',
+    hover: '0 4px 16px rgba(30,58,95,0.12), 0 2px 4px rgba(30,58,95,0.06)',
+    navy: '0 8px 32px rgba(17,40,71,0.24)', gold: '0 4px 20px rgba(181,139,46,0.20)',
+    focus: '0 0 0 3px rgba(111,179,216,0.30)',
   },
 
   // ── Layer 8: System tokens ────────────────────────────────
