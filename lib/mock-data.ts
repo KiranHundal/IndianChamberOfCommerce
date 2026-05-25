@@ -620,10 +620,10 @@ export const mockPartners: Partner[] = [
 export const mockSiteSettings: SiteSettings = {
   _id: 'siteSettings',
   _type: 'siteSettings',
-  memberCount: 200,
-  sectorCount: 12,
-  eventsPerYear: 40,
-  yearsEstablished: 15,
+  memberCount: 100,
+  sectorCount: 8,
+  eventsPerYear: 20,
+  yearsEstablished: 10,
   heroHeadline: 'Building Indian Business Leadership in the Valley',
   heroSubtext:
     'The Central Valley Indian Chamber of Commerce connects, supports, and elevates Indian-American businesses across the region through networking, mentorship, and advocacy.',

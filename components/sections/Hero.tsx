@@ -3,7 +3,7 @@ import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
 
 const TRUST_STATS = [
-  { value: "150+", label: "Member Businesses" },
+  { value: "100+", label: "Member Businesses" },
   { value: "8",    label: "Industry Sectors" },
   { value: "4",    label: "Counties Served" },
 ];
@@ -112,18 +112,18 @@ export default function Hero() {
 
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
-              href="/directory"
+              href="/join"
               className="group relative inline-flex items-center gap-2 bg-accent text-white rounded-sm px-7 py-3.5 font-label text-label tracking-label uppercase overflow-hidden transition-all duration-300 hover:shadow-[0_10px_40px_-10px_rgba(184,150,12,0.6)] hover:-translate-y-0.5"
             >
-              <span className="relative z-10">Business Directory</span>
+              <span className="relative z-10">Join the Chamber</span>
               <ArrowRight className="relative z-10 w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
               <span className="absolute inset-0 bg-gradient-to-r from-accent via-gold-400 to-accent bg-[length:200%_100%] bg-[position:0%_0] transition-[background-position] duration-700 group-hover:bg-[position:100%_0]" />
             </Link>
             <Link
-              href="/join"
+              href="/about"
               className="group inline-flex items-center gap-2 text-white/80 border border-white/25 rounded-sm px-7 py-3.5 font-label text-label tracking-label uppercase transition-all duration-300 hover:text-white hover:border-white/50 hover:bg-white/[0.04]"
             >
-              Join the Chamber
+              Learn More
               <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
             </Link>
           </div>
