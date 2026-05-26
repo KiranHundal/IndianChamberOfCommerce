@@ -18,7 +18,7 @@ const HEADSHOT_MAP: Record<string, string> = {
   'Dr. Surdeep Singh': '/headshots/surdeep-singh.jpg',
   'Rajinder Kumar': '/headshots/rajinder-kumar.jpg',
   'Isha Lochab': '/headshots/isha-lochab.jpg',
-  'Kiranjot Kaur Hundal': '/headshots/kiranjot-hundal.jpg',
+  'Kiran Hundal': '/headshots/kiranjot-hundal.jpg',
   'Roken Bhatt': '/headshots/roken-bhatt.jpg',
   'Manreet Sandhu': '/headshots/manreet-sandhu.jpg',
   'Akash Singal': '/headshots/akash-singal.jpg',
@@ -33,7 +33,7 @@ const executives = mockLeadership.filter((l) =>
   ['Sonia Heer', 'Dr. Surdeep Singh', 'Rajinder Kumar'].includes(l.name)
 )
 const officers = mockLeadership.filter((l) =>
-  ['Kiranjot Kaur Hundal'].includes(l.name)
+  ['Kiran Hundal'].includes(l.name)
 )
 const boardMembers = mockLeadership.filter((l) =>
   ['Isha Lochab', 'Roken Bhatt', 'Manreet Sandhu', 'Akash Singal', 'Bobby Basra'].includes(l.name)
@@ -134,40 +134,31 @@ export default function LeadershipPage() {
             </AnimatedSection>
           </div>
 
-          <div className="flex justify-center">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl">
-              {officers.map((leader, i) => (
-                <AnimatedSection key={leader._id} delay={i + 2}>
-                  <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-col h-full">
-                    <div className="relative h-64 overflow-hidden flex-shrink-0">
-                      <Image
-                        src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
-                        alt={leader.name}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
-                      <div className="absolute bottom-4 left-5 right-5">
-                        <h3 className="font-display text-h3 text-white">
-                          {leader.name}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="p-5">
-                      <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70">
-                        {leader.role}
-                      </p>
-                      {leader.sector && (
-                        <Badge variant="navy" className="mt-2 self-start">
-                          {leader.sector.name}
-                        </Badge>
-                      )}
-                    </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {officers.map((leader, i) => (
+              <AnimatedSection key={leader._id} delay={i + 2}>
+                <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-row h-full min-h-[12rem]">
+                  <div className="relative w-48 flex-shrink-0 overflow-hidden">
+                    <Image
+                      src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
+                      alt={leader.name}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-navy-900/10" />
                   </div>
-                </AnimatedSection>
-              ))}
-            </div>
+
+                  <div className="p-6 flex flex-col justify-center">
+                    <h3 className="font-display text-h3 text-brand">
+                      {leader.name}
+                    </h3>
+                    <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70 mt-2">
+                      {leader.role}
+                    </p>
+                  </div>
+                </div>
+              </AnimatedSection>
+            ))}
           </div>
         </div>
       </section>
