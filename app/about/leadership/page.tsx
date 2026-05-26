@@ -27,8 +27,8 @@ const HEADSHOT_MAP: Record<string, string> = {
 
 const HEADSHOT_POSITION: Record<string, string> = {
   'Sonia Heer': 'center center',
-  'Dr. Surdeep Singh': 'center top',
-  'Rajinder Kumar': 'center top',
+  'Dr. Surdeep Singh': 'center center',
+  'Rajinder Kumar': 'center center',
 }
 
 function getBioText(bio: Array<{ children: Array<{ text: string }> }>): string {
