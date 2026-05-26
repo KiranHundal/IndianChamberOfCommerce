@@ -1,5 +1,6 @@
 import Hero from '@/components/sections/Hero'
 import StatsBar from '@/components/sections/StatsBar'
+import AboutPreview from '@/components/sections/AboutPreview'
 import SocialStrip from '@/components/layout/SocialStrip'
 // import SectorGrid from '@/components/sections/SectorGrid'
 // import UpcomingEvents from '@/components/sections/UpcomingEvents'
@@ -31,6 +32,7 @@ export default function HomePage() {
       />
       <Hero />
       <StatsBar />
+      <AboutPreview />
       <SocialStrip />
       {/* <SectorGrid /> */}
       {/* <UpcomingEvents /> */}
