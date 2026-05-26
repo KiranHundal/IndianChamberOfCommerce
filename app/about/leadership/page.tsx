@@ -26,9 +26,9 @@ const HEADSHOT_MAP: Record<string, string> = {
 }
 
 const HEADSHOT_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center 20%',
-  'Dr. Surdeep Singh': 'center 25%',
-  'Rajinder Kumar': 'center 15%',
+  'Sonia Heer': 'center top',
+  'Dr. Surdeep Singh': 'center top',
+  'Rajinder Kumar': 'center top',
 }
 
 function getBioText(bio: Array<{ children: Array<{ text: string }> }>): string {
@@ -93,13 +93,13 @@ export default function LeadershipPage() {
             {executives.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
                 <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-col h-full">
-                  <div className="relative h-72 overflow-hidden flex-shrink-0">
+                  <div className="relative h-96 overflow-hidden flex-shrink-0">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
                       alt={leader.name}
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-105"
-                      style={{ objectPosition: HEADSHOT_POSITION[leader.name] || 'center 20%' }}
+                      style={{ objectPosition: HEADSHOT_POSITION[leader.name] || 'center top' }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
                     <div className="absolute bottom-4 left-5 right-5">
