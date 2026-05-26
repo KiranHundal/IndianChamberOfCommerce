@@ -26,7 +26,7 @@ const HEADSHOT_MAP: Record<string, string> = {
 }
 
 const HEADSHOT_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center top',
+  'Sonia Heer': 'center center',
   'Dr. Surdeep Singh': 'center top',
   'Rajinder Kumar': 'center top',
 }
