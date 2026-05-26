@@ -464,7 +464,7 @@ export const mockLeadership: Leadership[] = [
     name: 'Sonia Heer',
     role: 'Chairwoman · Founder · Spokeswoman',
     sector: sector('Real Estate'),
-    bio: leaderBio('Sonia Heer is the founding Chairwoman and Spokeswoman of CVICC and a licensed Real Estate Broker and Agent. She has been the driving force behind uniting Indian-American entrepreneurs under a single chamber, opening doors for businesses across the Central Valley.'),
+    bio: leaderBio('Sonia Heer is a dynamic entrepreneur and Broker/Owner of Golden State Realty, Founder of Lavish Eventz and Fresno\'s annual Teeyan Festival, and host of the Rise with Sonia podcast. As Chairwoman and Founder of CVICC, she is dedicated to fostering business growth, cultural connections, and community engagement throughout the Central Valley.'),
     photo: mockImage,
     order: 1,
   },
