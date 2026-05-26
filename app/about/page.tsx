@@ -21,7 +21,7 @@ const HEADSHOT_MAP: Record<string, string> = {
   'Dr. Surdeep Singh': '/headshots/surdeep-singh.jpg',
   'Rajinder Kumar': '/headshots/rajinder-kumar.jpg',
   'Isha Lochab': '/headshots/isha-lochab.jpg',
-  'Kiranjot Kaur Hundal': '/headshots/kiranjot-hundal.jpg',
+  'Kiran Hundal': '/headshots/kiranjot-hundal.jpg',
   'Roken Bhatt': '/headshots/roken-bhatt.jpg',
   'Manreet Sandhu': '/headshots/manreet-sandhu.jpg',
   'Akash Singal': '/headshots/akash-singal.jpg',

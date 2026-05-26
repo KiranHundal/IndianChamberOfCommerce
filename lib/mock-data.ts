@@ -500,10 +500,9 @@ export const mockLeadership: Leadership[] = [
   {
     _id: 'leader-5',
     _type: 'leadership',
-    name: 'Kiranjot Kaur Hundal',
+    name: 'Kiran Hundal',
     role: 'Treasurer',
-    sector: sector('Finance'),
-    bio: leaderBio('Kiranjot Kaur Hundal serves as Treasurer of CVICC, overseeing the chamber\'s financial operations, budget planning, and fiscal reporting. Her attention to detail and financial acumen ensure every resource is directed toward member empowerment and community growth.'),
+    bio: leaderBio('Kiran Hundal serves as Treasurer of CVICC, overseeing the chamber\'s financial operations, budget planning, and fiscal reporting. Her attention to detail and financial acumen ensure every resource is directed toward member empowerment and community growth.'),
     photo: mockImage,
     order: 5,
   },
