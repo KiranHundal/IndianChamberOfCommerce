@@ -1,3 +1,5 @@
+import AnimatedSection from '@/components/ui/AnimatedSection'
+
 const stats = [
   { value: "100+", label: "Members" },
   { value: "8", label: "Sectors" },
@@ -6,17 +8,19 @@ const stats = [
 
 export default function StatsBar() {
   return (
-    <section className="bg-navy-900 border-t border-white/10 py-8">
-      <div className="max-w-[75rem] mx-auto px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
-        {stats.map((stat) => (
-          <div key={stat.label} className="text-center">
-            <p className="font-display text-h2 md:text-h1 text-gold-600 italic">
-              {stat.value}
-            </p>
-            <p className="font-label text-micro tracking-widest uppercase text-white/35 mt-1">
-              {stat.label}
-            </p>
-          </div>
+    <section className="bg-page-bg py-16 border-b border-ivory-200">
+      <div className="max-w-5xl mx-auto px-8 grid grid-cols-3 gap-8">
+        {stats.map((stat, i) => (
+          <AnimatedSection key={stat.label} delay={i}>
+            <div className="text-center">
+              <p className="font-display text-display md:text-hero-sm text-brand">
+                {stat.value}
+              </p>
+              <p className="font-label text-micro tracking-widest uppercase text-brand/50 mt-2">
+                {stat.label}
+              </p>
+            </div>
+          </AnimatedSection>
         ))}
       </div>
     </section>
