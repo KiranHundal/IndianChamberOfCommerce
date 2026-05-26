@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   },
   description:
     'Connecting and empowering Indian businesses in Fresno and the Central Valley through networking, resources, and community.',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/favicon.png',
+  },
 }
 
 export default function RootLayout({
