@@ -25,6 +25,12 @@ const HEADSHOT_MAP: Record<string, string> = {
   'Bobby Basra': '/headshots/bobby-basra.jpg',
 }
 
+const HEADSHOT_POSITION: Record<string, string> = {
+  'Sonia Heer': 'center 20%',
+  'Dr. Surdeep Singh': 'center 25%',
+  'Rajinder Kumar': 'center 15%',
+}
+
 function getBioText(bio: Array<{ children: Array<{ text: string }> }>): string {
   return bio.map((block) => block.children.map((c) => c.text).join('')).join(' ')
 }
@@ -93,6 +99,7 @@ export default function LeadershipPage() {
                       alt={leader.name}
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      style={{ objectPosition: HEADSHOT_POSITION[leader.name] || 'center 20%' }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
                     <div className="absolute bottom-4 left-5 right-5">
