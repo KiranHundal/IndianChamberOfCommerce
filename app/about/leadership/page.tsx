@@ -50,10 +50,10 @@ export default function LeadershipPage() {
     <>
       {/* Hero */}
       <section className="bg-navy-900 py-32 text-center relative overflow-hidden">
-        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
-        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
-        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
-        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30" />
+        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30 corner-bracket corner-bracket-tl" />
+        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30 corner-bracket corner-bracket-tr" />
+        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30 corner-bracket corner-bracket-bl" />
+        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30 corner-bracket corner-bracket-br" />
 
         <div className="max-w-4xl mx-auto px-8">
           <AnimatedSection>
@@ -80,7 +80,7 @@ export default function LeadershipPage() {
       {/* Executive Leadership */}
       <section className="bg-page-bg py-24">
         <div className="max-w-6xl mx-auto px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-14">
             <AnimatedSection>
               <SectionLabel>Executive Leadership</SectionLabel>
             </AnimatedSection>
@@ -92,18 +92,18 @@ export default function LeadershipPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {executives.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
-                <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-col h-full">
-                  <div className="relative h-96 overflow-hidden flex-shrink-0">
+                <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
+                  <div className="card-image relative h-96 overflow-hidden flex-shrink-0">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
                       alt={leader.name}
                       fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      className="object-cover"
                       style={{ objectPosition: HEADSHOT_POSITION[leader.name] || 'center top' }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
-                    <div className="absolute bottom-4 left-5 right-5">
-                      <h3 className="font-display text-h3 text-white">
+                    <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
+                    <div className="card-name absolute bottom-5 left-6 right-6">
+                      <h3 className="font-display text-h3 text-white drop-shadow-lg">
                         {leader.name}
                       </h3>
                     </div>
@@ -122,6 +122,8 @@ export default function LeadershipPage() {
                       {getBioText(leader.bio as Array<{ children: Array<{ text: string }> }>)}
                     </p>
                   </div>
+
+                  <div className="gold-accent-line" />
                 </div>
               </AnimatedSection>
             ))}
@@ -144,15 +146,16 @@ export default function LeadershipPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             {officers.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
-                <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-row h-full min-h-[12rem]">
-                  <div className="relative w-48 flex-shrink-0 overflow-hidden">
+                <div className="officer-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-row h-full min-h-[12rem] relative">
+                  <div className="card-image relative w-48 flex-shrink-0 overflow-hidden">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
                       alt={leader.name}
                       fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      className="object-cover transition-transform duration-700"
+                      style={{ transformOrigin: 'center center' }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-navy-900/10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/5" />
                   </div>
 
                   <div className="p-6 flex flex-col justify-center">
@@ -163,6 +166,8 @@ export default function LeadershipPage() {
                       {leader.role}
                     </p>
                   </div>
+
+                  <div className="gold-accent-line" />
                 </div>
               </AnimatedSection>
             ))}
@@ -173,7 +178,7 @@ export default function LeadershipPage() {
       {/* Board Members */}
       <section className="bg-page-bg py-24">
         <div className="max-w-6xl mx-auto px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-14">
             <AnimatedSection>
               <SectionLabel>Board Members</SectionLabel>
             </AnimatedSection>
@@ -185,17 +190,17 @@ export default function LeadershipPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {boardMembers.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
-                <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-col h-full">
-                  <div className="relative h-52 overflow-hidden flex-shrink-0">
+                <div className="board-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
+                  <div className="card-image relative h-52 overflow-hidden flex-shrink-0">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
                       alt={leader.name}
                       fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      className="object-cover transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <h3 className="font-display text-h4 text-white">
+                    <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
+                    <div className="card-name absolute bottom-4 left-4 right-4">
+                      <h3 className="font-display text-h4 text-white drop-shadow-lg">
                         {leader.name}
                       </h3>
                     </div>
@@ -211,6 +216,8 @@ export default function LeadershipPage() {
                       </Badge>
                     )}
                   </div>
+
+                  <div className="gold-accent-line" />
                 </div>
               </AnimatedSection>
             ))}
@@ -220,8 +227,8 @@ export default function LeadershipPage() {
 
       {/* Join the Board CTA */}
       <section className="bg-navy-900 py-20 relative overflow-hidden">
-        <div className="absolute top-6 right-6 w-16 h-16 border-t border-r border-gold-600/25" />
-        <div className="absolute bottom-6 left-6 w-16 h-16 border-b border-l border-gold-600/25" />
+        <div className="absolute top-6 right-6 w-16 h-16 border-t border-r border-gold-600/25 corner-bracket corner-bracket-tr" />
+        <div className="absolute bottom-6 left-6 w-16 h-16 border-b border-l border-gold-600/25 corner-bracket corner-bracket-bl" />
 
         <div className="max-w-3xl mx-auto px-8 text-center">
           <AnimatedSection>
@@ -236,7 +243,7 @@ export default function LeadershipPage() {
             </p>
             <a
               href="/contact"
-              className="inline-block mt-8 bg-accent text-white rounded-sm px-8 py-3.5 font-label text-label tracking-label uppercase hover:bg-gold-900 transition-all"
+              className="cta-button-glow inline-block mt-8 bg-accent text-white rounded-sm px-8 py-3.5 font-label text-label tracking-label uppercase"
             >
               Contact Us
             </a>
