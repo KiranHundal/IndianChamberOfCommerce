@@ -14,15 +14,15 @@ export const metadata: Metadata = {
 }
 
 const HEADSHOT_MAP: Record<string, string> = {
-  'Harpreet Singh': '/headshots/harpreet-singh.jpg',
-  'Anil Varma': '/headshots/anil-varma.jpg',
-  'Gurpreet Kaur': '/headshots/gurpreet-kaur.jpg',
-  'Kiran Shah': '/headshots/kiran-shah.jpg',
-  'Ramesh Kulkarni': '/headshots/ramesh-kulkarni.jpg',
-  'Sunita Rao': '/headshots/sunita-rao.jpg',
-  'Deepak Nair': '/headshots/deepak-nair.jpg',
-  'Pooja Agarwal': '/headshots/pooja-agarwal.jpg',
-  'Sanjay Bhatt': '/headshots/sanjay-bhatt.jpg',
+  'Sonia Heer': '/headshots/sonia-heer.jpg',
+  'Dr. Surdeep Singh': '/headshots/surdeep-singh.jpg',
+  'Rajinder Kumar': '/headshots/rajinder-kumar.jpg',
+  'Isha Lochab': '/headshots/isha-lochab.jpg',
+  'Kiranjot Kaur Hundal': '/headshots/kiranjot-hundal.jpg',
+  'Roken Bhatt': '/headshots/roken-bhatt.jpg',
+  'Manreet Sandhu': '/headshots/manreet-sandhu.jpg',
+  'Akash Singal': '/headshots/akash-singal.jpg',
+  'Bobby Basra': '/headshots/bobby-basra.jpg',
 }
 
 function getBioText(bio: Array<{ children: Array<{ text: string }> }>): string {
@@ -30,8 +30,10 @@ function getBioText(bio: Array<{ children: Array<{ text: string }> }>): string {
 }
 
 function getRolePriority(role: string): 'executive' | 'officer' | 'member' {
-  if (role === 'Chairperson' || role === 'President' || role === 'Founding Member') return 'executive'
-  if (role === 'Secretary' || role === 'Treasurer') return 'officer'
+  const r = role.toLowerCase()
+  if (r.includes('chair') || r.includes('president')) return 'executive'
+  if (r.includes('treasurer') || r.includes('secretary')) return 'officer'
+  if (r === 'founder') return 'executive'
   return 'member'
 }
 
