@@ -473,7 +473,7 @@ export const mockLeadership: Leadership[] = [
     name: 'Dr. Surdeep Singh',
     role: 'President · Founder',
     sector: sector('Healthcare'),
-    bio: leaderBio('Dr. Surdeep Singh is the President and co-founder of CVICC. A respected physician in the Central Valley, he leads the chamber\'s strategic vision and forges partnerships with regional institutions to elevate Indian-American enterprise across the Valley.'),
+    bio: leaderBio('Dr. Surdeep Singh, DDS, is the President and co-founder of CVICC. A graduate of Genesis Institute of Dental Sciences (BDS) and La Salle University (DDS), he specializes in dental implants, conscious sedation, Invisalign, and endodontics. Dr. Singh is the youngest robotic dental practice owner in the U.S. and the second in Central California to offer robotic-assisted dentistry. His Robotic Dental Implant Center in Clovis received Senate recognition from Senator Shannon Grove and an Assembly resolution from Assemblyman Jim Patterson.'),
     photo: mockImage,
     order: 2,
   },
