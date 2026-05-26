@@ -401,16 +401,16 @@ export default function JoinPage() {
           {/* Contact CTA */}
           <div className="mt-16 text-center">
             <p className="text-body text-mid">
-              Questions about membership? Contact our Chairman
+              Questions about membership? Contact our Chairwoman
             </p>
             <p className="font-display text-h4 text-brand mt-2">
-              Raj Kumar
+              Sonia Heer
             </p>
             <a
-              href="tel:5594790049"
+              href="tel:5104531248"
               className="inline-flex items-center gap-2 text-accent font-label text-label tracking-label uppercase mt-2 hover:text-gold-900 transition-colors"
             >
-              (559) 479-0049
+              (510) 453-1248
             </a>
           </div>
         </div>
