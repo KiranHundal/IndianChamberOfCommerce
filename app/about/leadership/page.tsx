@@ -29,6 +29,16 @@ function getBioText(bio: Array<{ children: Array<{ text: string }> }>): string {
   return bio.map((block) => block.children.map((c) => c.text).join('')).join(' ')
 }
 
+const executives = mockLeadership.filter((l) =>
+  ['Sonia Heer', 'Dr. Surdeep Singh', 'Rajinder Kumar'].includes(l.name)
+)
+const officers = mockLeadership.filter((l) =>
+  ['Kiranjot Kaur Hundal'].includes(l.name)
+)
+const boardMembers = mockLeadership.filter((l) =>
+  ['Isha Lochab', 'Roken Bhatt', 'Manreet Sandhu', 'Akash Singal', 'Bobby Basra'].includes(l.name)
+)
+
 export default function LeadershipPage() {
   return (
     <>
@@ -61,15 +71,23 @@ export default function LeadershipPage() {
         </div>
       </section>
 
-      {/* Board Grid — uniform cards */}
+      {/* Executive Leadership */}
       <section className="bg-page-bg py-24">
         <div className="max-w-6xl mx-auto px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {mockLeadership.map((leader, i) => (
-              <AnimatedSection key={leader._id} delay={i}>
-                <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group h-full flex flex-col">
-                  {/* Photo */}
-                  <div className="relative h-64 overflow-hidden flex-shrink-0">
+          <div className="text-center mb-12">
+            <AnimatedSection>
+              <SectionLabel>Executive Leadership</SectionLabel>
+            </AnimatedSection>
+            <AnimatedSection delay={1}>
+              <Divider className="mx-auto mt-4" />
+            </AnimatedSection>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {executives.map((leader, i) => (
+              <AnimatedSection key={leader._id} delay={i + 2}>
+                <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-col h-full">
+                  <div className="relative h-72 overflow-hidden flex-shrink-0">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
                       alt={leader.name}
@@ -84,21 +102,116 @@ export default function LeadershipPage() {
                     </div>
                   </div>
 
-                  {/* Body */}
-                  <div className="p-5 flex flex-col flex-1">
+                  <div className="p-6 flex flex-col flex-1">
                     <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70">
                       {leader.role}
                     </p>
-
                     {leader.sector && (
                       <Badge variant="navy" className="mt-2 self-start">
                         {leader.sector.name}
                       </Badge>
                     )}
-
-                    <p className="text-small text-mid leading-relaxed mt-3 line-clamp-4">
+                    <p className="text-small text-mid leading-relaxed mt-3">
                       {getBioText(leader.bio as Array<{ children: Array<{ text: string }> }>)}
                     </p>
+                  </div>
+                </div>
+              </AnimatedSection>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Officers */}
+      <section className="bg-page-alt py-20">
+        <div className="max-w-6xl mx-auto px-8">
+          <div className="text-center mb-12">
+            <AnimatedSection>
+              <SectionLabel>Officers</SectionLabel>
+            </AnimatedSection>
+            <AnimatedSection delay={1}>
+              <Divider className="mx-auto mt-4" />
+            </AnimatedSection>
+          </div>
+
+          <div className="flex justify-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl">
+              {officers.map((leader, i) => (
+                <AnimatedSection key={leader._id} delay={i + 2}>
+                  <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-col h-full">
+                    <div className="relative h-64 overflow-hidden flex-shrink-0">
+                      <Image
+                        src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
+                        alt={leader.name}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
+                      <div className="absolute bottom-4 left-5 right-5">
+                        <h3 className="font-display text-h3 text-white">
+                          {leader.name}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <div className="p-5">
+                      <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70">
+                        {leader.role}
+                      </p>
+                      {leader.sector && (
+                        <Badge variant="navy" className="mt-2 self-start">
+                          {leader.sector.name}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </AnimatedSection>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Board Members */}
+      <section className="bg-page-bg py-24">
+        <div className="max-w-6xl mx-auto px-8">
+          <div className="text-center mb-12">
+            <AnimatedSection>
+              <SectionLabel>Board Members</SectionLabel>
+            </AnimatedSection>
+            <AnimatedSection delay={1}>
+              <Divider className="mx-auto mt-4" />
+            </AnimatedSection>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {boardMembers.map((leader, i) => (
+              <AnimatedSection key={leader._id} delay={i + 2}>
+                <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden shadow-card hover:shadow-hover transition-all group flex flex-col h-full">
+                  <div className="relative h-52 overflow-hidden flex-shrink-0">
+                    <Image
+                      src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
+                      alt={leader.name}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <h3 className="font-display text-h4 text-white">
+                        {leader.name}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70">
+                      {leader.role}
+                    </p>
+                    {leader.sector && (
+                      <Badge variant="navy" className="mt-2 self-start">
+                        {leader.sector.name}
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </AnimatedSection>
