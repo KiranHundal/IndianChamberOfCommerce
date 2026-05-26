@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState } from 'react'
 import {
   Users,
   Megaphone,
@@ -23,6 +23,11 @@ const whyJoin = [
   { icon: Handshake, text: 'Collaborate with entrepreneurs & professionals' },
   { icon: Network, text: 'Be part of a growing Indian business network' },
 ]
+
+const SQUARE_LINKS: Record<string, string> = {
+  individual: 'https://square.link/u/Av93qe4Z',
+  corporate: 'https://square.link/u/9opDARDg',
+}
 
 const tiers = [
   {
@@ -59,58 +64,8 @@ const tiers = [
   },
 ]
 
-const inputClass =
-  'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
-
 export default function JoinPage() {
   const [selectedTier, setSelectedTier] = useState<string | null>(null)
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
-  const [errorMsg, setErrorMsg] = useState('')
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setStatus('submitting')
-    setErrorMsg('')
-
-    const form = e.currentTarget
-    const data = {
-      name: (form.elements.namedItem('fullName') as HTMLInputElement).value.trim(),
-      email: (form.elements.namedItem('applyEmail') as HTMLInputElement).value.trim(),
-      phone: (form.elements.namedItem('applyPhone') as HTMLInputElement).value.trim(),
-      city: (form.elements.namedItem('city') as HTMLSelectElement).value,
-      businessName: (form.elements.namedItem('businessName') as HTMLInputElement).value.trim(),
-      sector: (form.elements.namedItem('sector') as HTMLSelectElement).value,
-      about: (form.elements.namedItem('about') as HTMLTextAreaElement).value.trim(),
-      membershipTier: selectedTier || 'individual',
-    }
-
-    if (!data.name || !data.email || !data.businessName) {
-      setStatus('error')
-      setErrorMsg('Please fill in your name, email, and business name.')
-      return
-    }
-
-    try {
-      const res = await fetch('/api/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        setStatus('error')
-        setErrorMsg(result.error || 'Something went wrong.')
-        return
-      }
-
-      setStatus('success')
-    } catch {
-      setStatus('error')
-      setErrorMsg('Network error. Please try again.')
-    }
-  }
 
   return (
     <>
@@ -237,20 +192,15 @@ export default function JoinPage() {
                     </ul>
 
                     {/* Select button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedTier(tier.id)
-                        document.getElementById('apply')?.scrollIntoView({ behavior: 'smooth' })
-                      }}
-                      className={`w-full mt-8 font-label text-label tracking-label uppercase px-6 py-3.5 rounded-sm transition-all ${
-                        isSelected
-                          ? 'bg-accent text-white shadow-card'
-                          : 'bg-navy-900 text-white hover:bg-navy-800'
-                      }`}
+                    <a
+                      href={SQUARE_LINKS[tier.id]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="block w-full mt-8 text-center font-label text-label tracking-label uppercase px-6 py-3.5 rounded-sm transition-all bg-accent text-white hover:bg-gold-900 shadow-card hover:shadow-hover"
                     >
-                      {isSelected ? 'Selected — Apply Below' : `Choose ${tier.name.split(' ')[0]}`}
-                    </button>
+                      Join Now — ${tier.salePrice}/year
+                    </a>
                   </div>
                 </div>
               )
@@ -259,160 +209,27 @@ export default function JoinPage() {
         </div>
       </section>
 
-      {/* Application Form */}
-      <section id="apply" className="bg-page-bg py-24">
-        <div className="max-w-[75rem] mx-auto px-8">
-          <div className="text-center">
-            <SectionLabel>Get Started</SectionLabel>
-            <SectionTitle className="mt-4">Join Today & Make an Impact</SectionTitle>
-            <Divider className="mx-auto mt-6" />
-            <p className="text-body text-mid mt-4 max-w-xl mx-auto">
-              Your membership helps strengthen our community and creates opportunities for all.
-              Together, we build a stronger tomorrow.
-            </p>
-          </div>
+      {/* Contact CTA */}
+      <section className="bg-navy-900 py-20 relative overflow-hidden">
+        <div className="absolute top-6 right-6 w-16 h-16 border-t border-r border-gold-600/25" />
+        <div className="absolute bottom-6 left-6 w-16 h-16 border-b border-l border-gold-600/25" />
 
-          <div className="mt-12 max-w-2xl mx-auto bg-white border border-ivory-200 rounded-lg p-8">
-            {status === 'success' ? (
-              <div className="text-center py-8">
-                <CheckCircle className="w-16 h-16 text-accent mx-auto" />
-                <h3 className="font-display text-h3 text-brand mt-6">
-                  Application Received
-                </h3>
-                <p className="text-body text-mid mt-3 max-w-md mx-auto">
-                  Thank you for joining the Central Valley Indian Chamber of Commerce.
-                  Our team will review your application and your business will appear in the directory once approved.
-                </p>
-                <button
-                  onClick={() => setStatus('idle')}
-                  className="mt-6 text-accent text-small font-medium hover:text-gold-900 transition-colors"
-                >
-                  Submit another application
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Selected tier indicator */}
-                {selectedTier && (
-                  <div className="bg-navy-100 border border-brand/10 rounded-md px-4 py-3 flex items-center justify-between">
-                    <span className="font-label text-micro tracking-widest uppercase text-brand">
-                      {selectedTier === 'corporate' ? 'Corporate Membership' : 'Individual Membership'}
-                    </span>
-                    <span className="font-display text-h4 text-brand">
-                      ${selectedTier === 'corporate' ? '395' : '95'}
-                      <span className="text-small text-mid font-body">/year</span>
-                    </span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label htmlFor="fullName" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                      Full Name *
-                    </label>
-                    <input id="fullName" type="text" required className={inputClass} placeholder="Your full name" />
-                  </div>
-                  <div>
-                    <label htmlFor="applyEmail" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                      Email *
-                    </label>
-                    <input id="applyEmail" type="email" required className={inputClass} placeholder="you@example.com" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label htmlFor="applyPhone" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                      Phone
-                    </label>
-                    <input id="applyPhone" type="tel" className={inputClass} placeholder="(559) 555-0100" />
-                  </div>
-                  <div>
-                    <label htmlFor="city" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                      City
-                    </label>
-                    <select id="city" className={inputClass}>
-                      <option value="">Select city</option>
-                      <option value="Fresno">Fresno</option>
-                      <option value="Clovis">Clovis</option>
-                      <option value="Visalia">Visalia</option>
-                      <option value="Bakersfield">Bakersfield</option>
-                      <option value="Modesto">Modesto</option>
-                      <option value="Madera">Madera</option>
-                      <option value="Hanford">Hanford</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="businessName" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                    Business Name *
-                  </label>
-                  <input id="businessName" type="text" required className={inputClass} placeholder="Your business name" />
-                </div>
-                <div>
-                  <label htmlFor="sector" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                    Industry Sector
-                  </label>
-                  <select id="sector" className={inputClass}>
-                    <option value="">Select sector</option>
-                    <option value="Healthcare">Healthcare</option>
-                    <option value="Real Estate">Real Estate</option>
-                    <option value="Legal">Legal</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Hospitality">Hospitality</option>
-                    <option value="Agriculture">Agriculture</option>
-                    <option value="Education">Education</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="about" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                    Tell Us About Your Business
-                  </label>
-                  <textarea
-                    id="about"
-                    rows={4}
-                    className={`${inputClass} resize-none`}
-                    placeholder="Brief description of your business and why you'd like to join"
-                  />
-                </div>
-
-                {status === 'error' && (
-                  <p className="text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
-                    {errorMsg}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={status === 'submitting'}
-                  className="w-full bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3.5 rounded-sm hover:bg-gold-900 transition-all shadow-card hover:shadow-hover disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {status === 'submitting' ? 'Submitting...' : 'Submit Application'}
-                </button>
-                <p className="text-caption text-hint text-center mt-3">
-                  Your business will appear in our directory once reviewed and approved.
-                </p>
-              </form>
-            )}
-          </div>
-
-          {/* Contact CTA */}
-          <div className="mt-16 text-center">
-            <p className="text-body text-mid">
-              Questions about membership? Contact our Chairwoman
-            </p>
-            <p className="font-display text-h4 text-brand mt-2">
-              Sonia Heer
-            </p>
-            <a
-              href="tel:5104531248"
-              className="inline-flex items-center gap-2 text-accent font-label text-label tracking-label uppercase mt-2 hover:text-gold-900 transition-colors"
-            >
-              (510) 453-1248
-            </a>
-          </div>
+        <div className="max-w-3xl mx-auto px-8 text-center">
+          <SectionLabel dark>Questions?</SectionLabel>
+          <h2 className="font-display text-h2 text-white mt-4">
+            Need help choosing a plan?
+          </h2>
+          <p className="text-body text-white/55 mt-4 max-w-xl mx-auto">
+            Contact our Chairwoman for any questions about membership benefits,
+            eligibility, or the application process.
+          </p>
+          <p className="font-display text-h4 text-gold-400 mt-6">Sonia Heer</p>
+          <a
+            href="tel:5104531248"
+            className="inline-flex items-center gap-2 text-white font-label text-label tracking-label uppercase mt-2 hover:text-gold-400 transition-colors"
+          >
+            (510) 453-1248
+          </a>
         </div>
       </section>
     </>
