@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Globe, ExternalLink } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import LogoPlaceholder from '../ui/LogoPlaceholder';
 
 const quickLinks = [
@@ -56,13 +56,7 @@ export default function Footer() {
               <p>info@cvicc.org</p>
             </address>
             <div className="flex gap-4 mt-4">
-              <a href="#" aria-label="Instagram" className="text-white/50 hover:text-accent transition-colors">
-                <Globe className="w-5 h-5" />
-              </a>
-              <a href="#" aria-label="LinkedIn" className="text-white/50 hover:text-accent transition-colors">
-                <ExternalLink className="w-5 h-5" />
-              </a>
-              <a href="#" aria-label="Facebook" className="text-white/50 hover:text-accent transition-colors">
+              <a href="https://www.instagram.com/indianchamberofcommerce" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-white/50 hover:text-accent transition-colors">
                 <Globe className="w-5 h-5" />
               </a>
             </div>

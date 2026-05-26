@@ -41,9 +41,10 @@ export default function AboutPreview() {
           </AnimatedSection>
           <AnimatedSection delay={3}>
             <p className="text-body text-mid mt-6 max-w-2xl mx-auto leading-relaxed">
-              CVICC is a unified platform where Indian-American entrepreneurs
-              and professionals connect, collaborate, and grow together — building
-              a stronger business community for the entire Valley.
+              Dedicated to supporting and advancing Indian-owned businesses,
+              entrepreneurs, and professionals throughout California&rsquo;s
+              Central Valley — creating opportunities for economic growth,
+              networking, mentorship, and community leadership.
             </p>
           </AnimatedSection>
         </div>
