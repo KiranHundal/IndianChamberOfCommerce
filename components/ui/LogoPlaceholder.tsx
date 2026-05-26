@@ -11,8 +11,8 @@ export default function LogoPlaceholder({ dark = false }: LogoPlaceholderProps) 
       <Image
         src="/logo.jpeg"
         alt="CVICC"
-        width={48}
-        height={48}
+        width={64}
+        height={64}
         className="rounded-full"
       />
       <div>
