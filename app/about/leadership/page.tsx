@@ -17,11 +17,11 @@ const HEADSHOT_MAP: Record<string, string> = {
   'Sonia Heer': '/headshots/sonia1.png',
   'Dr. Surdeep Singh': '/headshots/surdeep1.png',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
-  'Isha Lochab': '/headshots/Isha.JPG',
+  'Isha Lochab': '/headshots/Isha1.png',
   'Kiran Hundal': '/headshots/KiranH.jpg',
-  'Roken Bhatt': '/headshots/RokenB.jpeg',
+  'Roken Bhatt': '/headshots/Roken1.png',
   'Manreet Sandhu': '/headshots/manreet-sandhu.jpg',
-  'Akash Singal': '/headshots/Akash.jpg',
+  'Akash Singal': '/headshots/Akash1.png',
   'Bobby Basra': '/headshots/bobby-basra.jpg',
 }
 
@@ -39,6 +39,12 @@ const EXEC_TRANSFORM: Record<string, string> = {
   'Sonia Heer': 'scale(1.25) translateY(-6%)',
   'Dr. Surdeep Singh': 'scale(1.25) translateY(-1%)',
   'Rajinder Kumar': 'scale(1.25) translateY(-5%)',
+}
+
+const BOARD_TRANSFORM: Record<string, string> = {
+  'Isha Lochab': 'scale(1.3) translateY(-5%)',
+  'Roken Bhatt': 'scale(1.3) translateY(-5%)',
+  'Akash Singal': 'scale(1.3) translateY(-5%)',
 }
 
 const executives = mockLeadership.filter((l) =>
@@ -204,6 +210,10 @@ export default function LeadershipPage() {
                       alt={leader.name}
                       fill
                       className="object-cover transition-transform duration-700"
+                      style={{
+                        transform: BOARD_TRANSFORM[leader.name] || undefined,
+                        transformOrigin: 'center top',
+                      }}
                     />
                     <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
                     <div className="card-name absolute bottom-4 left-4 right-4">
