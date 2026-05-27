@@ -7,7 +7,7 @@ import AnimatedSection from '@/components/ui/AnimatedSection'
 const testimonials = [
   {
     quote:
-      'I founded CVICC because I saw what our community could become when we stop working in silos and start building together. We are real estate brokers, doctors, financial advisors, tech founders — and when we unite under one roof, we don\'t just grow businesses. We change the economic landscape of an entire region.',
+      'When Indian-American entrepreneurs stop working in silos and start building together, something powerful happens. We are real estate brokers, doctors, financial advisors, tech founders — and when we unite under one roof, we don\'t just grow businesses. We change the economic landscape of an entire region.',
     name: 'Sonia Heer',
     title: 'Chairwoman & Founder',
     credential: 'Broker/Owner, Golden State Realty · Founder, Lavish Eventz',
