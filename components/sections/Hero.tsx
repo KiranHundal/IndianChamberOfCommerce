@@ -2,12 +2,6 @@ import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
 
-const TRUST_STATS = [
-  { value: "100+", label: "Member Businesses" },
-  { value: "8",    label: "Industry Sectors" },
-  { value: "4",    label: "Counties Served" },
-];
-
 const PARTICLES = Array.from({ length: 18 }, (_, i) => {
   const left = (i * 53) % 100;
   const delay = (i * 0.7) % 9;
@@ -126,18 +120,6 @@ export default function Hero() {
               Learn More
               <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
             </Link>
-          </div>
-
-          {/* Trust strip */}
-          <div className="mt-16 flex flex-wrap gap-x-12 gap-y-6 pt-8 border-t border-white/10 max-w-xl">
-            {TRUST_STATS.map((stat) => (
-              <div key={stat.label}>
-                <div className="font-display text-3xl font-light text-white">{stat.value}</div>
-                <div className="font-label text-[0.6875rem] tracking-label uppercase text-white/45 mt-1">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>

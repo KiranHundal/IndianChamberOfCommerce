@@ -49,9 +49,9 @@ export default function AboutPreview() {
           </AnimatedSection>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-14">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-14 items-stretch">
           {pillars.map((pillar, i) => (
-            <AnimatedSection key={pillar.title} delay={i + 4}>
+            <AnimatedSection key={pillar.title} delay={i + 4} className="h-full">
               <div className="leadership-card bg-white border border-ivory-200 rounded-xl p-8 text-center h-full relative">
                 <div className="w-14 h-14 rounded-full bg-navy-900 mx-auto flex items-center justify-center">
                   <span className="font-display text-h3 italic text-gold-400">
