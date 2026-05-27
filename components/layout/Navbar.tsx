@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogIn } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import LogoPlaceholder from '../ui/LogoPlaceholder';
 
 const navLinks = [
@@ -15,6 +16,7 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const { data: session } = useSession();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -58,13 +60,32 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Desktop CTA */}
-        <Link
-          href="/join"
-          className="hidden lg:block bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all"
-        >
-          Join Now
-        </Link>
+        {/* Desktop CTAs */}
+        <div className="hidden lg:flex items-center gap-3">
+          {session ? (
+            <Link
+              href="/portal"
+              className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Portal
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Login
+            </Link>
+          )}
+          <Link
+            href="/join"
+            className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all"
+          >
+            Join Now
+          </Link>
+        </div>
 
         {/* Mobile hamburger */}
         <button
@@ -100,11 +121,30 @@ export default function Navbar() {
             </Link>
           ))}
 
-          {/* Mobile CTA */}
+          {/* Mobile CTAs */}
+          {session ? (
+            <Link
+              href="/portal"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all mt-4"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Portal
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all mt-4"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Login
+            </Link>
+          )}
           <Link
             href="/join"
             onClick={() => setMobileOpen(false)}
-            className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all mt-4"
+            className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all mt-2"
           >
             Join Now
           </Link>
