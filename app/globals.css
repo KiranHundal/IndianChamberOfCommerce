@@ -36,7 +36,6 @@ body {
   animation: cinematic-zoom 18s ease-in-out infinite alternate;
   transform-origin: center center;
   will-change: transform;
-  filter: blur(1.5px);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }

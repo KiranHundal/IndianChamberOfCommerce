@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
@@ -13,17 +12,11 @@ const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
 export default function Hero() {
   return (
     <section className="relative min-h-screen bg-navy-900 overflow-hidden flex items-center">
-      {/* Cinematic background — slow zoom + drift + blur */}
-      <div className="absolute inset-0 hero-cinematic-bg">
-        <Image
-          src="/background1.webp"
-          alt=""
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw"
-        />
-      </div>
+      {/* Cinematic background — CSS background-image, no Next.js Image processing */}
+      <div
+        className="absolute inset-0 hero-cinematic-bg"
+        style={{ backgroundImage: "url('/hero-bg.webp')", backgroundSize: "cover", backgroundPosition: "center" }}
+      />
 
       {/* Dark cinematic overlay with ambient light breathing */}
       <div
