@@ -4,6 +4,7 @@ import Navbar from '@/components/layout/Navbar'
 import AnnouncementBar from '@/components/layout/AnnouncementBar'
 import Footer from '@/components/layout/Footer'
 import SessionProvider from '@/components/providers/SessionProvider'
+import ChatWidget from '@/components/ui/ChatWidget'
 
 export const metadata: Metadata = {
   title: {
@@ -65,6 +66,7 @@ export default function RootLayout({
           <Navbar />
           <main>{children}</main>
           <Footer />
+          <ChatWidget />
         </SessionProvider>
       </body>
     </html>
