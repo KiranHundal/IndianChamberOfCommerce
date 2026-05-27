@@ -9,7 +9,7 @@ export default function Hero() {
       {/* Cinematic background image with slow zoom */}
       <div className="absolute inset-0 hero-slow-zoom">
         <Image
-          src="/background.png"
+          src="/background1.png"
           alt=""
           fill
           priority
