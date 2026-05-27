@@ -1,10 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { rateLimit } from '@/lib/rate-limit'
 
-export async function POST(req: Request) {
+const limiter = rateLimit({ interval: 60_000, limit: 5 })
+
+export async function POST(req: NextRequest) {
+  const { success } = limiter(req)
+  if (!success) {
+    return Response.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const { membershipNumber, password } = body
@@ -13,8 +21,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Membership number and password are required.' }, { status: 400 })
     }
 
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 })
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 })
     }
 
     const paddedNumber = String(membershipNumber).padStart(4, '0')

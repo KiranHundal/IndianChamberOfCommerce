@@ -1,5 +1,8 @@
 import Groq from 'groq-sdk'
 import { NextRequest } from 'next/server'
+import { rateLimit } from '@/lib/rate-limit'
+
+const limiter = rateLimit({ interval: 60_000, limit: 15 })
 
 const SYSTEM_PROMPT = `You are the AI assistant for the Central Valley Indian Chamber of Commerce (CVICC). You help visitors learn about the chamber, membership, and how to get involved. Be warm, professional, and concise. Keep responses under 3 sentences unless more detail is needed.
 
@@ -50,6 +53,11 @@ function getGroq() {
 }
 
 export async function POST(req: NextRequest) {
+  const { success } = limiter(req)
+  if (!success) {
+    return Response.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
+  }
+
   try {
     const { messages } = await req.json()
 

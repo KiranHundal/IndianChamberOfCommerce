@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
-import { eq, desc, isNotNull } from 'drizzle-orm'
+import { eq, desc, isNotNull, count } from 'drizzle-orm'
 import { sendMemberApprovedEmail } from '@/lib/email'
 
 async function getNextMembershipNumber(): Promise<string> {
@@ -18,14 +18,21 @@ async function getNextMembershipNumber(): Promise<string> {
   return String(lastNum + 1).padStart(4, '0')
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user || (session.user as Record<string, unknown>).role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const allMembers = await db.select().from(members)
-  return NextResponse.json({ members: allMembers })
+  const { searchParams } = new URL(req.url)
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+  const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '50', 10)))
+
+  const [totalResult] = await db.select({ count: count() }).from(members)
+  const total = totalResult.count
+
+  const allMembers = await db.select().from(members).limit(limit).offset((page - 1) * limit)
+  return NextResponse.json({ members: allMembers, page, limit, total })
 }
 
 export async function PATCH(req: Request) {
@@ -50,6 +57,7 @@ export async function PATCH(req: Request) {
     }).where(eq(members.id, memberId))
 
     const [approved] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
+    let emailFailed = false
     if (approved) {
       try {
         await sendMemberApprovedEmail({
@@ -60,10 +68,11 @@ export async function PATCH(req: Request) {
         })
       } catch (emailError) {
         console.error('Approval email error:', emailError)
+        emailFailed = true
       }
     }
 
-    return NextResponse.json({ success: true, message: `Member approved. Membership #${membershipNumber}` })
+    return NextResponse.json({ success: true, message: `Member approved. Membership #${membershipNumber}`, emailFailed })
   }
 
   if (action === 'reject') {

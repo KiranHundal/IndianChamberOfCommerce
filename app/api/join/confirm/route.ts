@@ -1,10 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sendMemberPendingEmail, sendAdminNewApplicationEmail } from '@/lib/email'
+import { rateLimit } from '@/lib/rate-limit'
 
-export async function POST(req: Request) {
+const limiter = rateLimit({ interval: 60_000, limit: 5 })
+
+export async function POST(req: NextRequest) {
+  const { success } = limiter(req)
+  if (!success) {
+    return Response.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const { name, email, phone, businessName, city, sector, membershipTier } = body
@@ -40,6 +48,7 @@ export async function POST(req: Request) {
       createdAt: new Date(),
     })
 
+    let emailFailed = false
     try {
       await sendMemberPendingEmail({ name, email: email.toLowerCase(), membershipTier: membershipTier || 'individual' })
       await sendAdminNewApplicationEmail({
@@ -53,9 +62,10 @@ export async function POST(req: Request) {
       })
     } catch (emailError) {
       console.error('Email send error:', emailError)
+      emailFailed = true
     }
 
-    return NextResponse.json({ success: true, message: 'Application submitted. Pending admin approval.' })
+    return NextResponse.json({ success: true, message: 'Application submitted. Pending admin approval.', emailFailed })
   } catch (error) {
     console.error('Confirm error:', error)
     return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 })
