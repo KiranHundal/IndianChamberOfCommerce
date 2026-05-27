@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 }
 
 const HEADSHOT_MAP: Record<string, string> = {
-  'Sonia Heer': '/headshots/SoniaH.jpg',
-  'Dr. Surdeep Singh': '/headshots/SurdeepS.JPG',
+  'Sonia Heer': '/headshots/sonia1.png',
+  'Dr. Surdeep Singh': '/headshots/surdeep1.png',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
   'Isha Lochab': '/headshots/Isha.JPG',
   'Kiran Hundal': '/headshots/KiranH.jpg',
@@ -26,9 +26,9 @@ const HEADSHOT_MAP: Record<string, string> = {
 }
 
 const HEADSHOT_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center 0%',
-  'Dr. Surdeep Singh': 'center 15%',
-  'Rajinder Kumar': 'center 12%',
+  'Sonia Heer': 'center 10%',
+  'Dr. Surdeep Singh': 'center 10%',
+  'Rajinder Kumar': 'center 10%',
   'Isha Lochab': 'center 10%',
   'Roken Bhatt': 'center 5%',
   'Akash Singal': 'center 10%',

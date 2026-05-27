@@ -17,22 +17,22 @@ export function generateMetadata(): Metadata {
 }
 
 const HEADSHOT_MAP: Record<string, string> = {
-  'Sonia Heer': '/headshots/SoniaH.jpg',
-  'Dr. Surdeep Singh': '/headshots/SurdeepS.JPG',
+  'Sonia Heer': '/headshots/sonia1.png',
+  'Dr. Surdeep Singh': '/headshots/surdeep1.png',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
   'Kiran Hundal': '/headshots/KiranH.jpg',
 }
 
 const CIRCLE_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center 3%',
-  'Dr. Surdeep Singh': 'center 8%',
+  'Sonia Heer': 'center 10%',
+  'Dr. Surdeep Singh': 'center 10%',
   'Rajinder Kumar': 'center 10%',
   'Kiran Hundal': 'center 10%',
 }
 
 const CIRCLE_SCALE: Record<string, string> = {
-  'Sonia Heer': 'scale(1.6)',
-  'Dr. Surdeep Singh': 'scale(1.35)',
+  'Sonia Heer': 'scale(1.15)',
+  'Dr. Surdeep Singh': 'scale(1.15)',
   'Rajinder Kumar': 'scale(1.15)',
   'Kiran Hundal': 'scale(1.35)',
 }
