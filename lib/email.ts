@@ -1,7 +1,13 @@
 import { Resend } from 'resend'
 
+let resendClient: Resend | null = null
+
 function getResend() {
-  return new Resend(process.env.RESEND_API_KEY)
+  if (!process.env.RESEND_API_KEY) return null
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resendClient
 }
 
 function getConfig() {
@@ -19,8 +25,11 @@ export async function sendMemberPendingEmail(member: {
 }) {
   const tierLabel = member.membershipTier === 'corporate' ? 'Corporate' : 'Individual'
 
+  const resend = getResend()
+  if (!resend) return
+
   const { fromEmail } = getConfig()
-  await getResend().emails.send({
+  await resend.emails.send({
     from: `CVICC <${fromEmail}>`,
     to: member.email,
     subject: 'CVICC Membership — Application Received',
@@ -89,8 +98,11 @@ export async function sendAdminNewApplicationEmail(member: {
     .filter(Boolean)
     .join('<br/>')
 
+  const resend = getResend()
+  if (!resend) return
+
   const { fromEmail, adminEmail } = getConfig()
-  await getResend().emails.send({
+  await resend.emails.send({
     from: `CVICC <${fromEmail}>`,
     to: adminEmail,
     subject: `New Membership Application — ${member.name}`,
@@ -133,8 +145,11 @@ export async function sendMemberApprovedEmail(member: {
 }) {
   const tierLabel = member.membershipTier === 'corporate' ? 'Corporate' : 'Individual'
 
+  const resend = getResend()
+  if (!resend) return
+
   const { fromEmail } = getConfig()
-  await getResend().emails.send({
+  await resend.emails.send({
     from: `CVICC <${fromEmail}>`,
     to: member.email,
     subject: 'CVICC Membership Approved!',
