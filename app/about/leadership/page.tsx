@@ -26,9 +26,9 @@ const HEADSHOT_MAP: Record<string, string> = {
 }
 
 const HEADSHOT_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center -12%',
+  'Sonia Heer': 'center 0%',
   'Dr. Surdeep Singh': 'center 15%',
-  'Rajinder Kumar': 'center 8%',
+  'Rajinder Kumar': 'center 12%',
   'Isha Lochab': 'center 10%',
   'Roken Bhatt': 'center 5%',
   'Akash Singal': 'center 10%',
