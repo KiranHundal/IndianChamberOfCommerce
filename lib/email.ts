@@ -130,6 +130,58 @@ export async function sendAdminNewApplicationEmail(member: {
   })
 }
 
+export async function sendContactFormEmail(data: {
+  fullName: string
+  email: string
+  phone?: string
+  subjectLabel: string
+  message: string
+}) {
+  const resend = getResend()
+  if (!resend) return
+
+  const { fromEmail, adminEmail } = getConfig()
+  await resend.emails.send({
+    from: `CVICC Website <${fromEmail}>`,
+    to: adminEmail,
+    replyTo: data.email,
+    subject: `Contact Form: ${data.subjectLabel} — ${data.fullName}`,
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
+        <div style="background: #1E3A5F; padding: 32px; text-align: center;">
+          <h1 style="color: #D4A830; font-size: 20px; margin: 0; font-weight: 300; letter-spacing: 2px;">
+            NEW CONTACT FORM SUBMISSION
+          </h1>
+        </div>
+        <div style="padding: 32px; background: #FAFAF7;">
+          <div style="background: white; border: 1px solid #E8E4DD; border-radius: 8px; padding: 24px; margin: 0 0 24px;">
+            <p style="color: #5A6A7A; line-height: 2; margin: 0; font-size: 14px;">
+              <strong>Name:</strong> ${data.fullName}<br/>
+              <strong>Email:</strong> ${data.email}<br/>
+              ${data.phone ? `<strong>Phone:</strong> ${data.phone}<br/>` : ''}
+              <strong>Subject:</strong> ${data.subjectLabel}
+            </p>
+          </div>
+          <div style="background: white; border: 1px solid #E8E4DD; border-radius: 8px; padding: 24px;">
+            <p style="color: #1E3A5F; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin: 0 0 12px;">
+              Message
+            </p>
+            <p style="color: #5A6A7A; line-height: 1.7; margin: 0; font-size: 14px; white-space: pre-wrap;">${data.message}</p>
+          </div>
+          <p style="color: #5A6A7A; font-size: 12px; margin: 24px 0 0; text-align: center;">
+            Reply directly to this email to respond to ${data.fullName}.
+          </p>
+        </div>
+        <div style="background: #1E3A5F; padding: 20px 32px; text-align: center;">
+          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+            CVICC Website Contact Form
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export async function sendMemberApprovedEmail(member: {
   name: string
   email: string
