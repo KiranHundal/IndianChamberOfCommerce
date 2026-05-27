@@ -18,9 +18,8 @@ export function generateMetadata(): Metadata {
 
 const HEADSHOT_MAP: Record<string, string> = {
   'Sonia Heer': '/headshots/SoniaH.jpg',
-  'Dr. Surdeep Singh': '/headshots/Surdeep.png',
+  'Dr. Surdeep Singh': '/headshots/SurdeepS.JPG',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
-  'Isha Lochab': '/headshots/isha-lochab.jpg',
   'Kiran Hundal': '/headshots/kiranjot-hundal.jpg',
   'Roken Bhatt': '/headshots/RokenB.jpeg',
   'Manreet Sandhu': '/headshots/manreet-sandhu.jpg',

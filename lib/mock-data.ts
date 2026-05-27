@@ -615,7 +615,7 @@ export const mockSiteSettings: SiteSettings = {
     'The Central Valley Indian Chamber of Commerce connects, supports, and elevates Indian-American businesses across the region through networking, mentorship, and advocacy.',
   address: '1840 Shaw Ave, 105-164, Clovis, CA 93611',
   phone: '(510) 453-1248',
-  email: 'cvicc2026@gmail.com',
+  email: 'info@indianchamberofcommerce.org',
   instagramHandle: '@indianchamberofcommerce',
   linkedinUrl: '',
   facebookUrl: '',

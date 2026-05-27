@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 const HEADSHOT_MAP: Record<string, string> = {
   'Sonia Heer': '/headshots/SoniaH.jpg',
-  'Dr. Surdeep Singh': '/headshots/Surdeep.png',
+  'Dr. Surdeep Singh': '/headshots/SurdeepS.JPG',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
   'Kiran Hundal': '/headshots/kiranjot-hundal.jpg',
   'Roken Bhatt': '/headshots/RokenB.jpeg',
@@ -25,9 +25,9 @@ const HEADSHOT_MAP: Record<string, string> = {
 }
 
 const HEADSHOT_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center center',
-  'Dr. Surdeep Singh': 'center center',
-  'Rajinder Kumar': 'center center',
+  'Sonia Heer': 'center 15%',
+  'Dr. Surdeep Singh': 'center 20%',
+  'Rajinder Kumar': 'center 20%',
 }
 
 const executives = mockLeadership.filter((l) =>
@@ -88,7 +88,7 @@ export default function LeadershipPage() {
             {executives.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
                 <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col relative">
-                  <div className="card-image relative h-80 overflow-hidden flex-shrink-0">
+                  <div className="card-image relative h-[28rem] overflow-hidden flex-shrink-0">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
                       alt={leader.name}
