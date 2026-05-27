@@ -1,12 +1,11 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
-import { mockSiteSettings, mockLeadership } from '@/lib/mock-data'
+import { mockSiteSettings } from '@/lib/mock-data'
 
 export function generateMetadata(): Metadata {
   return {
@@ -14,27 +13,6 @@ export function generateMetadata(): Metadata {
     description:
       'Learn about the Central Valley Indian Chamber of Commerce (CVICC) mission to empower, connect, and elevate Indian-American businesses across the Central Valley.',
   }
-}
-
-const HEADSHOT_MAP: Record<string, string> = {
-  'Sonia Heer': '/headshots/sonia1.png',
-  'Dr. Surdeep Singh': '/headshots/surdeep1.png',
-  'Rajinder Kumar': '/headshots/RajK.jpeg',
-  'Kiran Hundal': '/headshots/KiranH.jpg',
-}
-
-const CIRCLE_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center 10%',
-  'Dr. Surdeep Singh': 'center 18%',
-  'Rajinder Kumar': 'center 10%',
-  'Kiran Hundal': 'center 10%',
-}
-
-const CIRCLE_SCALE: Record<string, string> = {
-  'Sonia Heer': 'scale(1.15)',
-  'Dr. Surdeep Singh': 'scale(1.15)',
-  'Rajinder Kumar': 'scale(1.15)',
-  'Kiran Hundal': 'scale(1.15)',
 }
 
 const values = [
@@ -66,10 +44,6 @@ const stats = [
 ]
 
 export default function AboutPage() {
-  const topLeaders = mockLeadership.filter((l) =>
-    ['Sonia Heer', 'Dr. Surdeep Singh', 'Rajinder Kumar', 'Kiran Hundal'].includes(l.name)
-  )
-
   return (
     <>
       {/* Hero */}
@@ -161,56 +135,23 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Board Preview */}
-      <section className="bg-page-bg py-24">
-        <div className="max-w-6xl mx-auto px-8">
-          <div className="text-center">
-            <AnimatedSection>
-              <SectionLabel>Leadership</SectionLabel>
-            </AnimatedSection>
-            <AnimatedSection delay={1}>
-              <SectionTitle className="mt-4">Board of Directors</SectionTitle>
-            </AnimatedSection>
-            <AnimatedSection delay={2}>
-              <Divider className="mx-auto mt-6" />
-            </AnimatedSection>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
-            {topLeaders.map((leader, i) => (
-              <AnimatedSection key={leader._id} delay={i + 3}>
-                <div className="text-center group">
-                  <div className="relative w-36 h-36 mx-auto rounded-full overflow-hidden ring-2 ring-ivory-200 group-hover:ring-accent transition-all">
-                    <Image
-                      src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
-                      alt={leader.name}
-                      fill
-                      className="object-cover"
-                      style={{
-                        objectPosition: CIRCLE_POSITION[leader.name] || 'center 15%',
-                        transform: CIRCLE_SCALE[leader.name] || 'scale(1)',
-                      }}
-                    />
-                  </div>
-                  <h4 className="font-display text-h5 text-brand mt-4">{leader.name}</h4>
-                  <p className="font-label text-micro tracking-widest uppercase text-brand/70 mt-1">
-                    {leader.role}
-                  </p>
-                </div>
-              </AnimatedSection>
-            ))}
-          </div>
-
-          <AnimatedSection delay={7}>
-            <div className="text-center mt-10">
-              <Link
-                href="/about/leadership"
-                className="inline-flex items-center gap-2 font-label text-label tracking-label uppercase text-accent hover:text-gold-900 transition-colors"
-              >
-                View Full Board
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+      {/* Board CTA */}
+      <section className="bg-page-bg py-20">
+        <div className="max-w-3xl mx-auto px-8 text-center">
+          <AnimatedSection>
+            <SectionLabel>Leadership</SectionLabel>
+            <SectionTitle className="mt-4">Meet Our Board</SectionTitle>
+            <Divider className="mx-auto mt-6" />
+            <p className="text-body text-mid mt-6 max-w-xl mx-auto">
+              CVICC is led by a dedicated board of professionals who volunteer their time and expertise to serve the Indian-American business community.
+            </p>
+            <Link
+              href="/about/leadership"
+              className="inline-flex items-center gap-2 mt-8 font-label text-label tracking-label uppercase text-accent hover:text-gold-900 transition-colors"
+            >
+              View Board of Directors
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </AnimatedSection>
         </div>
       </section>
