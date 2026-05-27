@@ -1,7 +1,6 @@
 'use client'
 
-import { Suspense, useState, useEffect, FormEvent } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, FormEvent } from 'react'
 import Link from 'next/link'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -12,24 +11,9 @@ const inputClass =
   'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
 
 export default function RegisterPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-page-bg" />}>
-      <RegisterContent />
-    </Suspense>
-  )
-}
-
-function RegisterContent() {
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [noToken, setNoToken] = useState(false)
-
-  useEffect(() => {
-    if (!token) setNoToken(true)
-  }, [token])
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -37,6 +21,7 @@ function RegisterContent() {
     setError('')
 
     const form = e.currentTarget
+    const membershipNumber = (form.elements.namedItem('membershipNumber') as HTMLInputElement).value.trim()
     const password = (form.elements.namedItem('password') as HTMLInputElement).value
     const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value
 
@@ -56,7 +41,7 @@ function RegisterContent() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ membershipNumber, password }),
       })
 
       const data = await res.json()
@@ -72,52 +57,6 @@ function RegisterContent() {
       setError('Something went wrong. Please try again.')
       setLoading(false)
     }
-  }
-
-  if (noToken) {
-    return (
-      <>
-        <section className="bg-navy-900 py-32 text-center relative overflow-hidden">
-          <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30 corner-bracket corner-bracket-tl" />
-          <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30 corner-bracket corner-bracket-tr" />
-          <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30 corner-bracket corner-bracket-bl" />
-          <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30 corner-bracket corner-bracket-br" />
-
-          <div className="max-w-4xl mx-auto px-8">
-            <AnimatedSection>
-              <SectionLabel dark>Account Creation</SectionLabel>
-            </AnimatedSection>
-            <AnimatedSection delay={1}>
-              <SectionTitle dark className="mt-4">
-                Activation Required
-              </SectionTitle>
-            </AnimatedSection>
-            <AnimatedSection delay={2}>
-              <Divider className="mx-auto mt-6" />
-            </AnimatedSection>
-          </div>
-        </section>
-
-        <section className="bg-page-bg py-24">
-          <div className="max-w-md mx-auto px-8">
-            <AnimatedSection>
-              <div className="bg-white border border-ivory-200 rounded-xl p-8 shadow-card text-center">
-                <h3 className="font-display text-h3 text-brand mb-3">No Activation Link</h3>
-                <p className="text-body text-mid mb-6">
-                  To create a member account, you must first join CVICC and make your membership payment. Once your application is approved, you&rsquo;ll receive an email with a link to create your account.
-                </p>
-                <Link
-                  href="/join"
-                  className="cta-button-glow inline-block bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3 rounded-sm"
-                >
-                  Join CVICC
-                </Link>
-              </div>
-            </AnimatedSection>
-          </div>
-        </section>
-      </>
-    )
   }
 
   if (success) {
@@ -193,7 +132,7 @@ function RegisterContent() {
           </AnimatedSection>
           <AnimatedSection delay={3}>
             <p className="text-body text-white/55 mt-4">
-              Set a password to complete your member portal account.
+              Enter your membership number from your approval email to set up your account.
             </p>
           </AnimatedSection>
         </div>
@@ -204,6 +143,21 @@ function RegisterContent() {
           <AnimatedSection>
             <div className="bg-white border border-ivory-200 rounded-xl p-8 shadow-card">
               <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label htmlFor="membershipNumber" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Membership Number *
+                  </label>
+                  <input
+                    id="membershipNumber"
+                    name="membershipNumber"
+                    type="text"
+                    required
+                    className={inputClass + ' text-center text-h3 font-display tracking-widest'}
+                    placeholder="0001"
+                    maxLength={4}
+                  />
+                </div>
+
                 <div>
                   <label htmlFor="password" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                     Password *
@@ -232,6 +186,15 @@ function RegisterContent() {
                   {loading ? 'Creating Account...' : 'Create Account'}
                 </button>
               </form>
+
+              <div className="mt-6 text-center">
+                <p className="text-small text-mid">
+                  Don&rsquo;t have a membership number?{' '}
+                  <Link href="/join" className="text-accent hover:text-gold-900 transition-colors font-medium">
+                    Join CVICC
+                  </Link>
+                </p>
+              </div>
             </div>
           </AnimatedSection>
         </div>

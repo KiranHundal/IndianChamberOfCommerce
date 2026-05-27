@@ -134,11 +134,10 @@ export async function sendMemberApprovedEmail(member: {
   name: string
   email: string
   membershipTier: string
-  activationToken: string
+  membershipNumber: string
 }) {
   const tierLabel = member.membershipTier === 'corporate' ? 'Corporate' : 'Individual'
   const { siteUrl } = getConfig()
-  const activationLink = `${siteUrl}/register?token=${member.activationToken}`
 
   const resend = getResend()
   if (!resend) return
@@ -167,16 +166,24 @@ export async function sendMemberApprovedEmail(member: {
           <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px; text-align: center;">
             Your <strong>${tierLabel} Membership</strong> has been approved. You are now an official member of the Central Valley Indian Chamber of Commerce.
           </p>
+          <div style="background: #1E3A5F; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
+            <p style="color: #D4A830; margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">
+              Your Membership Number
+            </p>
+            <p style="color: white; font-size: 36px; font-weight: 300; letter-spacing: 6px; margin: 8px 0 0;">
+              ${member.membershipNumber}
+            </p>
+          </div>
           <div style="background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 20px; margin: 24px 0;">
             <p style="color: #065F46; margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
               Status: Active Member
             </p>
           </div>
           <p style="color: #5A6A7A; line-height: 1.7; margin: 16px 0; text-align: center;">
-            Click the button below to create your member portal account and access your membership details.
+            Use your membership number to create your member portal account. Click the button below to get started.
           </p>
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${activationLink}" style="background: #B58B2E; color: white; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;">
+            <a href="${siteUrl}/register" style="background: #B58B2E; color: white; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;">
               Create Your Account
             </a>
           </div>

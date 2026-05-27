@@ -27,6 +27,7 @@ interface Member {
   membershipTier: string
   status: string
   role: string
+  membershipNumber: string | null
   createdAt: string | number
   approvedAt: string | number | null
   deactivatedAt: string | number | null
@@ -208,6 +209,10 @@ export default function AdminPage() {
                             {member.sector && <span>{member.sector}</span>}
                           </div>
                           <div className="mt-1 text-[0.7rem] text-hint">
+                            {member.membershipNumber && (
+                              <span className="font-medium text-brand">#{member.membershipNumber}</span>
+                            )}
+                            {member.membershipNumber && <> &middot; </>}
                             <span className="capitalize">{member.membershipTier}</span> membership
                             {member.createdAt && (
                               <> &middot; Joined {new Date(member.createdAt).toLocaleDateString()}</>

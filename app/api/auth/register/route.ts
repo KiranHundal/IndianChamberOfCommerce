@@ -7,24 +7,26 @@ import { eq } from 'drizzle-orm'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { token, password } = body
+    const { membershipNumber, password } = body
 
-    if (!token || !password) {
-      return NextResponse.json({ error: 'Token and password are required.' }, { status: 400 })
+    if (!membershipNumber || !password) {
+      return NextResponse.json({ error: 'Membership number and password are required.' }, { status: 400 })
     }
 
     if (password.length < 6) {
       return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 })
     }
 
+    const paddedNumber = String(membershipNumber).padStart(4, '0')
+
     const [member] = await db
       .select()
       .from(members)
-      .where(eq(members.activationToken, token))
+      .where(eq(members.membershipNumber, paddedNumber))
       .limit(1)
 
     if (!member) {
-      return NextResponse.json({ error: 'Invalid or expired activation link.' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid membership number.' }, { status: 400 })
     }
 
     if (member.status !== 'approved') {
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
 
     await db
       .update(members)
-      .set({ passwordHash, activationToken: null })
+      .set({ passwordHash })
       .where(eq(members.id, member.id))
 
     return NextResponse.json({ success: true, message: 'Account created successfully. You can now sign in.' })

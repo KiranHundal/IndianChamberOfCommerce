@@ -3,8 +3,20 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
-import { eq } from 'drizzle-orm'
+import { eq, desc, isNotNull } from 'drizzle-orm'
 import { sendMemberApprovedEmail } from '@/lib/email'
+
+async function getNextMembershipNumber(): Promise<string> {
+  const [latest] = await db
+    .select({ membershipNumber: members.membershipNumber })
+    .from(members)
+    .where(isNotNull(members.membershipNumber))
+    .orderBy(desc(members.membershipNumber))
+    .limit(1)
+
+  const lastNum = latest?.membershipNumber ? parseInt(latest.membershipNumber, 10) : 0
+  return String(lastNum + 1).padStart(4, '0')
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -29,12 +41,12 @@ export async function PATCH(req: Request) {
   }
 
   if (action === 'approve') {
-    const activationToken = crypto.randomUUID()
+    const membershipNumber = await getNextMembershipNumber()
 
     await db.update(members).set({
       status: 'approved',
       approvedAt: new Date(),
-      activationToken,
+      membershipNumber,
     }).where(eq(members.id, memberId))
 
     const [approved] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
@@ -44,14 +56,14 @@ export async function PATCH(req: Request) {
           name: approved.name,
           email: approved.email,
           membershipTier: approved.membershipTier,
-          activationToken,
+          membershipNumber,
         })
       } catch (emailError) {
         console.error('Approval email error:', emailError)
       }
     }
 
-    return NextResponse.json({ success: true, message: 'Member approved.' })
+    return NextResponse.json({ success: true, message: `Member approved. Membership #${membershipNumber}` })
   }
 
   if (action === 'reject') {

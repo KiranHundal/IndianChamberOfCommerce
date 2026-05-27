@@ -12,7 +12,7 @@ export const members = sqliteTable('members', {
   membershipTier: text('membership_tier').notNull().default('individual'),
   status: text('status').notNull().default('pending'),
   role: text('role').notNull().default('member'),
-  activationToken: text('activation_token'),
+  membershipNumber: text('membership_number').unique(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   approvedAt: integer('approved_at', { mode: 'timestamp' }),
   deactivatedAt: integer('deactivated_at', { mode: 'timestamp' }),

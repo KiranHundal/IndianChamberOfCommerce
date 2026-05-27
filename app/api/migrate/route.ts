@@ -15,22 +15,15 @@ export async function GET(req: Request) {
   const results: string[] = []
 
   try {
-    await client.execute('ALTER TABLE members ADD COLUMN activation_token TEXT')
-    results.push('Added activation_token column')
+    await client.execute('ALTER TABLE members ADD COLUMN membership_number TEXT UNIQUE')
+    results.push('Added membership_number column')
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     if (msg.includes('duplicate column')) {
-      results.push('activation_token column already exists')
+      results.push('membership_number column already exists')
     } else {
-      results.push(`activation_token error: ${msg}`)
+      results.push(`membership_number error: ${msg}`)
     }
-  }
-
-  try {
-    await client.execute("UPDATE members SET password_hash = 'LEGACY' WHERE password_hash IS NOT NULL AND password_hash != ''")
-    results.push('Existing members preserved')
-  } catch {
-    results.push('No existing members to update')
   }
 
   return NextResponse.json({ success: true, results })
