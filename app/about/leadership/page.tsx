@@ -35,6 +35,12 @@ const HEADSHOT_POSITION: Record<string, string> = {
   'Kiran Hundal': 'center 10%',
 }
 
+const EXEC_TRANSFORM: Record<string, string> = {
+  'Sonia Heer': 'scale(1.25) translateY(-6%)',
+  'Dr. Surdeep Singh': 'scale(1.25) translateY(-4%)',
+  'Rajinder Kumar': 'scale(1.25) translateY(-5%)',
+}
+
 const executives = mockLeadership.filter((l) =>
   ['Sonia Heer', 'Dr. Surdeep Singh', 'Rajinder Kumar'].includes(l.name)
 )
@@ -99,7 +105,11 @@ export default function LeadershipPage() {
                       alt={leader.name}
                       fill
                       className="object-cover"
-                      style={{ objectPosition: HEADSHOT_POSITION[leader.name] || 'center top' }}
+                      style={{
+                        objectPosition: HEADSHOT_POSITION[leader.name] || 'center top',
+                        transform: EXEC_TRANSFORM[leader.name] || undefined,
+                        transformOrigin: 'center top',
+                      }}
                     />
                     <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
                     <div className="card-name absolute bottom-5 left-6 right-6">
