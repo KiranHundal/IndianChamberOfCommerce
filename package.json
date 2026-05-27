@@ -11,19 +11,25 @@
     "lint": "./node_modules/.bin/next lint"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.3",
     "@portabletext/react": "^6.0.3",
     "@sanity/image-url": "^2.1.1",
     "@vercel/analytics": "^2.0.1",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.7.0",
     "next": "14.2.35",
+    "next-auth": "^4.24.14",
     "next-sanity": "^12.2.1",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.19.39",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
