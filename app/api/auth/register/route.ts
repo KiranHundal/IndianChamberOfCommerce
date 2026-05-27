@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { sendMemberPendingEmail, sendAdminNewApplicationEmail } from '@/lib/email'
 
 export async function POST(req: Request) {
   try {
@@ -45,7 +46,20 @@ export async function POST(req: Request) {
       createdAt: new Date(),
     })
 
-    // TODO: Send confirmation email (payment received, pending approval)
+    try {
+      await sendMemberPendingEmail({ name, email: email.toLowerCase(), membershipTier: membershipTier || 'individual' })
+      await sendAdminNewApplicationEmail({
+        name,
+        email: email.toLowerCase(),
+        membershipTier: membershipTier || 'individual',
+        phone,
+        businessName,
+        city,
+        sector,
+      })
+    } catch (emailError) {
+      console.error('Email send error:', emailError)
+    }
 
     return NextResponse.json({ success: true, message: 'Account created. Pending admin approval.' })
   } catch (error) {
