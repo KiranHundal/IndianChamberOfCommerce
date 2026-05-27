@@ -25,9 +25,9 @@ const HEADSHOT_MAP: Record<string, string> = {
 }
 
 const HEADSHOT_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center 15%',
-  'Dr. Surdeep Singh': 'center 20%',
-  'Rajinder Kumar': 'center 20%',
+  'Sonia Heer': 'center 10%',
+  'Dr. Surdeep Singh': 'center 15%',
+  'Rajinder Kumar': 'center 15%',
 }
 
 const executives = mockLeadership.filter((l) =>
@@ -84,10 +84,10 @@ export default function LeadershipPage() {
             </AnimatedSection>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
             {executives.map((leader, i) => (
-              <AnimatedSection key={leader._id} delay={i + 2}>
-                <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col relative">
+              <AnimatedSection key={leader._id} delay={i + 2} className="h-full">
+                <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
                   <div className="card-image relative h-[28rem] overflow-hidden flex-shrink-0">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
