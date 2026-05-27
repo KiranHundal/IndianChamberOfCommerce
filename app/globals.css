@@ -15,17 +15,14 @@ body {
 
 /* ── Hero motion system ─────────────────────────────────────── */
 
-@keyframes aurora-a {
-  0%, 100% { transform: translate3d(-8%, -4%, 0) scale(1); }
-  50%      { transform: translate3d(6%, 4%, 0) scale(1.15); }
+@keyframes slow-zoom {
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
 }
-@keyframes aurora-b {
-  0%, 100% { transform: translate3d(6%, 8%, 0) scale(1.1); }
-  50%      { transform: translate3d(-4%, -6%, 0) scale(0.95); }
-}
-@keyframes aurora-c {
-  0%, 100% { transform: translate3d(0%, 0%, 0) scale(1); }
-  50%      { transform: translate3d(-10%, 6%, 0) scale(1.2); }
+
+.hero-slow-zoom {
+  animation: slow-zoom 18s ease-in-out infinite alternate;
+  transform-origin: center;
 }
 
 @keyframes shimmer-sweep {
@@ -44,20 +41,6 @@ body {
   30%  { opacity: 1; }
   70%  { opacity: 1; }
   100% { transform: translateY(10px); opacity: 0; }
-}
-
-@keyframes particle-drift {
-  0%   { transform: translate3d(0, 0, 0); opacity: 0; }
-  10%  { opacity: 0.8; }
-  90%  { opacity: 0.8; }
-  100% { transform: translate3d(0, -120px, 0); opacity: 0; }
-}
-
-.hero-aurora {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(80px);
-  will-change: transform;
 }
 
 .hero-reveal > * {
@@ -98,20 +81,8 @@ body {
   animation: scroll-cue 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-.hero-particle {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: #D4A830;
-  border-radius: 9999px;
-  box-shadow: 0 0 6px rgba(212, 172, 42, 0.7);
-  animation: particle-drift linear infinite;
-  will-change: transform, opacity;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .hero-aurora,
-  .hero-particle,
+  .hero-slow-zoom,
   .hero-scroll-cue,
   .hero-accent-shimmer { animation: none !important; }
   .hero-reveal > * { opacity: 1 !important; animation: none !important; transform: none !important; }

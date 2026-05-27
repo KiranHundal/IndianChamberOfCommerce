@@ -1,73 +1,31 @@
+import Image from "next/image";
 import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
 
-const PARTICLES = Array.from({ length: 18 }, (_, i) => {
-  const left = (i * 53) % 100;
-  const delay = (i * 0.7) % 9;
-  const duration = 9 + (i % 5) * 2;
-  const bottom = (i * 17) % 40;
-  return { left, delay, duration, bottom };
-});
-
 export default function Hero() {
   return (
     <section className="relative min-h-screen bg-navy-900 overflow-hidden flex items-center">
-      {/* Ambient video background */}
-      <video
-        className="absolute inset-0 w-full h-full object-cover opacity-50 pointer-events-none mix-blend-screen"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="auto"
-        aria-hidden="true"
-        src="/hero-ambient.mp4"
-      />
-
-      {/* Base gradient wash */}
-      <div className="absolute inset-0 bg-gradient-to-br from-navy-900 via-navy-900 to-[#0A1830]" />
-
-      {/* Aurora motion layer */}
-      <div
-        className="hero-aurora"
-        style={{
-          top: "-12%", left: "-6%", width: "60vw", height: "60vw",
-          background: "radial-gradient(circle, rgba(43,81,135,0.35), transparent 60%)",
-          animation: "aurora-a 22s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="hero-aurora"
-        style={{
-          bottom: "-18%", right: "-10%", width: "55vw", height: "55vw",
-          background: "radial-gradient(circle, rgba(181,139,46,0.22), transparent 60%)",
-          animation: "aurora-b 28s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="hero-aurora"
-        style={{
-          top: "35%", left: "40%", width: "40vw", height: "40vw",
-          background: "radial-gradient(circle, rgba(212,168,48,0.12), transparent 65%)",
-          animation: "aurora-c 34s ease-in-out infinite",
-        }}
-      />
-
-      {/* Gold particles drifting upward */}
-      {PARTICLES.map((p, i) => (
-        <span
-          key={i}
-          className="hero-particle"
-          style={{
-            left: `${p.left}%`,
-            bottom: `${p.bottom}%`,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-          }}
-          aria-hidden="true"
+      {/* Cinematic background image with slow zoom */}
+      <div className="absolute inset-0 hero-slow-zoom">
+        <Image
+          src="/background.png"
+          alt=""
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
         />
-      ))}
+      </div>
+
+      {/* Dark cinematic overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(4,10,30,0.88) 0%, rgba(4,10,30,0.75) 45%, rgba(4,10,30,0.55) 100%)",
+        }}
+      />
 
       {/* Film grain for warmth */}
       <div className="absolute inset-0 hero-grain" aria-hidden="true" />
