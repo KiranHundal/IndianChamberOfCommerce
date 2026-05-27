@@ -26,12 +26,12 @@ const HEADSHOT_MAP: Record<string, string> = {
 }
 
 const HEADSHOT_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center 5%',
+  'Sonia Heer': 'center 0%',
   'Dr. Surdeep Singh': 'center 15%',
   'Rajinder Kumar': 'center 15%',
-  'Isha Lochab': 'center 15%',
-  'Roken Bhatt': 'center 10%',
-  'Akash Singal': 'center 15%',
+  'Isha Lochab': 'center 10%',
+  'Roken Bhatt': 'center 5%',
+  'Akash Singal': 'center 10%',
 }
 
 const executives = mockLeadership.filter((l) =>
