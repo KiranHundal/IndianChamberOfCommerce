@@ -17,6 +17,7 @@ const HEADSHOT_MAP: Record<string, string> = {
   'Sonia Heer': '/headshots/SoniaH.jpg',
   'Dr. Surdeep Singh': '/headshots/SurdeepS.JPG',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
+  'Isha Lochab': '/headshots/Isha.JPG',
   'Kiran Hundal': '/headshots/kiranjot-hundal.jpg',
   'Roken Bhatt': '/headshots/RokenB.jpeg',
   'Manreet Sandhu': '/headshots/manreet-sandhu.jpg',
@@ -37,7 +38,7 @@ const officers = mockLeadership.filter((l) =>
   ['Kiran Hundal'].includes(l.name)
 )
 const boardMembers = mockLeadership.filter((l) =>
-  ['Roken Bhatt', 'Manreet Sandhu', 'Akash Singal', 'Bobby Basra'].includes(l.name)
+  ['Isha Lochab', 'Roken Bhatt', 'Manreet Sandhu', 'Akash Singal', 'Bobby Basra'].includes(l.name)
 )
 
 export default function LeadershipPage() {
@@ -179,7 +180,7 @@ export default function LeadershipPage() {
             </AnimatedSection>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {boardMembers.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
                 <div className="board-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
