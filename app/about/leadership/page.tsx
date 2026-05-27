@@ -25,6 +25,8 @@ const HEADSHOT_MAP: Record<string, string> = {
   "Bobby Basra": "/headshots/bobby-basra.jpg",
 };
 
+const PLACEHOLDER_MEMBERS = new Set(["Manreet Sandhu", "Bobby Basra"]);
+
 const HEADSHOT_POSITION: Record<string, string> = {
   "Sonia Heer": "center 10%",
   "Dr. Surdeep Singh": "center 10%",
@@ -112,7 +114,7 @@ export default function LeadershipPage() {
                 className="h-full"
               >
                 <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
-                  <div className="card-image relative h-[28rem] overflow-hidden flex-shrink-0">
+                  <div className="card-image relative h-64 sm:h-80 md:h-[28rem] overflow-hidden flex-shrink-0">
                     <Image
                       src={
                         HEADSHOT_MAP[leader.name] ||
@@ -129,15 +131,15 @@ export default function LeadershipPage() {
                       }}
                     />
                     <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
-                    <div className="card-name absolute bottom-5 left-6 right-6">
-                      <h3 className="font-display text-h3 text-white drop-shadow-lg">
+                    <div className="card-name absolute bottom-4 left-4 right-4 sm:bottom-5 sm:left-6 sm:right-6">
+                      <h3 className="font-display text-h4 sm:text-h3 text-white drop-shadow-lg">
                         {leader.name}
                       </h3>
                     </div>
                   </div>
 
-                  <div className="p-6">
-                    <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70">
+                  <div className="p-4 sm:p-6">
+                    <p className="font-label text-[0.55rem] sm:text-[0.625rem] tracking-widest uppercase text-brand/70">
                       {leader.role}
                     </p>
                     {leader.sector && (
@@ -217,43 +219,44 @@ export default function LeadershipPage() {
             </AnimatedSection>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {boardMembers.map((leader, i) => (
-              <AnimatedSection key={leader._id} delay={i + 2}>
-                <div className="board-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
-                  <div className="card-image relative h-72 sm:h-52 overflow-hidden flex-shrink-0">
-                    <Image
-                      src={
-                        HEADSHOT_MAP[leader.name] ||
-                        "/headshots/placeholder.jpg"
-                      }
-                      alt={leader.name}
-                      fill
-                      className="object-cover transition-transform duration-700 board-member-img"
-                      data-member={leader.name}
-                      style={{
-                        objectPosition:
-                          HEADSHOT_POSITION[leader.name] || "center top",
-                      }}
-                    />
-                    <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
-                    <div className="card-name absolute bottom-4 left-4 right-4">
-                      <h3 className="font-display text-h4 text-white drop-shadow-lg">
-                        {leader.name}
-                      </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+            {boardMembers.map((leader, i) => {
+              const isPlaceholder = PLACEHOLDER_MEMBERS.has(leader.name);
+              return (
+                <AnimatedSection key={leader._id} delay={i + 2}>
+                  <div className="board-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
+                    <div className={`card-image relative overflow-hidden flex-shrink-0 ${isPlaceholder ? "h-44 sm:h-48 lg:h-52 bg-navy-800" : "h-48 sm:h-52 lg:h-52"}`}>
+                      <Image
+                        src={HEADSHOT_MAP[leader.name] || "/headshots/placeholder.jpg"}
+                        alt={leader.name}
+                        fill
+                        className={`transition-transform duration-700 board-member-img ${isPlaceholder ? "object-contain p-4" : "object-cover"}`}
+                        data-member={leader.name}
+                        style={{
+                          objectPosition: isPlaceholder
+                            ? "center center"
+                            : HEADSHOT_POSITION[leader.name] || "center top",
+                        }}
+                      />
+                      <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
+                      <div className="card-name absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4">
+                        <h3 className="font-display text-[1rem] sm:text-h4 text-white drop-shadow-lg leading-tight">
+                          {leader.name}
+                        </h3>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-4">
-                    <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70">
-                      {leader.role}
-                    </p>
-                  </div>
+                    <div className="p-3 sm:p-4">
+                      <p className="font-label text-[0.5rem] sm:text-[0.625rem] tracking-widest uppercase text-brand/70">
+                        {leader.role}
+                      </p>
+                    </div>
 
-                  <div className="gold-accent-line" />
-                </div>
-              </AnimatedSection>
-            ))}
+                    <div className="gold-accent-line" />
+                  </div>
+                </AnimatedSection>
+              );
+            })}
           </div>
         </div>
       </section>
