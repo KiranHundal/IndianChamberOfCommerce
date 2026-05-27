@@ -20,21 +20,21 @@ const HEADSHOT_MAP: Record<string, string> = {
   'Sonia Heer': '/headshots/SoniaH.jpg',
   'Dr. Surdeep Singh': '/headshots/SurdeepS.JPG',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
-  'Kiran Hundal': '/headshots/kiranjot-hundal.jpg',
+  'Kiran Hundal': '/headshots/KiranH.jpg',
 }
 
 const CIRCLE_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center 0%',
-  'Dr. Surdeep Singh': 'center 10%',
+  'Sonia Heer': 'center 3%',
+  'Dr. Surdeep Singh': 'center 2%',
   'Rajinder Kumar': 'center 10%',
-  'Kiran Hundal': 'center 10%',
+  'Kiran Hundal': 'center 5%',
 }
 
 const CIRCLE_SCALE: Record<string, string> = {
-  'Sonia Heer': 'scale(1.4)',
-  'Dr. Surdeep Singh': 'scale(1.3)',
+  'Sonia Heer': 'scale(1.6)',
+  'Dr. Surdeep Singh': 'scale(1.7)',
   'Rajinder Kumar': 'scale(1.15)',
-  'Kiran Hundal': 'scale(1.3)',
+  'Kiran Hundal': 'scale(1.7)',
 }
 
 const values = [
