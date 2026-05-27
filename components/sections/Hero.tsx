@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
@@ -10,13 +13,39 @@ const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
 }));
 
 export default function Hero() {
+  const bgRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        if (bgRef.current) {
+          const y = window.scrollY * 0.35;
+          bgRef.current.style.transform = `translate3d(0, ${y}px, 0)`;
+        }
+        ticking = false;
+      });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <section className="relative min-h-screen bg-navy-900 overflow-hidden flex items-center">
-      {/* Cinematic background — CSS background-image, no Next.js Image processing */}
-      <div
-        className="absolute inset-0 hero-cinematic-bg"
-        style={{ backgroundImage: "url('/hero-bg.webp')", backgroundSize: "cover", backgroundPosition: "center" }}
-      />
+      {/* Parallax wrapper — moves slower than scroll */}
+      <div ref={bgRef} className="absolute inset-0 will-change-transform" style={{ backfaceVisibility: "hidden" }}>
+        {/* Cinematic background — slow drift animation */}
+        <div
+          className="absolute inset-0 hero-cinematic-bg"
+          style={{
+            backgroundImage: "url('/hero-bg.webp')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+      </div>
 
       {/* Dark cinematic overlay with ambient light breathing */}
       <div
