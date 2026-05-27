@@ -32,6 +32,7 @@ const HEADSHOT_POSITION: Record<string, string> = {
   'Isha Lochab': 'center 10%',
   'Roken Bhatt': 'center 5%',
   'Akash Singal': 'center 10%',
+  'Kiran Hundal': 'center 10%',
 }
 
 const executives = mockLeadership.filter((l) =>
@@ -149,7 +150,7 @@ export default function LeadershipPage() {
                       alt={leader.name}
                       fill
                       className="object-cover transition-transform duration-700"
-                      style={{ transformOrigin: 'center center' }}
+                      style={{ objectPosition: HEADSHOT_POSITION[leader.name] || 'center top' }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/5" />
                   </div>
