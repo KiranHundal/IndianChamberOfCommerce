@@ -618,7 +618,7 @@ export const mockSiteSettings: SiteSettings = {
   memberCount: 100,
   sectorCount: 8,
   eventsPerYear: 20,
-  yearsEstablished: 10,
+  countiesServed: 6,
   heroHeadline: 'Building Indian Business Leadership in the Valley',
   heroSubtext:
     'The Central Valley Indian Chamber of Commerce connects, supports, and elevates Indian-American businesses across the region through networking, mentorship, and advocacy.',

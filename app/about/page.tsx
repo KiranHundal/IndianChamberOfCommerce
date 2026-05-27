@@ -62,7 +62,7 @@ const stats = [
   { value: `${mockSiteSettings.memberCount}+`, label: 'Active Members' },
   { value: `${mockSiteSettings.sectorCount}`, label: 'Industry Sectors' },
   { value: `${mockSiteSettings.eventsPerYear}+`, label: 'Events Per Year' },
-  { value: `${mockSiteSettings.yearsEstablished}`, label: 'Years Established' },
+  { value: `${mockSiteSettings.countiesServed}`, label: 'Counties Served' },
 ]
 
 export default function AboutPage() {

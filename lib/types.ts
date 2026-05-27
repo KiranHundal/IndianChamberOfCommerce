@@ -98,7 +98,7 @@ export interface SiteSettings {
   memberCount: number
   sectorCount: number
   eventsPerYear: number
-  yearsEstablished: number
+  countiesServed: number
   heroHeadline: string
   heroSubtext: string
   address: string
