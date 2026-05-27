@@ -51,9 +51,10 @@ export default function Footer() {
               Get in Touch
             </h4>
             <address className="not-italic space-y-2 text-white/60 text-small">
-              <p>Central Valley, California</p>
-              <p>(559) 555-0100</p>
-              <p>info@cvicc.org</p>
+              <p>1840 Shaw Ave, 105-164</p>
+              <p>Clovis, CA 93611</p>
+              <a href="tel:5104531248" className="block hover:text-white transition-colors">(510) 453-1248</a>
+              <a href="mailto:cvicc2026@gmail.com" className="block hover:text-white transition-colors">cvicc2026@gmail.com</a>
             </address>
             <div className="flex gap-4 mt-4">
               <a href="https://www.instagram.com/indianchamberofcommerce" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-white/50 hover:text-accent transition-colors">

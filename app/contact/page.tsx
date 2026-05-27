@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { MapPin, Phone, Mail, Clock, Globe, ExternalLink } from 'lucide-react'
+import { MapPin, Phone, Mail, Clock, Globe } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
@@ -37,19 +37,7 @@ const socialLinks = [
     icon: Globe,
     label: 'Instagram',
     value: mockSiteSettings.instagramHandle,
-    href: `https://instagram.com/${mockSiteSettings.instagramHandle?.replace('@', '')}`,
-  },
-  {
-    icon: ExternalLink,
-    label: 'LinkedIn',
-    value: 'CVICC',
-    href: mockSiteSettings.linkedinUrl,
-  },
-  {
-    icon: Globe,
-    label: 'Facebook',
-    value: 'CVICC',
-    href: mockSiteSettings.facebookUrl,
+    href: 'https://www.instagram.com/indianchamberofcommerce',
   },
 ]
 
@@ -201,7 +189,7 @@ export default function ContactPage() {
                   id="phone"
                   type="tel"
                   className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
-                  placeholder="(559) 555-0100"
+                  placeholder="(510) 453-1248"
                 />
               </div>
               <div>
