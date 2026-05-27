@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -23,6 +24,7 @@ const sectorIcons: Record<string, string> = {
 }
 
 export default function SectorsPage() {
+  redirect('/')
   return (
     <>
       {/* Hero */}

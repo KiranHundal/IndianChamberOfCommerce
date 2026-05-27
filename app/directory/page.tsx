@@ -1,5 +1,6 @@
 'use client'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useEffect, useState, useCallback, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -29,6 +30,7 @@ function getInitials(name: string): string {
     .toUpperCase()
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function MemberDirectoryInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -300,9 +302,7 @@ function MemberDirectoryInner() {
 }
 
 export default function MemberDirectoryPage() {
-  return (
-    <Suspense>
-      <MemberDirectoryInner />
-    </Suspense>
-  )
+  const router = useRouter()
+  useEffect(() => { router.replace('/') }, [router])
+  return null
 }

@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -66,6 +67,7 @@ const initiatives = [
 ]
 
 export default function InitiativesPage() {
+  redirect('/')
   return (
     <>
       {/* Hero */}
