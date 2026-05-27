@@ -43,7 +43,7 @@ const EXEC_TRANSFORM: Record<string, string> = {
 
 const BOARD_TRANSFORM: Record<string, string> = {
   'Isha Lochab': 'scale(1.45) translateY(-5%)',
-  'Roken Bhatt': 'none',
+  'Roken Bhatt': 'scale(1.3) translateY(-5%)',
   'Akash Singal': 'scale(1.3) translateY(-5%)',
 }
 
