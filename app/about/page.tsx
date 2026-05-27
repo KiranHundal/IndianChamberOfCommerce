@@ -24,10 +24,17 @@ const HEADSHOT_MAP: Record<string, string> = {
 }
 
 const CIRCLE_POSITION: Record<string, string> = {
-  'Sonia Heer': 'center 10%',
-  'Dr. Surdeep Singh': 'center 20%',
-  'Rajinder Kumar': 'center 15%',
-  'Kiran Hundal': 'center 15%',
+  'Sonia Heer': 'center 0%',
+  'Dr. Surdeep Singh': 'center 10%',
+  'Rajinder Kumar': 'center 10%',
+  'Kiran Hundal': 'center 10%',
+}
+
+const CIRCLE_SCALE: Record<string, string> = {
+  'Sonia Heer': 'scale(1.4)',
+  'Dr. Surdeep Singh': 'scale(1.3)',
+  'Rajinder Kumar': 'scale(1.15)',
+  'Kiran Hundal': 'scale(1.3)',
 }
 
 const values = [
@@ -179,7 +186,10 @@ export default function AboutPage() {
                       alt={leader.name}
                       fill
                       className="object-cover"
-                      style={{ objectPosition: CIRCLE_POSITION[leader.name] || 'center 15%' }}
+                      style={{
+                        objectPosition: CIRCLE_POSITION[leader.name] || 'center 15%',
+                        transform: CIRCLE_SCALE[leader.name] || 'scale(1)',
+                      }}
                     />
                   </div>
                   <h4 className="font-display text-h5 text-brand mt-4">{leader.name}</h4>
