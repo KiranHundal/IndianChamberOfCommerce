@@ -25,7 +25,7 @@ const HEADSHOT_MAP: Record<string, string> = {
 
 const CIRCLE_POSITION: Record<string, string> = {
   'Sonia Heer': 'center 10%',
-  'Dr. Surdeep Singh': 'center 10%',
+  'Dr. Surdeep Singh': 'center 18%',
   'Rajinder Kumar': 'center 10%',
   'Kiran Hundal': 'center 10%',
 }
@@ -34,7 +34,7 @@ const CIRCLE_SCALE: Record<string, string> = {
   'Sonia Heer': 'scale(1.15)',
   'Dr. Surdeep Singh': 'scale(1.15)',
   'Rajinder Kumar': 'scale(1.15)',
-  'Kiran Hundal': 'scale(1.35)',
+  'Kiran Hundal': 'scale(1.15)',
 }
 
 const values = [
