@@ -5,7 +5,7 @@ import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
 
-const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
+const PARTICLES = Array.from({ length: 8 }, (_, i) => ({
   left: (i * 61 + 7) % 100,
   bottom: (i * 23 + 5) % 50,
   delay: (i * 1.3) % 12,

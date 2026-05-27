@@ -155,9 +155,9 @@ export default function JoinPage() {
               const Icon = tier.icon
               const isSelected = selectedTier === tier.id
               return (
-                <AnimatedSection key={tier.id} delay={i + 4}>
+                <AnimatedSection key={tier.id} delay={i + 4} className="h-full">
                 <div
-                  className={`leadership-card relative bg-white border-2 rounded-xl overflow-hidden transition-all cursor-pointer ${
+                  className={`leadership-card relative bg-white border-2 rounded-xl overflow-hidden transition-all cursor-pointer h-full flex flex-col ${
                     isSelected
                       ? 'border-accent shadow-hover ring-2 ring-accent/20'
                       : 'border-ivory-200 hover:border-accent/40 hover:shadow-hover'
@@ -170,7 +170,7 @@ export default function JoinPage() {
                     </div>
                   )}
 
-                  <div className="p-8">
+                  <div className="p-8 flex flex-col flex-1">
                     {/* Header */}
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-navy-100 flex items-center justify-center text-brand">
@@ -197,7 +197,7 @@ export default function JoinPage() {
                     </div>
 
                     {/* Features */}
-                    <ul className="mt-6 space-y-3">
+                    <ul className="mt-6 space-y-3 flex-1">
                       {tier.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-3">
                           <CheckCircle className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />

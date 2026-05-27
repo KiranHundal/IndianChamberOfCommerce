@@ -57,6 +57,26 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Messages required' }, { status: 400 })
     }
 
+    if (messages.length > 20) {
+      return Response.json(
+        { error: 'Conversation too long. Please start a new chat (max 20 messages).' },
+        { status: 400 }
+      )
+    }
+
+    const lastMessage = messages[messages.length - 1]
+    if (
+      lastMessage &&
+      lastMessage.role === 'user' &&
+      typeof lastMessage.content === 'string' &&
+      lastMessage.content.length > 500
+    ) {
+      return Response.json(
+        { error: 'Message too long. Please keep your message under 500 characters.' },
+        { status: 400 }
+      )
+    }
+
     const groq = getGroq()
 
     const chatMessages = [
