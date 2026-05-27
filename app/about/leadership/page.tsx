@@ -17,7 +17,6 @@ const HEADSHOT_MAP: Record<string, string> = {
   'Sonia Heer': '/headshots/SoniaH.jpg',
   'Dr. Surdeep Singh': '/headshots/Surdeep.png',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
-  'Isha Lochab': '/headshots/isha-lochab.jpg',
   'Kiran Hundal': '/headshots/kiranjot-hundal.jpg',
   'Roken Bhatt': '/headshots/RokenB.jpeg',
   'Manreet Sandhu': '/headshots/manreet-sandhu.jpg',
@@ -31,10 +30,6 @@ const HEADSHOT_POSITION: Record<string, string> = {
   'Rajinder Kumar': 'center center',
 }
 
-function getBioText(bio: Array<{ children: Array<{ text: string }> }>): string {
-  return bio.map((block) => block.children.map((c) => c.text).join('')).join(' ')
-}
-
 const executives = mockLeadership.filter((l) =>
   ['Sonia Heer', 'Dr. Surdeep Singh', 'Rajinder Kumar'].includes(l.name)
 )
@@ -42,7 +37,7 @@ const officers = mockLeadership.filter((l) =>
   ['Kiran Hundal'].includes(l.name)
 )
 const boardMembers = mockLeadership.filter((l) =>
-  ['Isha Lochab', 'Roken Bhatt', 'Manreet Sandhu', 'Akash Singal', 'Bobby Basra'].includes(l.name)
+  ['Roken Bhatt', 'Manreet Sandhu', 'Akash Singal', 'Bobby Basra'].includes(l.name)
 )
 
 export default function LeadershipPage() {
@@ -92,8 +87,8 @@ export default function LeadershipPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {executives.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
-                <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
-                  <div className="card-image relative h-96 overflow-hidden flex-shrink-0">
+                <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col relative">
+                  <div className="card-image relative h-80 overflow-hidden flex-shrink-0">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
                       alt={leader.name}
@@ -109,7 +104,7 @@ export default function LeadershipPage() {
                     </div>
                   </div>
 
-                  <div className="p-6 flex flex-col flex-1">
+                  <div className="p-6">
                     <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70">
                       {leader.role}
                     </p>
@@ -118,9 +113,6 @@ export default function LeadershipPage() {
                         {leader.sector.name}
                       </Badge>
                     )}
-                    <p className="text-small text-mid leading-relaxed mt-3">
-                      {getBioText(leader.bio as Array<{ children: Array<{ text: string }> }>)}
-                    </p>
                   </div>
 
                   <div className="gold-accent-line" />
@@ -143,10 +135,10 @@ export default function LeadershipPage() {
             </AnimatedSection>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="flex justify-center">
             {officers.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
-                <div className="officer-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-row h-full min-h-[12rem] relative">
+                <div className="officer-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-row min-h-[12rem] w-[28rem] max-w-full relative">
                   <div className="card-image relative w-48 flex-shrink-0 overflow-hidden">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
@@ -187,7 +179,7 @@ export default function LeadershipPage() {
             </AnimatedSection>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
             {boardMembers.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
                 <div className="board-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
@@ -210,11 +202,6 @@ export default function LeadershipPage() {
                     <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70">
                       {leader.role}
                     </p>
-                    {leader.sector && (
-                      <Badge variant="navy" className="mt-2 self-start">
-                        {leader.sector.name}
-                      </Badge>
-                    )}
                   </div>
 
                   <div className="gold-accent-line" />
