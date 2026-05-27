@@ -55,8 +55,8 @@ export default function AnimatedSection({
     ? {}
     : {
         opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(20px)",
-        transition: `opacity 600ms cubic-bezier(0.4, 0, 0.2, 1) ${delay * 80}ms, transform 600ms cubic-bezier(0.4, 0, 0.2, 1) ${delay * 80}ms`,
+        transform: visible ? "translateY(0) scale(1)" : "translateY(32px) scale(0.98)",
+        transition: `opacity 800ms cubic-bezier(0.22, 1, 0.36, 1) ${delay * 120}ms, transform 800ms cubic-bezier(0.22, 1, 0.36, 1) ${delay * 120}ms`,
       };
 
   return (

@@ -15,6 +15,7 @@ import {
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
+import AnimatedSection from '@/components/ui/AnimatedSection'
 
 const whyJoin = [
   { icon: Users, text: 'Build powerful business connections' },
@@ -93,24 +94,30 @@ export default function JoinPage() {
       <section className="bg-page-bg py-20">
         <div className="max-w-4xl mx-auto px-8">
           <div className="text-center">
-            <SectionLabel>Benefits</SectionLabel>
-            <SectionTitle className="mt-4">Why Join CVICC?</SectionTitle>
-            <Divider className="mx-auto mt-6" />
+            <AnimatedSection>
+              <SectionLabel>Benefits</SectionLabel>
+            </AnimatedSection>
+            <AnimatedSection delay={1}>
+              <SectionTitle className="mt-4">Why Join CVICC?</SectionTitle>
+            </AnimatedSection>
+            <AnimatedSection delay={2}>
+              <Divider className="mx-auto mt-6" />
+            </AnimatedSection>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
-            {whyJoin.map((item) => {
+            {whyJoin.map((item, i) => {
               const Icon = item.icon
               return (
-                <div
-                  key={item.text}
-                  className="flex items-start gap-4 bg-white border border-ivory-200 rounded-lg p-5 shadow-card"
-                >
-                  <div className="w-10 h-10 rounded-full bg-gold-100 flex items-center justify-center text-accent flex-shrink-0">
-                    <Icon className="w-5 h-5" />
+                <AnimatedSection key={item.text} delay={i + 3}>
+                  <div className="leadership-card flex items-start gap-4 bg-white border border-ivory-200 rounded-xl p-5 h-full relative">
+                    <div className="w-10 h-10 rounded-full bg-gold-100 flex items-center justify-center text-accent flex-shrink-0">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <p className="text-body text-charcoal leading-snug">{item.text}</p>
+                    <div className="gold-accent-line" />
                   </div>
-                  <p className="text-body text-charcoal leading-snug">{item.text}</p>
-                </div>
+                </AnimatedSection>
               )
             })}
           </div>
@@ -121,12 +128,19 @@ export default function JoinPage() {
       <section className="bg-page-alt py-24">
         <div className="max-w-5xl mx-auto px-8">
           <div className="text-center">
-            <SectionLabel>Pricing</SectionLabel>
-            <SectionTitle className="mt-4">Membership Options</SectionTitle>
-            <Divider className="mx-auto mt-6" />
+            <AnimatedSection>
+              <SectionLabel>Pricing</SectionLabel>
+            </AnimatedSection>
+            <AnimatedSection delay={1}>
+              <SectionTitle className="mt-4">Membership Options</SectionTitle>
+            </AnimatedSection>
+            <AnimatedSection delay={2}>
+              <Divider className="mx-auto mt-6" />
+            </AnimatedSection>
           </div>
 
           {/* Limited Time Banner */}
+          <AnimatedSection delay={3}>
           <div className="mt-10 bg-navy-900 rounded-lg p-5 text-center flex items-center justify-center gap-3">
             <Sparkles className="w-5 h-5 text-gold-400" />
             <p className="font-label text-label tracking-label uppercase text-white">
@@ -134,15 +148,16 @@ export default function JoinPage() {
             </p>
             <Sparkles className="w-5 h-5 text-gold-400" />
           </div>
+          </AnimatedSection>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
-            {tiers.map((tier) => {
+            {tiers.map((tier, i) => {
               const Icon = tier.icon
               const isSelected = selectedTier === tier.id
               return (
+                <AnimatedSection key={tier.id} delay={i + 4}>
                 <div
-                  key={tier.id}
-                  className={`relative bg-white border-2 rounded-xl overflow-hidden shadow-card transition-all cursor-pointer ${
+                  className={`leadership-card relative bg-white border-2 rounded-xl overflow-hidden transition-all cursor-pointer ${
                     isSelected
                       ? 'border-accent shadow-hover ring-2 ring-accent/20'
                       : 'border-ivory-200 hover:border-accent/40 hover:shadow-hover'
@@ -203,6 +218,7 @@ export default function JoinPage() {
                     </a>
                   </div>
                 </div>
+                </AnimatedSection>
               )
             })}
           </div>

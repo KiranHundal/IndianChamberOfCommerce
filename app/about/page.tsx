@@ -115,8 +115,8 @@ export default function AboutPage() {
           {/* Value Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
             {values.map((value, i) => (
-              <AnimatedSection key={value.title} delay={i + 3}>
-                <div className="bg-white border border-ivory-200 rounded-lg p-8 text-center shadow-card hover:shadow-hover transition-all">
+              <AnimatedSection key={value.title} delay={i + 3} className="h-full">
+                <div className="leadership-card bg-white border border-ivory-200 rounded-xl p-8 text-center h-full relative">
                   <div className="w-16 h-16 rounded-full bg-navy-100 mx-auto flex items-center justify-center">
                     <span className="font-display text-h2 italic text-brand">
                       {value.icon}
@@ -126,6 +126,7 @@ export default function AboutPage() {
                     {value.title}
                   </h3>
                   <p className="text-small text-mid mt-3">{value.description}</p>
+                  <div className="gold-accent-line" />
                 </div>
               </AnimatedSection>
             ))}
