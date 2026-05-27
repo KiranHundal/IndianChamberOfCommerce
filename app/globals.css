@@ -16,8 +16,8 @@ body {
 /* ── Hero motion system ─────────────────────────────────────── */
 
 @keyframes cinematic-zoom {
-  0%   { transform: scale(1) translateY(0); }
-  100% { transform: scale(1.08) translateY(-8px); }
+  0%   { transform: scale3d(1, 1, 1) translate3d(0, 0, 0); }
+  100% { transform: scale3d(1.08, 1.08, 1) translate3d(0, -8px, 0); }
 }
 
 @keyframes ambient-light {
@@ -37,10 +37,13 @@ body {
   transform-origin: center center;
   will-change: transform;
   filter: blur(1.5px);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .hero-ambient-overlay {
   animation: ambient-light 8s ease-in-out infinite alternate;
+  will-change: opacity;
 }
 
 .hero-gold-particle {
@@ -53,6 +56,7 @@ body {
   animation: particle-float linear infinite;
   will-change: transform, opacity;
   pointer-events: none;
+  backface-visibility: hidden;
 }
 
 @keyframes shimmer-sweep {

@@ -16,7 +16,7 @@ export default function Hero() {
       {/* Cinematic background — slow zoom + drift + blur */}
       <div className="absolute inset-0 hero-cinematic-bg">
         <Image
-          src="/background1.png"
+          src="/background1.webp"
           alt=""
           fill
           priority
