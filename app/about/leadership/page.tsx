@@ -43,7 +43,7 @@ const EXEC_TRANSFORM: Record<string, string> = {
 
 const BOARD_TRANSFORM: Record<string, string> = {
   'Isha Lochab': 'scale(1.45) translateY(-5%)',
-  'Roken Bhatt': 'scale(1.15) translateY(12%)',
+  'Roken Bhatt': 'none',
   'Akash Singal': 'scale(1.3) translateY(-5%)',
 }
 
@@ -211,6 +211,7 @@ export default function LeadershipPage() {
                       fill
                       className="object-cover transition-transform duration-700"
                       style={{
+                        objectPosition: HEADSHOT_POSITION[leader.name] || 'center top',
                         transform: BOARD_TRANSFORM[leader.name] || undefined,
                         transformOrigin: 'center top',
                       }}
