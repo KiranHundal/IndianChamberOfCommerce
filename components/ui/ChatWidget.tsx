@@ -51,7 +51,8 @@ export default function ChatWidget() {
       })
 
       if (!res.ok) {
-        throw new Error('Failed to get response')
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(err.error || 'Failed to get response')
       }
 
       const reader = res.body?.getReader()
@@ -72,7 +73,9 @@ export default function ChatWidget() {
           return copy
         })
       }
-    } catch {
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : ''
+      console.error('Chat error:', detail)
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: 'Sorry, I\'m having trouble connecting. Please try again or contact us at info@indianchamberofcommerce.org.' },

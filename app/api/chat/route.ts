@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     const genAI = getGenAI()
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: SYSTEM_PROMPT,
     })
 
@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
   } catch (error) {
+    console.error('Chat API error:', error)
     const message = error instanceof Error ? error.message : 'Chat failed'
     return Response.json({ error: message }, { status: 500 })
   }
