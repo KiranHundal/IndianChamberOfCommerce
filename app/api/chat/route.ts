@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Groq from 'groq-sdk'
 import { NextRequest } from 'next/server'
 
 const SYSTEM_PROMPT = `You are the AI assistant for the Central Valley Indian Chamber of Commerce (CVICC). You help visitors learn about the chamber, membership, and how to get involved. Be warm, professional, and concise. Keep responses under 3 sentences unless more detail is needed.
@@ -43,10 +43,10 @@ RULES:
 - When discussing membership pricing, always mention the founding member discount.
 - Direct people to /join for membership and /contact for inquiries.`
 
-function getGenAI() {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
-  return new GoogleGenerativeAI(apiKey)
+function getGroq() {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured')
+  return new Groq({ apiKey })
 }
 
 export async function POST(req: NextRequest) {
@@ -57,33 +57,27 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Messages required' }, { status: 400 })
     }
 
-    const genAI = getGenAI()
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: SYSTEM_PROMPT,
+    const groq = getGroq()
+
+    const chatMessages = [
+      { role: 'system' as const, content: SYSTEM_PROMPT },
+      ...messages.map((m: { role: string; content: string }) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+    ]
+
+    const stream = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: chatMessages,
+      stream: true,
+      max_tokens: 500,
     })
 
-    const history = messages
-      .slice(0, -1)
-      .filter((m: { role: string }) => m.role === 'user' || m.role === 'assistant')
-      .map((m: { role: string; content: string }) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      }))
-    // Gemini requires history to start with a user message
-    while (history.length > 0 && history[0].role === 'model') {
-      history.shift()
-    }
-
-    const chat = model.startChat({ history })
-    const lastMessage = messages[messages.length - 1].content
-
-    const result = await chat.sendMessageStream(lastMessage)
-
-    const stream = new ReadableStream({
+    const readable = new ReadableStream({
       async start(controller) {
-        for await (const chunk of result.stream) {
-          const text = chunk.text()
+        for await (const chunk of stream) {
+          const text = chunk.choices[0]?.delta?.content
           if (text) {
             controller.enqueue(new TextEncoder().encode(text))
           }
@@ -92,7 +86,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return new Response(stream, {
+    return new Response(readable, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     })
   } catch (error) {
