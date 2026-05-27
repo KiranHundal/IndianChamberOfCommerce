@@ -37,7 +37,7 @@ const HEADSHOT_POSITION: Record<string, string> = {
 
 const EXEC_TRANSFORM: Record<string, string> = {
   'Sonia Heer': 'scale(1.25) translateY(-6%)',
-  'Dr. Surdeep Singh': 'scale(1.25) translateY(-4%)',
+  'Dr. Surdeep Singh': 'scale(1.25) translateY(-1%)',
   'Rajinder Kumar': 'scale(1.25) translateY(-5%)',
 }
 
