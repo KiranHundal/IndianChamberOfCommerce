@@ -14,7 +14,7 @@ function getConfig() {
   return {
     fromEmail: process.env.FROM_EMAIL || 'info@indianchamberofcommerce.org',
     adminEmail: process.env.ADMIN_EMAIL || 'info@indianchamberofcommerce.org',
-    siteUrl: process.env.NEXTAUTH_URL || 'https://indianchamberofcommerce.com',
+    siteUrl: process.env.NEXTAUTH_URL || 'https://www.indianchamberofcommerce.org',
   }
 }
 
@@ -52,16 +52,8 @@ export async function sendMemberPendingEmail(member: {
               Status: Pending Approval
             </p>
             <p style="color: #5A6A7A; margin: 8px 0 0; font-size: 14px;">
-              An administrator will review your application shortly. You'll receive another email once approved.
+              An administrator will review your application shortly. You'll receive another email with a link to create your member account once approved.
             </p>
-          </div>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 24px 0 0;">
-            If you haven't already, please create your member portal account:
-          </p>
-          <div style="text-align: center; margin: 24px 0;">
-            <a href="${getConfig().siteUrl}/register" style="background: #B58B2E; color: white; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;">
-              Create Account
-            </a>
           </div>
         </div>
         <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
@@ -142,8 +134,11 @@ export async function sendMemberApprovedEmail(member: {
   name: string
   email: string
   membershipTier: string
+  activationToken: string
 }) {
   const tierLabel = member.membershipTier === 'corporate' ? 'Corporate' : 'Individual'
+  const { siteUrl } = getConfig()
+  const activationLink = `${siteUrl}/register?token=${member.activationToken}`
 
   const resend = getResend()
   if (!resend) return
@@ -152,7 +147,7 @@ export async function sendMemberApprovedEmail(member: {
   await resend.emails.send({
     from: `CVICC <${fromEmail}>`,
     to: member.email,
-    subject: 'CVICC Membership Approved!',
+    subject: 'CVICC Membership Approved — Create Your Account',
     html: `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
         <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
@@ -177,12 +172,12 @@ export async function sendMemberApprovedEmail(member: {
               Status: Active Member
             </p>
           </div>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 16px 0;">
-            Access your member portal to view your membership details, billing information, and more.
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 16px 0; text-align: center;">
+            Click the button below to create your member portal account and access your membership details.
           </p>
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${getConfig().siteUrl}/login" style="background: #B58B2E; color: white; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;">
-              Sign In to Portal
+            <a href="${activationLink}" style="background: #B58B2E; color: white; padding: 14px 32px; text-decoration: none; border-radius: 4px; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;">
+              Create Your Account
             </a>
           </div>
         </div>

@@ -232,13 +232,13 @@ export default function JoinPage() {
             <div className="leadership-card bg-white border border-ivory-200 rounded-xl p-8 text-center relative">
               <h3 className="font-display text-h3 font-light text-brand">Already Paid?</h3>
               <p className="text-body text-mid mt-3 max-w-lg mx-auto">
-                After completing your payment through Square, create your member portal account to track your membership status and access member benefits.
+                After completing your payment through Square, submit your application below. Once approved, you&rsquo;ll receive an email with a link to create your member portal account.
               </p>
               <a
-                href="/register"
+                href="/join/confirm"
                 className="cta-button-glow inline-block bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3 rounded-sm mt-6"
               >
-                Create Your Account
+                Submit Application
               </a>
               <div className="gold-accent-line" />
             </div>

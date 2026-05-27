@@ -29,7 +29,13 @@ export async function PATCH(req: Request) {
   }
 
   if (action === 'approve') {
-    await db.update(members).set({ status: 'approved', approvedAt: new Date() }).where(eq(members.id, memberId))
+    const activationToken = crypto.randomUUID()
+
+    await db.update(members).set({
+      status: 'approved',
+      approvedAt: new Date(),
+      activationToken,
+    }).where(eq(members.id, memberId))
 
     const [approved] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
     if (approved) {
@@ -38,6 +44,7 @@ export async function PATCH(req: Request) {
           name: approved.name,
           email: approved.email,
           membershipTier: approved.membershipTier,
+          activationToken,
         })
       } catch (emailError) {
         console.error('Approval email error:', emailError)

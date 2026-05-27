@@ -23,6 +23,7 @@ export const authOptions: NextAuthOptions = {
           .limit(1)
 
         if (!member) return null
+        if (!member.passwordHash) return null
 
         const valid = await bcrypt.compare(credentials.password, member.passwordHash)
         if (!valid) return null

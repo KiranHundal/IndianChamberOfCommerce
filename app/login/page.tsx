@@ -97,13 +97,7 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="mt-6 text-center space-y-2">
-                <p className="text-small text-mid">
-                  Already paid?{' '}
-                  <Link href="/register" className="text-accent hover:text-gold-900 transition-colors font-medium">
-                    Create Account
-                  </Link>
-                </p>
+              <div className="mt-6 text-center">
                 <p className="text-small text-mid">
                   Not a member yet?{' '}
                   <Link href="/join" className="text-accent hover:text-gold-900 transition-colors font-medium">
