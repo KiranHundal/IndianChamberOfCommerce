@@ -6,6 +6,12 @@ import { X } from 'lucide-react'
 
 export default function AnnouncementBar() {
   const [dismissed, setDismissed] = useState(false)
+  const [fading, setFading] = useState(false)
+
+  function dismiss() {
+    setFading(true)
+    setTimeout(() => setDismissed(true), 500)
+  }
 
   useEffect(() => {
     document.documentElement.style.setProperty('--announcement-height', dismissed ? '0px' : '32px')
@@ -13,7 +19,9 @@ export default function AnnouncementBar() {
 
   useEffect(() => {
     document.documentElement.style.setProperty('--announcement-height', '32px')
+    const timer = setTimeout(() => dismiss(), 10000)
     return () => {
+      clearTimeout(timer)
       document.documentElement.style.setProperty('--announcement-height', '0px')
     }
   }, [])
@@ -21,7 +29,10 @@ export default function AnnouncementBar() {
   if (dismissed) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[250] bg-accent" style={{ height: 32 }}>
+    <div
+      className={`fixed top-0 left-0 right-0 z-[250] bg-accent transition-all duration-500 ${fading ? 'opacity-0 -translate-y-full' : 'opacity-100 translate-y-0'}`}
+      style={{ height: 32 }}
+    >
       <div className="max-w-container mx-auto px-10 py-2 flex items-center justify-center">
         <Link
           href="/join"
@@ -31,7 +42,7 @@ export default function AnnouncementBar() {
           <span className="hidden sm:inline"> · Limited Spots</span>
         </Link>
         <button
-          onClick={() => setDismissed(true)}
+          onClick={dismiss}
           className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"
           aria-label="Dismiss"
         >
