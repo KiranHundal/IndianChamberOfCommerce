@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { sendMemberApprovedEmail } from '@/lib/email'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -29,7 +30,20 @@ export async function PATCH(req: Request) {
 
   if (action === 'approve') {
     await db.update(members).set({ status: 'approved', approvedAt: new Date() }).where(eq(members.id, memberId))
-    // TODO: Send approval email with portal link
+
+    const [approved] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
+    if (approved) {
+      try {
+        await sendMemberApprovedEmail({
+          name: approved.name,
+          email: approved.email,
+          membershipTier: approved.membershipTier,
+        })
+      } catch (emailError) {
+        console.error('Approval email error:', emailError)
+      }
+    }
+
     return NextResponse.json({ success: true, message: 'Member approved.' })
   }
 
