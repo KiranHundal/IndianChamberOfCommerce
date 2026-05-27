@@ -21,10 +21,13 @@ const HEADSHOT_MAP: Record<string, string> = {
   'Dr. Surdeep Singh': '/headshots/SurdeepS.JPG',
   'Rajinder Kumar': '/headshots/RajK.jpeg',
   'Kiran Hundal': '/headshots/kiranjot-hundal.jpg',
-  'Roken Bhatt': '/headshots/RokenB.jpeg',
-  'Manreet Sandhu': '/headshots/manreet-sandhu.jpg',
-  'Akash Singal': '/headshots/Akash.jpg',
-  'Bobby Basra': '/headshots/bobby-basra.jpg',
+}
+
+const CIRCLE_POSITION: Record<string, string> = {
+  'Sonia Heer': 'center 10%',
+  'Dr. Surdeep Singh': 'center 20%',
+  'Rajinder Kumar': 'center 15%',
+  'Kiran Hundal': 'center 15%',
 }
 
 const values = [
@@ -56,7 +59,9 @@ const stats = [
 ]
 
 export default function AboutPage() {
-  const topLeaders = mockLeadership.slice(0, 4)
+  const topLeaders = mockLeadership.filter((l) =>
+    ['Sonia Heer', 'Dr. Surdeep Singh', 'Rajinder Kumar', 'Kiran Hundal'].includes(l.name)
+  )
 
   return (
     <>
@@ -168,12 +173,13 @@ export default function AboutPage() {
             {topLeaders.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 3}>
                 <div className="text-center group">
-                  <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden ring-2 ring-ivory-200 group-hover:ring-accent transition-all">
+                  <div className="relative w-36 h-36 mx-auto rounded-full overflow-hidden ring-2 ring-ivory-200 group-hover:ring-accent transition-all">
                     <Image
                       src={HEADSHOT_MAP[leader.name] || '/headshots/placeholder.jpg'}
                       alt={leader.name}
                       fill
                       className="object-cover"
+                      style={{ objectPosition: CIRCLE_POSITION[leader.name] || 'center 15%' }}
                     />
                   </div>
                   <h4 className="font-display text-h5 text-brand mt-4">{leader.name}</h4>
