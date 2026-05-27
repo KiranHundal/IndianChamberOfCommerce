@@ -11,6 +11,31 @@ export const metadata: Metadata = {
   },
   description:
     'Connecting and empowering Indian businesses in Fresno and the Central Valley through networking, resources, and community.',
+  metadataBase: new URL('https://www.indianchamberofcommerce.org'),
+  openGraph: {
+    title: 'Central Valley Indian Chamber of Commerce',
+    description:
+      'Connecting and empowering Indian-American businesses across the Central Valley through networking, mentorship, advocacy, and curated events.',
+    url: 'https://www.indianchamberofcommerce.org',
+    siteName: 'CVICC',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Central Valley Indian Chamber of Commerce — Connecting · Empowering · Growing',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Central Valley Indian Chamber of Commerce',
+    description:
+      'Connecting and empowering Indian-American businesses across the Central Valley.',
+    images: ['/og-image.png'],
+  },
   icons: {
     icon: '/favicon.png',
     apple: '/favicon.png',
