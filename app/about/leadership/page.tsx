@@ -41,11 +41,7 @@ const EXEC_TRANSFORM: Record<string, string> = {
   "Rajinder Kumar": "scale(1.25) translateY(-5%)",
 };
 
-const BOARD_TRANSFORM: Record<string, string> = {
-  "Isha Lochab": "scale(1.45) translateY(-10%)",
-  "Roken Bhatt": "scale(1.3) translateY(-5%)",
-  "Akash Singal": "scale(1.3) translateY(-5%)",
-};
+// Board transforms applied via CSS media query (lg+) in globals.css
 
 const executives = mockLeadership.filter((l) =>
   ["Sonia Heer", "Dr. Surdeep Singh", "Rajinder Kumar"].includes(l.name)
@@ -225,7 +221,7 @@ export default function LeadershipPage() {
             {boardMembers.map((leader, i) => (
               <AnimatedSection key={leader._id} delay={i + 2}>
                 <div className="board-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
-                  <div className="card-image relative h-52 overflow-hidden flex-shrink-0">
+                  <div className="card-image relative h-72 sm:h-52 overflow-hidden flex-shrink-0">
                     <Image
                       src={
                         HEADSHOT_MAP[leader.name] ||
@@ -233,12 +229,11 @@ export default function LeadershipPage() {
                       }
                       alt={leader.name}
                       fill
-                      className="object-cover transition-transform duration-700"
+                      className="object-cover transition-transform duration-700 board-member-img"
+                      data-member={leader.name}
                       style={{
                         objectPosition:
                           HEADSHOT_POSITION[leader.name] || "center top",
-                        transform: BOARD_TRANSFORM[leader.name] || undefined,
-                        transformOrigin: "center top",
                       }}
                     />
                     <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
