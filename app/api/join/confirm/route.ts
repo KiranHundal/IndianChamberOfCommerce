@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       sector: sector || null,
       membershipTier: membershipTier || 'individual',
       status: 'pending',
-      role: email.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase() ? 'admin' : 'member',
+      role: 'member',
       createdAt: new Date(),
     })
 
