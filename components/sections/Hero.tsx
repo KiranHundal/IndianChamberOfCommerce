@@ -88,7 +88,7 @@ export default function Hero() {
             <SectionLabel dark>Central Valley Indian Chamber of Commerce</SectionLabel>
             <span className="hidden md:inline-flex items-center gap-1.5 text-[0.6875rem] tracking-label uppercase text-white/40 font-label">
               <MapPin className="w-3 h-3" strokeWidth={1.5} />
-              Fresno · Kings · Madera · Tulare
+              Stanislaus · Merced · Madera · Fresno · Tulare · Kern
             </span>
           </div>
 

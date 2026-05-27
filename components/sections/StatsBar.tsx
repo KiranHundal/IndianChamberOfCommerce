@@ -3,7 +3,7 @@ import AnimatedSection from '@/components/ui/AnimatedSection'
 const stats = [
   { value: "100+", label: "Members" },
   { value: "8", label: "Sectors" },
-  { value: "4", label: "Counties Served" },
+  { value: "6", label: "Counties Served" },
 ];
 
 export default function StatsBar() {
