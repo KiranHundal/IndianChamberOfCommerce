@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
+import AnnouncementBar from '@/components/layout/AnnouncementBar'
 import Footer from '@/components/layout/Footer'
 import SessionProvider from '@/components/providers/SessionProvider'
 
@@ -60,6 +61,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-page-bg text-charcoal">
         <SessionProvider>
+          <AnnouncementBar />
           <Navbar />
           <main>{children}</main>
           <Footer />

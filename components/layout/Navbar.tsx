@@ -33,9 +33,10 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-0 w-full z-[200] transition-all duration-normal ${
+      className={`fixed w-full z-[200] transition-all duration-normal ${
         scrolled ? 'bg-navy-900 shadow-navy' : 'bg-transparent'
       }`}
+      style={{ top: 'var(--announcement-height, 0px)' }}
     >
       <div
         className={`max-w-container mx-auto flex items-center justify-between px-8 transition-all duration-normal ${
