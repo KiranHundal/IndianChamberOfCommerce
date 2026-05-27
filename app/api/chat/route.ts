@@ -63,10 +63,17 @@ export async function POST(req: NextRequest) {
       systemInstruction: SYSTEM_PROMPT,
     })
 
-    const history = messages.slice(0, -1).map((m: { role: string; content: string }) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }))
+    const history = messages
+      .slice(0, -1)
+      .filter((m: { role: string }) => m.role === 'user' || m.role === 'assistant')
+      .map((m: { role: string; content: string }) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }))
+    // Gemini requires history to start with a user message
+    while (history.length > 0 && history[0].role === 'model') {
+      history.shift()
+    }
 
     const chat = model.startChat({ history })
     const lastMessage = messages[messages.length - 1].content
