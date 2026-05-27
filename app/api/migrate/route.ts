@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const results: string[] = []
 
   try {
-    await client.execute('ALTER TABLE members ADD COLUMN membership_number TEXT UNIQUE')
+    await client.execute('ALTER TABLE members ADD COLUMN membership_number TEXT')
     results.push('Added membership_number column')
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -24,6 +24,14 @@ export async function GET(req: Request) {
     } else {
       results.push(`membership_number error: ${msg}`)
     }
+  }
+
+  try {
+    await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_members_membership_number ON members(membership_number)')
+    results.push('Created unique index on membership_number')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    results.push(`unique index error: ${msg}`)
   }
 
   return NextResponse.json({ success: true, results })
