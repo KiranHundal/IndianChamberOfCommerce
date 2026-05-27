@@ -225,6 +225,27 @@ export default function JoinPage() {
         </div>
       </section>
 
+      {/* Post-Payment Account Setup */}
+      <section className="bg-page-bg py-16">
+        <div className="max-w-3xl mx-auto px-8">
+          <AnimatedSection>
+            <div className="leadership-card bg-white border border-ivory-200 rounded-xl p-8 text-center relative">
+              <h3 className="font-display text-h3 font-light text-brand">Already Paid?</h3>
+              <p className="text-body text-mid mt-3 max-w-lg mx-auto">
+                After completing your payment through Square, create your member portal account to track your membership status and access member benefits.
+              </p>
+              <a
+                href="/register"
+                className="cta-button-glow inline-block bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3 rounded-sm mt-6"
+              >
+                Create Your Account
+              </a>
+              <div className="gold-accent-line" />
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
       {/* Contact CTA */}
       <section className="bg-navy-900 py-20 relative overflow-hidden">
         <div className="absolute top-6 right-6 w-16 h-16 border-t border-r border-gold-600/25" />

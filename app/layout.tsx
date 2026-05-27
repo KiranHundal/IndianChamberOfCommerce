@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import SessionProvider from '@/components/providers/SessionProvider'
 
 export const metadata: Metadata = {
   title: {
@@ -32,9 +33,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-page-bg text-charcoal">
-        <Navbar />
-        <main>{children}</main>
-        <Footer />
+        <SessionProvider>
+          <Navbar />
+          <main>{children}</main>
+          <Footer />
+        </SessionProvider>
       </body>
     </html>
   )
