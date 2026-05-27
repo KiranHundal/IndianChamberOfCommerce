@@ -8,7 +8,7 @@ const stats = [
 
 export default function StatsBar() {
   return (
-    <section className="bg-page-bg py-16 border-b border-ivory-200">
+    <section className="bg-page-alt py-16 border-y border-ivory-200">
       <div className="max-w-5xl mx-auto px-8 grid grid-cols-3 gap-8">
         {stats.map((stat, i) => (
           <AnimatedSection key={stat.label} delay={i}>
