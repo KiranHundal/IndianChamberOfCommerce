@@ -15,16 +15,44 @@ body {
 
 /* ── Hero motion system ─────────────────────────────────────── */
 
-@keyframes slow-zoom {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(1.12); }
-  100% { transform: scale(1); }
+@keyframes cinematic-zoom {
+  0%   { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.08) translateY(-8px); }
 }
 
-.hero-slow-zoom {
-  animation: slow-zoom 20s ease-in-out infinite;
+@keyframes ambient-light {
+  0%   { opacity: 0.92; }
+  100% { opacity: 1; }
+}
+
+@keyframes particle-float {
+  0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+  15%  { opacity: 0.6; }
+  85%  { opacity: 0.6; }
+  100% { transform: translate3d(12px, -100px, 0); opacity: 0; }
+}
+
+.hero-cinematic-bg {
+  animation: cinematic-zoom 18s ease-in-out infinite alternate;
   transform-origin: center center;
   will-change: transform;
+  filter: blur(1.5px);
+}
+
+.hero-ambient-overlay {
+  animation: ambient-light 8s ease-in-out infinite alternate;
+}
+
+.hero-gold-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #D4A830;
+  border-radius: 9999px;
+  box-shadow: 0 0 6px rgba(212, 168, 48, 0.5);
+  animation: particle-float linear infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
 }
 
 @keyframes shimmer-sweep {
@@ -84,7 +112,9 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-slow-zoom,
+  .hero-cinematic-bg,
+  .hero-ambient-overlay,
+  .hero-gold-particle,
   .hero-scroll-cue,
   .hero-accent-shimmer { animation: none !important; }
   .hero-reveal > * { opacity: 1 !important; animation: none !important; transform: none !important; }

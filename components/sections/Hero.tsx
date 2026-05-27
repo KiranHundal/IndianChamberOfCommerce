@@ -3,11 +3,18 @@ import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
 
+const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
+  left: (i * 61 + 7) % 100,
+  bottom: (i * 23 + 5) % 50,
+  delay: (i * 1.3) % 12,
+  duration: 10 + (i % 4) * 3,
+}));
+
 export default function Hero() {
   return (
     <section className="relative min-h-screen bg-navy-900 overflow-hidden flex items-center">
-      {/* Cinematic background image with slow zoom */}
-      <div className="absolute inset-0 hero-slow-zoom">
+      {/* Cinematic background — slow zoom + drift + blur */}
+      <div className="absolute inset-0 hero-cinematic-bg">
         <Image
           src="/background1.png"
           alt=""
@@ -18,20 +25,35 @@ export default function Hero() {
         />
       </div>
 
-      {/* Dark cinematic overlay */}
+      {/* Dark cinematic overlay with ambient light breathing */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none hero-ambient-overlay"
         style={{
           background:
-            "linear-gradient(90deg, rgba(4,10,30,0.88) 0%, rgba(4,10,30,0.75) 45%, rgba(4,10,30,0.55) 100%)",
+            "linear-gradient(90deg, rgba(4,10,30,0.90) 0%, rgba(4,10,30,0.78) 45%, rgba(4,10,30,0.58) 100%)",
         }}
       />
 
-      {/* Film grain for warmth */}
+      {/* Floating gold particles */}
+      {PARTICLES.map((p, i) => (
+        <span
+          key={i}
+          className="hero-gold-particle"
+          style={{
+            left: `${p.left}%`,
+            bottom: `${p.bottom}%`,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+          }}
+          aria-hidden="true"
+        />
+      ))}
+
+      {/* Film grain */}
       <div className="absolute inset-0 hero-grain" aria-hidden="true" />
 
       {/* Vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(8,16,32,0.55))] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(8,16,32,0.6))] pointer-events-none" />
 
       {/* Corner marks */}
       <div className="absolute top-9 right-9 w-20 h-20 border-t border-r border-gold-600/30 hidden md:block" />
