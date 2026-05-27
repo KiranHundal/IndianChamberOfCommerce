@@ -88,23 +88,23 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto px-8">
           <AnimatedSection>
             <p className="text-body text-mid leading-relaxed">
-              The Central Valley Indian Chamber of Commerce (CVICC) was founded
-              with a clear purpose: to create a unified platform where
-              Indian-American entrepreneurs and professionals in the Central
-              Valley can connect, collaborate, and grow together. For over{' '}
-              {mockSiteSettings.yearsEstablished} years, we have served as the
-              bridge between ambition and opportunity for our members.
+              The Central Valley Indian Chamber of Commerce is dedicated to
+              supporting and advancing Indian-owned businesses, entrepreneurs,
+              and professionals throughout California&rsquo;s Central Valley.
+              Our mission is to create opportunities for economic growth,
+              business networking, mentorship, cultural celebration, and
+              community leadership.
             </p>
           </AnimatedSection>
 
           <AnimatedSection delay={1}>
             <p className="text-body text-mid leading-relaxed mt-6">
-              Our vision is a Central Valley where Indian-American businesses are
-              recognized as vital contributors to the regional economy, where
-              emerging entrepreneurs have access to the mentors and resources
-              they need, and where our cultural heritage enriches the broader
-              community. We believe that when our members succeed, the entire
-              Valley benefits.
+              Through strategic partnerships, educational programs, and
+              community events, we aim to strengthen the presence and impact
+              of the Indian business community while contributing to the
+              overall prosperity of the region. We believe in building bridges
+              between cultures, empowering future leaders, and creating a
+              thriving ecosystem where businesses and communities grow together.
             </p>
           </AnimatedSection>
 
