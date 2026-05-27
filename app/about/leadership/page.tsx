@@ -114,7 +114,7 @@ export default function LeadershipPage() {
                 className="h-full"
               >
                 <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
-                  <div className="card-image relative h-64 sm:h-80 md:h-[28rem] overflow-hidden flex-shrink-0">
+                  <div className="card-image relative h-96 sm:h-[26rem] md:h-[28rem] overflow-hidden flex-shrink-0">
                     <Image
                       src={
                         HEADSHOT_MAP[leader.name] ||
