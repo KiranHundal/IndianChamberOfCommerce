@@ -2,7 +2,7 @@ import Hero from '@/components/sections/Hero'
 import StatsBar from '@/components/sections/StatsBar'
 import AboutPreview from '@/components/sections/AboutPreview'
 import Testimonials from '@/components/sections/Testimonials'
-import UpcomingEvents from '@/components/sections/UpcomingEvents'
+// import UpcomingEvents from '@/components/sections/UpcomingEvents'
 import SocialStrip from '@/components/layout/SocialStrip'
 // import SectorGrid from '@/components/sections/SectorGrid'
 // import SocialFeed from '@/components/sections/SocialFeed'
@@ -35,7 +35,7 @@ export default function HomePage() {
       <StatsBar />
       <AboutPreview />
       <Testimonials />
-      <UpcomingEvents />
+      {/* <UpcomingEvents /> */}
       <SocialStrip />
       {/* <SectorGrid /> */}
       {/* <SocialFeed /> */}

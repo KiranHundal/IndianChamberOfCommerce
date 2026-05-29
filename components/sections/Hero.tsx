@@ -5,12 +5,6 @@ import Link from "next/link";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
 
-const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
-  left: (i * 61 + 7) % 100,
-  bottom: (i * 23 + 5) % 50,
-  delay: (i * 1.3) % 12,
-  duration: 10 + (i % 4) * 3,
-}));
 
 export default function Hero() {
   const bgRef = useRef<HTMLDivElement>(null);
@@ -55,21 +49,6 @@ export default function Hero() {
             "linear-gradient(90deg, rgba(4,10,30,0.90) 0%, rgba(4,10,30,0.78) 45%, rgba(4,10,30,0.58) 100%)",
         }}
       />
-
-      {/* Floating gold particles */}
-      {PARTICLES.map((p, i) => (
-        <span
-          key={i}
-          className="hero-gold-particle"
-          style={{
-            left: `${p.left}%`,
-            bottom: `${p.bottom}%`,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`,
-          }}
-          aria-hidden="true"
-        />
-      ))}
 
       {/* Film grain */}
       <div className="absolute inset-0 hero-grain" aria-hidden="true" />

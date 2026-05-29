@@ -1,5 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { sendContactFormEmail } from '@/lib/email'
+import { rateLimit } from '@/lib/rate-limit'
+
+const limiter = rateLimit({ interval: 60_000, limit: 5 })
 
 const subjectLabels: Record<string, string> = {
   membership: 'Membership Inquiry',
@@ -10,7 +13,12 @@ const subjectLabels: Record<string, string> = {
   other: 'Other',
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const { success } = limiter(req)
+  if (!success) {
+    return Response.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const { firstName, lastName, email, phone, subject, message } = body

@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     await db.insert(members).values({
       id,
       email: email.toLowerCase(),
-      passwordHash: null,
+      passwordHash: '',
       name,
       phone: phone || null,
       businessName: businessName || null,
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Application submitted. Pending admin approval.', emailFailed })
   } catch (error) {
+    console.error('Confirm error:', error)
     console.error('Confirm error:', error)
     return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 })
   }

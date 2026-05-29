@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { mockMembers } from '@/lib/mock-data'
@@ -20,6 +21,7 @@ function getInitials(name: string): string {
 }
 
 export default function MentorshipPage() {
+  redirect('/')
   const mentors = mockMembers.filter((m) => m.isMentor)
 
   return (

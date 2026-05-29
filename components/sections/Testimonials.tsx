@@ -54,9 +54,9 @@ export default function Testimonials() {
           </AnimatedSection>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
           {testimonials.map((t, i) => (
-            <AnimatedSection key={t.name} delay={i + 3}>
+            <AnimatedSection key={t.name} delay={i + 3} className="h-full">
               <div className="flex flex-col h-full">
                 <div className="flex-1 relative">
                   <span className="font-display text-[4rem] leading-none text-gold-600/20 absolute -top-2 -left-1">&ldquo;</span>

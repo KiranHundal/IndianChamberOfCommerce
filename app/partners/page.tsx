@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Building2 } from 'lucide-react'
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 }
 
 export default function PartnersPage() {
+  redirect('/')
   const goldPartners = mockPartners.filter((p) => p.tier === 'Gold')
   const silverPartners = mockPartners.filter((p) => p.tier === 'Silver')
   const communityPartners = mockPartners.filter((p) => p.tier === 'Community')

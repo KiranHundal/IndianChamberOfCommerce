@@ -64,28 +64,40 @@ export default function Navbar() {
         {/* Desktop CTAs */}
         <div className="hidden lg:flex items-center gap-3">
           {session ? (
-            <Link
-              href="/portal"
-              className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              Portal
-            </Link>
+            <>
+              <Link
+                href="/portal"
+                className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Portal
+              </Link>
+              {(session.user as Record<string, unknown>)?.role === 'admin' && (
+                <Link
+                  href="/admin"
+                  className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all"
+                >
+                  Admin
+                </Link>
+              )}
+            </>
           ) : (
-            <Link
-              href="/login"
-              className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              Login
-            </Link>
+            <>
+              <Link
+                href="/login"
+                className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Login
+              </Link>
+              <Link
+                href="/join"
+                className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all"
+              >
+                Join Now
+              </Link>
+            </>
           )}
-          <Link
-            href="/join"
-            className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all"
-          >
-            Join Now
-          </Link>
         </div>
 
         {/* Mobile hamburger */}
@@ -124,31 +136,45 @@ export default function Navbar() {
 
           {/* Mobile CTAs */}
           {session ? (
-            <Link
-              href="/portal"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all mt-4"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              Portal
-            </Link>
+            <>
+              <Link
+                href="/portal"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all mt-4"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Portal
+              </Link>
+              {(session.user as Record<string, unknown>)?.role === 'admin' && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all mt-2"
+                >
+                  Admin
+                </Link>
+              )}
+            </>
           ) : (
-            <Link
-              href="/login"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all mt-4"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              Login
-            </Link>
+            <>
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 border border-white/30 text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-white/10 transition-all mt-4"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Login
+              </Link>
+              <Link
+                href="/join"
+                onClick={() => setMobileOpen(false)}
+                className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all mt-2"
+              >
+                Join Now
+              </Link>
+            </>
           )}
-          <Link
-            href="/join"
-            onClick={() => setMobileOpen(false)}
-            className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all mt-2"
-          >
-            Join Now
-          </Link>
+
         </div>
       )}
     </nav>

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     if (!token || !projectId || projectId === 'placeholder') {
       // No Sanity configured — log the submission and return success
-      console.log('[Join] Sanity not configured. Submission:', body)
+      console.log('[Join] Sanity not configured. Submission received (details omitted for privacy).')
       return NextResponse.json({
         success: true,
         message: 'Your application has been received. We will review it and get back to you shortly.',

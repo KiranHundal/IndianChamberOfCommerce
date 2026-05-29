@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Calendar, MapPin } from 'lucide-react'
@@ -36,6 +37,7 @@ const upcomingEvents = mockEvents.slice(0, 3)
 const pastEvents = mockEvents.slice(3)
 
 export default function EventsPage() {
+  redirect('/')
   return (
     <>
       {/* Hero */}

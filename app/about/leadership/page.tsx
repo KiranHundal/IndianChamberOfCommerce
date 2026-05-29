@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import SectionLabel from "@/components/ui/SectionLabel";
-import SectionTitle from "@/components/ui/SectionTitle";
 import Divider from "@/components/ui/Divider";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import Badge from "@/components/ui/Badge";
@@ -76,9 +75,9 @@ export default function LeadershipPage() {
             <SectionLabel dark>Board of Directors</SectionLabel>
           </AnimatedSection>
           <AnimatedSection delay={1}>
-            <SectionTitle dark className="mt-4">
+            <h1 className="font-display text-h2 md:text-h1 font-light text-white mt-4">
               Our Leadership
-            </SectionTitle>
+            </h1>
           </AnimatedSection>
           <AnimatedSection delay={2}>
             <p className="text-white/55 text-body max-w-2xl mx-auto mt-6">
@@ -99,7 +98,7 @@ export default function LeadershipPage() {
         <div className="max-w-6xl mx-auto px-8">
           <div className="text-center mb-14">
             <AnimatedSection>
-              <SectionLabel>Executive Leadership</SectionLabel>
+              <h2 className="font-label text-label tracking-widest uppercase text-brand">Executive Leadership</h2>
             </AnimatedSection>
             <AnimatedSection delay={1}>
               <Divider className="mx-auto mt-4" />
@@ -162,7 +161,7 @@ export default function LeadershipPage() {
         <div className="max-w-6xl mx-auto px-8">
           <div className="text-center mb-12">
             <AnimatedSection>
-              <SectionLabel>Officers</SectionLabel>
+              <h2 className="font-label text-label tracking-widest uppercase text-brand">Officers</h2>
             </AnimatedSection>
             <AnimatedSection delay={1}>
               <Divider className="mx-auto mt-4" />
@@ -212,7 +211,7 @@ export default function LeadershipPage() {
         <div className="max-w-6xl mx-auto px-8">
           <div className="text-center mb-14">
             <AnimatedSection>
-              <SectionLabel>Board Members</SectionLabel>
+              <h2 className="font-label text-label tracking-widest uppercase text-brand">Board Members</h2>
             </AnimatedSection>
             <AnimatedSection delay={1}>
               <Divider className="mx-auto mt-4" />
