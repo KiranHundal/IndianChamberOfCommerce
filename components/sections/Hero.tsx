@@ -2,11 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { ArrowRight, MapPin } from "lucide-react";
 
 
 export default function Hero() {
+  const { data: session } = useSession();
   const bgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,10 +89,10 @@ export default function Hero() {
 
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
-              href="/join"
+              href={session ? "/portal" : "/join"}
               className="group relative inline-flex items-center gap-2 bg-accent text-white rounded-sm px-7 py-3.5 font-label text-label tracking-label uppercase overflow-hidden transition-all duration-300 hover:shadow-[0_10px_40px_-10px_rgba(184,150,12,0.6)] hover:-translate-y-0.5"
             >
-              <span className="relative z-10">Join the Chamber</span>
+              <span className="relative z-10">{session ? "Go to Portal" : "Join the Chamber"}</span>
               <ArrowRight className="relative z-10 w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
               <span className="absolute inset-0 bg-gradient-to-r from-accent via-gold-400 to-accent bg-[length:200%_100%] bg-[position:0%_0] transition-[background-position] duration-700 group-hover:bg-[position:100%_0]" />
             </Link>

@@ -1,18 +1,23 @@
+'use client';
+
 import Link from 'next/link';
 import { Globe } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import LogoPlaceholder from '../ui/LogoPlaceholder';
 
-const quickLinks = [
+const baseLinks = [
   { label: 'About', href: '/about' },
   { label: 'Board of Directors', href: '/about/leadership' },
-  // { label: 'Directory', href: '/directory' },
-  // { label: 'Events', href: '/events' },
-  // { label: 'Partners', href: '/partners' },
-  { label: 'Join', href: '/join' },
   { label: 'Contact', href: '/contact' },
 ];
 
 export default function Footer() {
+  const { data: session } = useSession();
+
+  const quickLinks = session
+    ? [...baseLinks, { label: 'Portal', href: '/portal' }]
+    : [...baseLinks, { label: 'Join', href: '/join' }];
+
   return (
     <footer className="bg-navy-900 border-t border-white/10 text-white">
       <div className="py-16 px-8">

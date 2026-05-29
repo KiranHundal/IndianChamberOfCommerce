@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, FormEvent } from 'react'
+import { useSession } from 'next-auth/react'
+import Link from 'next/link'
 import {
   Users,
   Megaphone,
@@ -70,9 +72,12 @@ const inputClass =
   'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
 
 export default function JoinPage() {
+  const { data: session } = useSession()
   const [selectedTier, setSelectedTier] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [redirectTier, setRedirectTier] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
   function selectTierAndScroll(tierId: string) {
@@ -111,11 +116,100 @@ export default function JoinPage() {
         return
       }
 
-      window.location.href = SQUARE_LINKS[selectedTier]
+      setRedirectTier(selectedTier)
+      setSubmitted(true)
+      setTimeout(() => {
+        window.location.href = SQUARE_LINKS[selectedTier]
+      }, 3000)
     } catch {
       setError('Something went wrong. Please try again.')
       setLoading(false)
     }
+  }
+
+  if (session) {
+    return (
+      <>
+        <section className="bg-navy-900 py-32 text-center relative overflow-hidden">
+          <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
+          <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
+          <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
+          <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30" />
+          <div className="max-w-4xl mx-auto px-8">
+            <SectionLabel dark>Membership</SectionLabel>
+            <h1 className="font-display text-hero-sm md:text-hero-md font-light text-white mt-6">
+              You&rsquo;re Already a Member
+            </h1>
+            <Divider className="mx-auto mt-8" />
+          </div>
+        </section>
+        <section className="bg-page-bg py-24">
+          <div className="max-w-md mx-auto px-8 text-center">
+            <div className="bg-white border border-ivory-200 rounded-xl p-8 shadow-card">
+              <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h3 className="font-display text-h3 text-brand mb-3">Welcome Back!</h3>
+              <p className="text-body text-mid mb-6">
+                You&rsquo;re already a CVICC member. Visit your portal to manage your membership, update your profile, and access member benefits.
+              </p>
+              <Link
+                href="/portal"
+                className="cta-button-glow inline-flex items-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3 rounded-sm"
+              >
+                Go to Portal
+                <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+              </Link>
+            </div>
+          </div>
+        </section>
+      </>
+    )
+  }
+
+  if (submitted) {
+    return (
+      <>
+        <section className="bg-navy-900 py-32 text-center relative overflow-hidden">
+          <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
+          <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
+          <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
+          <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30" />
+          <div className="max-w-4xl mx-auto px-8">
+            <SectionLabel dark>Application Submitted</SectionLabel>
+            <h1 className="font-display text-hero-sm md:text-hero-md font-light text-white mt-6">
+              Thank You!
+            </h1>
+            <Divider className="mx-auto mt-8" />
+          </div>
+        </section>
+        <section className="bg-page-bg py-24">
+          <div className="max-w-md mx-auto px-8 text-center">
+            <div className="bg-white border border-ivory-200 rounded-xl p-8 shadow-card">
+              <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h3 className="font-display text-h3 text-brand mb-3">Application Received!</h3>
+              <p className="text-body text-mid mb-4">
+                Your membership application has been submitted successfully. You&rsquo;ll receive a confirmation email shortly.
+              </p>
+              <p className="text-body text-mid mb-6">
+                Redirecting you to complete your payment...
+              </p>
+              <div className="flex justify-center mb-4">
+                <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              </div>
+              <a
+                href={SQUARE_LINKS[redirectTier || 'individual']}
+                className="text-accent hover:text-gold-900 font-label text-label tracking-label uppercase transition-colors"
+              >
+                Click here if not redirected
+              </a>
+            </div>
+          </div>
+        </section>
+      </>
+    )
   }
 
   return (

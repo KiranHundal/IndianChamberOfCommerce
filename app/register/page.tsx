@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -11,9 +13,17 @@ const inputClass =
   'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
 
 export default function RegisterPage() {
+  const { status } = useSession()
+  const router = useRouter()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/portal')
+    }
+  }, [status, router])
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -57,6 +67,14 @@ export default function RegisterPage() {
       setError('Something went wrong. Please try again.')
       setLoading(false)
     }
+  }
+
+  if (status === 'loading' || status === 'authenticated') {
+    return (
+      <div className="min-h-screen bg-page-bg flex items-center justify-center">
+        <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
+      </div>
+    )
   }
 
   if (success) {

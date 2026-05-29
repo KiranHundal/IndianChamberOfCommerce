@@ -10,6 +10,7 @@ import {
   UserX,
   Users,
   RefreshCw,
+  Search,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -47,6 +48,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
 
   const fetchMembers = useCallback(async () => {
     setLoading(true)
@@ -102,9 +104,20 @@ export default function AdminPage() {
     )
   }
 
-  const filteredMembers = filter === 'all'
-    ? members
-    : members.filter((m) => m.status === filter)
+  const filteredMembers = members.filter((m) => {
+    if (filter !== 'all' && m.status !== filter) return false
+    if (search) {
+      const q = search.toLowerCase()
+      return (
+        m.name.toLowerCase().includes(q) ||
+        m.email.toLowerCase().includes(q) ||
+        m.businessName?.toLowerCase().includes(q) ||
+        m.city?.toLowerCase().includes(q) ||
+        m.membershipNumber?.includes(q)
+      )
+    }
+    return true
+  })
 
   const counts = {
     all: members.length,
@@ -161,8 +174,18 @@ export default function AdminPage() {
             </div>
           </AnimatedSection>
 
-          {/* Refresh */}
-          <div className="flex justify-end mb-4">
+          {/* Search & Refresh */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-hint" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, email, business..."
+                className="w-full bg-white border border-ivory-200 rounded-lg pl-10 pr-4 py-2.5 text-small text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+              />
+            </div>
             <button
               onClick={fetchMembers}
               className="flex items-center gap-2 text-mid font-label text-[0.65rem] tracking-widest uppercase hover:text-brand transition-colors"
@@ -171,6 +194,14 @@ export default function AdminPage() {
               Refresh
             </button>
           </div>
+
+          {/* Result count */}
+          {(search || filter !== 'all') && (
+            <p className="text-small text-mid mb-4">
+              Showing {filteredMembers.length} of {members.length} members
+              {search && <> matching &ldquo;{search}&rdquo;</>}
+            </p>
+          )}
 
           {/* Members List */}
           {filteredMembers.length === 0 ? (

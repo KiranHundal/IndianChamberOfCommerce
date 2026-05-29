@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
-import { signIn } from 'next-auth/react'
+import { useState, useEffect, FormEvent } from 'react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SectionLabel from '@/components/ui/SectionLabel'
@@ -13,9 +13,16 @@ const inputClass =
   'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
 
 export default function LoginPage() {
+  const { status } = useSession()
   const router = useRouter()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/portal')
+    }
+  }, [status, router])
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -39,6 +46,14 @@ export default function LoginPage() {
     }
 
     router.push('/portal')
+  }
+
+  if (status === 'loading' || status === 'authenticated') {
+    return (
+      <div className="min-h-screen bg-page-bg flex items-center justify-center">
+        <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
+      </div>
+    )
   }
 
   return (
