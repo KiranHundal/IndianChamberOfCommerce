@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, message: 'Application submitted. Pending admin approval.', emailFailed })
   } catch (error) {
     console.error('Confirm error:', error)
-    return NextResponse.json({ error: 'Something went wrong.' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Something went wrong.', debug: message }, { status: 500 })
   }
 }
