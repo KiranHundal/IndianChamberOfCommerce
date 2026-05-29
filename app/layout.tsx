@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     default: 'Central Valley Indian Chamber of Commerce | Fresno, CA',
   },
   description:
-    'Connecting and empowering Indian businesses in Fresno and the Central Valley through networking, resources, and community.',
+    'Connecting and empowering Indian-American businesses across the Central Valley through networking, mentorship, advocacy, and curated events.',
   metadataBase: new URL('https://www.indianchamberofcommerce.org'),
   openGraph: {
     title: 'Central Valley Indian Chamber of Commerce',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Central Valley Indian Chamber of Commerce',
     description:
-      'Connecting and empowering Indian-American businesses across the Central Valley.',
+      'Connecting and empowering Indian-American businesses across the Central Valley through networking, mentorship, advocacy, and curated events.',
     images: ['/og-image.png'],
   },
   icons: {
