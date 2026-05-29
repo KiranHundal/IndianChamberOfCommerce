@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, FormEvent } from 'react'
 import {
   Users,
   Megaphone,
@@ -11,6 +11,7 @@ import {
   User,
   Building2,
   Sparkles,
+  ArrowRight,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -65,8 +66,57 @@ const tiers = [
   },
 ]
 
+const inputClass =
+  'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
+
 export default function JoinPage() {
   const [selectedTier, setSelectedTier] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const formRef = useRef<HTMLDivElement>(null)
+
+  function selectTierAndScroll(tierId: string) {
+    setSelectedTier(tierId)
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!selectedTier) return
+    setLoading(true)
+    setError('')
+
+    const form = e.currentTarget
+    const name = (form.elements.namedItem('name') as HTMLInputElement).value
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value
+    const phone = (form.elements.namedItem('phone') as HTMLInputElement).value
+    const businessName = (form.elements.namedItem('businessName') as HTMLInputElement).value
+    const city = (form.elements.namedItem('city') as HTMLInputElement).value
+    const sector = (form.elements.namedItem('sector') as HTMLInputElement).value
+
+    try {
+      const res = await fetch('/api/join/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, businessName, city, sector, membershipTier: selectedTier }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong.')
+        setLoading(false)
+        return
+      }
+
+      window.location.href = SQUARE_LINKS[selectedTier]
+    } catch {
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -207,15 +257,16 @@ export default function JoinPage() {
                     </ul>
 
                     {/* Select button */}
-                    <a
-                      href={SQUARE_LINKS[tier.id]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        selectTierAndScroll(tier.id)
+                      }}
                       className="block w-full mt-8 text-center font-label text-label tracking-label uppercase px-6 py-3.5 rounded-sm transition-all bg-accent text-white hover:bg-gold-900 shadow-card hover:shadow-hover"
                     >
                       Join Now — ${tier.salePrice}/year
-                    </a>
+                    </button>
                   </div>
                 </div>
                 </AnimatedSection>
@@ -225,22 +276,141 @@ export default function JoinPage() {
         </div>
       </section>
 
-      {/* Post-Payment Account Setup */}
-      <section className="bg-page-bg py-16">
-        <div className="max-w-3xl mx-auto px-8">
-          <AnimatedSection>
-            <div className="leadership-card bg-white border border-ivory-200 rounded-xl p-8 text-center relative">
-              <h3 className="font-display text-h3 font-light text-brand">Already Paid?</h3>
-              <p className="text-body text-mid mt-3 max-w-lg mx-auto">
-                After completing your payment through Square, submit your application below. Once approved, you&rsquo;ll receive an email with a link to create your member portal account.
+      {/* Application Form */}
+      <section ref={formRef} className="bg-page-bg py-24">
+        <div className="max-w-lg mx-auto px-8">
+          <div className="text-center mb-10">
+            <AnimatedSection>
+              <SectionLabel>Apply</SectionLabel>
+            </AnimatedSection>
+            <AnimatedSection delay={1}>
+              <SectionTitle className="mt-4">Membership Application</SectionTitle>
+            </AnimatedSection>
+            <AnimatedSection delay={2}>
+              <Divider className="mx-auto mt-6" />
+            </AnimatedSection>
+            <AnimatedSection delay={3}>
+              <p className="text-body text-mid mt-4 max-w-md mx-auto">
+                Fill out the form below and you&rsquo;ll be directed to complete your payment through Square.
               </p>
-              <a
-                href="/join/confirm"
-                className="cta-button-glow inline-block bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3 rounded-sm mt-6"
-              >
-                Submit Application
-              </a>
-              <div className="gold-accent-line" />
+            </AnimatedSection>
+          </div>
+
+          <AnimatedSection delay={4}>
+            <div className="bg-white border border-ivory-200 rounded-xl p-8 shadow-card">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Tier selector */}
+                <div>
+                  <label className="font-label text-micro tracking-widest uppercase text-brand block mb-3">
+                    Membership Tier *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTier('individual')}
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                        selectedTier === 'individual'
+                          ? 'border-accent bg-gold-50'
+                          : 'border-ivory-200 hover:border-accent/30'
+                      }`}
+                    >
+                      <User className="w-4 h-4 text-accent" />
+                      <span className="font-label text-[0.65rem] tracking-widest uppercase text-brand">Individual</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTier('corporate')}
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                        selectedTier === 'corporate'
+                          ? 'border-accent bg-gold-50'
+                          : 'border-ivory-200 hover:border-accent/30'
+                      }`}
+                    >
+                      <Building2 className="w-4 h-4 text-accent" />
+                      <span className="font-label text-[0.65rem] tracking-widest uppercase text-brand">Corporate</span>
+                    </button>
+                  </div>
+                  {!selectedTier && (
+                    <p className="text-[0.75rem] text-hint mt-2">Please select a membership tier above or from the pricing cards.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="name" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Full Name *
+                  </label>
+                  <input id="name" name="name" type="text" required className={inputClass} placeholder="Your full name" />
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Email *
+                  </label>
+                  <input id="email" name="email" type="email" required className={inputClass} placeholder="you@example.com" />
+                </div>
+
+                <div>
+                  <label htmlFor="phone" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Phone
+                  </label>
+                  <input id="phone" name="phone" type="tel" className={inputClass} placeholder="(555) 123-4567" />
+                </div>
+
+                <div>
+                  <label htmlFor="businessName" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Business Name
+                  </label>
+                  <input id="businessName" name="businessName" type="text" className={inputClass} placeholder="Your business" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="city" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                      City
+                    </label>
+                    <input id="city" name="city" type="text" className={inputClass} placeholder="e.g. Fresno" />
+                  </div>
+                  <div>
+                    <label htmlFor="sector" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                      Industry
+                    </label>
+                    <input id="sector" name="sector" type="text" className={inputClass} placeholder="e.g. Healthcare" />
+                  </div>
+                </div>
+
+                {error && (
+                  <p className="text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !selectedTier}
+                  className="group w-full flex items-center justify-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3.5 rounded-sm transition-all hover:bg-gold-900 shadow-card hover:shadow-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    'Submitting...'
+                  ) : (
+                    <>
+                      Submit & Continue to Payment
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
+                    </>
+                  )}
+                </button>
+
+                <p className="text-[0.75rem] text-hint text-center">
+                  You&rsquo;ll be redirected to Square to complete your{' '}
+                  {selectedTier ? (
+                    <span className="text-brand font-medium">
+                      ${selectedTier === 'corporate' ? '395' : '95'}/year
+                    </span>
+                  ) : (
+                    'membership'
+                  )}{' '}
+                  payment after submitting.
+                </p>
+              </form>
             </div>
           </AnimatedSection>
         </div>

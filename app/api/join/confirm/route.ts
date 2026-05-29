@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const existing = await db
-      .select()
+      .select({ id: members.id })
       .from(members)
       .where(eq(members.email, email.toLowerCase()))
       .limit(1)

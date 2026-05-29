@@ -14,15 +14,23 @@ export async function GET(req: Request) {
 
   const results: string[] = []
 
-  try {
-    await client.execute('ALTER TABLE members ADD COLUMN membership_number TEXT')
-    results.push('Added membership_number column')
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    if (msg.includes('duplicate column')) {
-      results.push('membership_number column already exists')
-    } else {
-      results.push(`membership_number error: ${msg}`)
+  const columns = [
+    { name: 'membership_number', type: 'TEXT' },
+    { name: 'approved_at', type: 'INTEGER' },
+    { name: 'deactivated_at', type: 'INTEGER' },
+  ]
+
+  for (const col of columns) {
+    try {
+      await client.execute(`ALTER TABLE members ADD COLUMN ${col.name} ${col.type}`)
+      results.push(`Added ${col.name} column`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg.includes('duplicate column')) {
+        results.push(`${col.name} column already exists`)
+      } else {
+        results.push(`${col.name} error: ${msg}`)
+      }
     }
   }
 
