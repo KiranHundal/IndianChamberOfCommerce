@@ -37,7 +37,7 @@ BOARD OF DIRECTORS:
 - Sonia Heer — Chairwoman & Founder (Broker/Owner, Golden State Realty; Founder, Lavish Eventz)
 - Dr. Surdeep Singh — President & Founder (DDS, Robotic Dental Implant Center)
 - Rajinder Kumar — Executive Director & Founder (CRPC, Senior Portfolio Advisor at Merrill Lynch)
-- Kiran Hundal — Secretary & Founder (Software Developer)
+- Kiran Hundal — Treasurer, Chief Financial Officer & Founder (Software Developer)
 
 RULES:
 - Only answer questions related to CVICC, business networking, membership, or the Central Valley Indian business community.
