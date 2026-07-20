@@ -234,7 +234,7 @@ export default function JoinPage() {
       </section>
 
       {/* Membership Tiers */}
-      <section className="bg-page-alt py-24">
+      <section id="pricing" className="bg-page-alt py-24 scroll-mt-24">
         <div className="max-w-5xl mx-auto px-8">
           <div className="text-center">
             <AnimatedSection>

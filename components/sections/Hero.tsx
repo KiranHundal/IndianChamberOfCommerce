@@ -89,7 +89,7 @@ export default function Hero() {
 
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
-              href={session ? "/portal" : "/join"}
+              href={session ? "/portal" : "/join#pricing"}
               className="group relative inline-flex items-center gap-2 bg-accent text-white rounded-sm px-7 py-3.5 font-label text-label tracking-label uppercase overflow-hidden transition-all duration-300 hover:shadow-[0_10px_40px_-10px_rgba(184,150,12,0.6)] hover:-translate-y-0.5"
             >
               <span className="relative z-10">{session ? "Go to Portal" : "Join the Chamber"}</span>

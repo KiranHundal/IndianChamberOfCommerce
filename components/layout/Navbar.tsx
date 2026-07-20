@@ -91,7 +91,7 @@ export default function Navbar() {
                 Login
               </Link>
               <Link
-                href="/join"
+                href="/join#pricing"
                 className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all"
               >
                 Join Now
@@ -166,7 +166,7 @@ export default function Navbar() {
                 Login
               </Link>
               <Link
-                href="/join"
+                href="/join#pricing"
                 onClick={() => setMobileOpen(false)}
                 className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all mt-2"
               >
