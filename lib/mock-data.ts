@@ -446,15 +446,14 @@ export const mockEvents: Event[] = [
 // ─── Leadership ─────────────────────────────────────────────────────────────
 
 function leaderBio(text: string) {
-  return [
-    {
-      _type: 'block' as const,
-      _key: `lb-${text.slice(0, 8)}`,
-      children: [{ _type: 'span' as const, _key: `ls-${text.slice(0, 8)}`, text, marks: [] }],
-      markDefs: [],
-      style: 'normal' as const,
-    },
-  ]
+  const paragraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+  return paragraphs.map((para, i) => ({
+    _type: 'block' as const,
+    _key: `lb-${i}-${para.slice(0, 6)}`,
+    children: [{ _type: 'span' as const, _key: `ls-${i}-${para.slice(0, 6)}`, text: para, marks: [] }],
+    markDefs: [],
+    style: 'normal' as const,
+  }))
 }
 
 export const mockLeadership: Leadership[] = [
@@ -464,7 +463,15 @@ export const mockLeadership: Leadership[] = [
     name: 'Sonia Heer',
     role: 'Chairwoman · Founder · Spokeswoman',
     sector: sector('Real Estate'),
-    bio: leaderBio('Sonia Heer is a dynamic entrepreneur and Broker/Owner of Golden State Realty, Founder of Lavish Eventz and Fresno\'s annual Teeyan Festival, and host of the Rise with Sonia podcast. As Chairwoman and Founder of CVICC, she is dedicated to fostering business growth, cultural connections, and community engagement throughout the Central Valley.'),
+    bio: leaderBio(`Sonia Heer is a dynamic entrepreneur.
+
+She serves as the Broker/Owner of Golden State Realty, Founder of Lavish Eventz and Fresno's annual Teeyan Festival, Owner of Spark Media, President of Aasra Foundation, and host of the Rise with Sonia podcast.
+
+As the Chairwoman, Founder, and Spokeswoman of CVICC, Sonia is committed to fostering business growth, cultural connections, and community engagement throughout the Central Valley and beyond.
+
+Passionate about real estate, culture, business, and community impact, she is dedicated to connecting people, empowering entrepreneurs, and creating opportunities that inspire growth.
+
+Building communities. Elevating businesses. Inspiring lives.`),
     photo: mockImage,
     order: 1,
   },
@@ -474,7 +481,11 @@ export const mockLeadership: Leadership[] = [
     name: 'Dr. Surdeep Singh',
     role: 'President · Founder',
     sector: sector('Healthcare'),
-    bio: leaderBio('Dr. Surdeep Singh, DDS, is the President and co-founder of CVICC. He is the youngest robotic dental practice owner in the U.S. and his Clovis-based Robotic Dental Implant Center has received recognition from the California Senate and State Assembly.'),
+    bio: leaderBio(`The Central Valley Indian Chamber of Commerce is dedicated to supporting and advancing Indian-owned businesses, entrepreneurs, and professionals throughout California's Central Valley.
+
+Our mission is to create opportunities for economic growth, business networking, mentorship, cultural celebration, and community leadership. Through strategic partnerships, educational programs, and community events, we aim to strengthen the presence and impact of the Indian business community while contributing to the overall prosperity of the region.
+
+We believe in building bridges between cultures, empowering future leaders, and creating a thriving ecosystem where businesses and communities grow together.`),
     photo: mockImage,
     order: 2,
   },
@@ -484,7 +495,15 @@ export const mockLeadership: Leadership[] = [
     name: 'Rajinder Kumar',
     role: 'Executive Director · Founder · Financial Advisor',
     sector: sector('Finance'),
-    bio: leaderBio('Rajinder Kumar, CPFA, CRPC, SE-AWMA, Financial Advisor, is a founding member of CVICC and a Financial Advisor at Merrill Lynch in Fresno. He specializes in personalized wealth planning, helping clients pursue education funding, retirement, and long-term financial goals.'),
+    bio: leaderBio(`Rajinder Kumar — CPFA, CRPC, SE-AWMA — is a Senior Financial Advisor at Merrill Lynch Wealth Management, community advocate, and multilingual literary contributor based in Fresno.
+
+He was born and raised in Punjab and moved to Australia in 2006 as an international student, studying Community Development in Melbourne.
+
+Rajinder relocated to the United States in 2016 and has worked in the financial services industry since then. He has a track record of personally assisting more than 5,500 Punjabi and Hindi-speaking individuals at the bank.
+
+During his time in Australia, Rajinder worked closely with immigrant and refugee communities from various African nations, contributing to community development projects and advocating for issues affecting young migrants, refugees, and international students. He also represented Indian international students through several government and nonprofit organizations and served in advisory capacities connected to the government of Victoria.
+
+In addition to his professional work, Rajinder writes Punjabi poetry and has translated books and literary works between Punjabi, Hindi, and English. His interests include archaeology, history, Punjabi literature, fitness training, hiking, and reading. He also recently learned to read Urdu.`),
     photo: mockImage,
     order: 3,
   },

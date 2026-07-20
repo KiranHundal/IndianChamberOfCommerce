@@ -4,6 +4,7 @@ import SectionLabel from "@/components/ui/SectionLabel";
 import Divider from "@/components/ui/Divider";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import Badge from "@/components/ui/Badge";
+import LeaderBioButton from "@/components/leadership/LeaderBioButton";
 import { mockLeadership } from "@/lib/mock-data";
 
 export const metadata: Metadata = {
@@ -144,6 +145,9 @@ export default function LeadershipPage() {
                         {leader.sector.name}
                       </Badge>
                     )}
+                    <div>
+                      <LeaderBioButton leader={leader} />
+                    </div>
                   </div>
 
                   <div className="gold-accent-line" />
@@ -194,6 +198,9 @@ export default function LeadershipPage() {
                     <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70 mt-2">
                       {leader.role}
                     </p>
+                    <div>
+                      <LeaderBioButton leader={leader} />
+                    </div>
                   </div>
 
                   <div className="gold-accent-line" />
