@@ -20,7 +20,7 @@ MEMBERSHIP:
 - To join, visit the Join page at /join on the website.
 
 CONTACT:
-- Address: 1840 Shaw Ave, 105-164, Clovis, CA 93611
+- Address: 4610 W Jacquelyn Ave, Fresno, CA 93722
 - Phone: (510) 453-1248
 - Email: info@indianchamberofcommerce.org
 - Contact form available at /contact on the website

@@ -534,15 +534,6 @@ export const mockLeadership: Leadership[] = [
     photo: mockImage,
     order: 8,
   },
-  {
-    _id: 'leader-9',
-    _type: 'leadership',
-    name: 'Bobby Basra',
-    role: 'Board Member',
-    bio: leaderBio('Bobby Basra is a dedicated CVICC Board Member with strong ties to the Central Valley business community. He champions initiatives that promote cross-sector collaboration and advocates for the growth of Indian-American enterprises throughout the region.'),
-    photo: mockImage,
-    order: 9,
-  },
 ]
 
 // ─── Partners ───────────────────────────────────────────────────────────────
@@ -622,7 +613,7 @@ export const mockSiteSettings: SiteSettings = {
   heroHeadline: 'Building Indian Business Leadership in the Valley',
   heroSubtext:
     'The Central Valley Indian Chamber of Commerce connects, supports, and elevates Indian-American businesses across the region through networking, mentorship, and advocacy.',
-  address: '1840 Shaw Ave, 105-164, Clovis, CA 93611',
+  address: '4610 W Jacquelyn Ave, Fresno, CA 93722',
   phone: '(510) 453-1248',
   email: 'info@indianchamberofcommerce.org',
   instagramHandle: '@indianchamberofcommerce',

@@ -59,7 +59,7 @@ export async function sendMemberPendingEmail(member: {
         <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
           <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
             Central Valley Indian Chamber of Commerce, Inc.<br/>
-            1840 Shaw Ave, 105-164, Clovis, CA 93611
+            4610 W Jacquelyn Ave, Fresno, CA 93722
           </p>
         </div>
       </div>
@@ -243,7 +243,7 @@ export async function sendMemberApprovedEmail(member: {
         <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
           <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
             Central Valley Indian Chamber of Commerce, Inc.<br/>
-            1840 Shaw Ave, 105-164, Clovis, CA 93611
+            4610 W Jacquelyn Ave, Fresno, CA 93722
           </p>
         </div>
       </div>

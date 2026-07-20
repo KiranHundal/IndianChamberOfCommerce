@@ -56,8 +56,8 @@ export default function Footer() {
               Get in Touch
             </h4>
             <address className="not-italic space-y-2 text-white/60 text-small">
-              <p>1840 Shaw Ave, 105-164</p>
-              <p>Clovis, CA 93611</p>
+              <p>4610 W Jacquelyn Ave</p>
+              <p>Fresno, CA 93722</p>
               <a href="tel:5104531248" className="block hover:text-white transition-colors">(510) 453-1248</a>
               <a href="mailto:info@indianchamberofcommerce.org" className="block hover:text-white transition-colors">info@indianchamberofcommerce.org</a>
             </address>

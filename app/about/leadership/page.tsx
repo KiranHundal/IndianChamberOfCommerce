@@ -21,10 +21,9 @@ const HEADSHOT_MAP: Record<string, string> = {
   "Roken Bhatt": "/headshots/Roken1.png",
   "Manreet Sandhu": "/headshots/manreet-sandhu.jpg",
   "Akash Singal": "/headshots/Akash1.png",
-  "Bobby Basra": "/headshots/bobby-basra.jpg",
 };
 
-const PLACEHOLDER_MEMBERS = new Set(["Manreet Sandhu", "Bobby Basra"]);
+const PLACEHOLDER_MEMBERS = new Set(["Manreet Sandhu"]);
 
 const HEADSHOT_POSITION: Record<string, string> = {
   "Sonia Heer": "center 10%",
@@ -56,7 +55,6 @@ const boardMembers = mockLeadership.filter((l) =>
     "Roken Bhatt",
     "Manreet Sandhu",
     "Akash Singal",
-    "Bobby Basra",
   ].includes(l.name)
 );
 
