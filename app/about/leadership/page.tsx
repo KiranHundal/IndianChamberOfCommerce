@@ -4,7 +4,7 @@ import SectionLabel from "@/components/ui/SectionLabel";
 import Divider from "@/components/ui/Divider";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import Badge from "@/components/ui/Badge";
-import LeaderBioButton from "@/components/leadership/LeaderBioButton";
+import LeaderBio from "@/components/leadership/LeaderBio";
 import { mockLeadership } from "@/lib/mock-data";
 
 export const metadata: Metadata = {
@@ -104,15 +104,11 @@ export default function LeadershipPage() {
             </AnimatedSection>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+          <div className="space-y-10">
             {executives.map((leader, i) => (
-              <AnimatedSection
-                key={leader._id}
-                delay={i + 2}
-                className="h-full"
-              >
-                <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
-                  <div className="card-image relative h-96 sm:h-[26rem] md:h-[28rem] overflow-hidden flex-shrink-0">
+              <AnimatedSection key={leader._id} delay={i + 2}>
+                <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col md:flex-row relative">
+                  <div className="card-image relative w-full md:w-80 lg:w-96 h-96 md:h-auto md:min-h-[28rem] flex-shrink-0 overflow-hidden">
                     <Image
                       src={
                         HEADSHOT_MAP[leader.name] ||
@@ -128,26 +124,27 @@ export default function LeadershipPage() {
                         transformOrigin: "center top",
                       }}
                     />
-                    <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
-                    <div className="card-name absolute bottom-4 left-4 right-4 sm:bottom-5 sm:left-6 sm:right-6">
-                      <h3 className="font-display text-h4 sm:text-h3 text-white drop-shadow-lg">
+                    <div className="md:hidden card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
+                    <div className="md:hidden card-name absolute bottom-4 left-4 right-4 sm:bottom-5 sm:left-6 sm:right-6">
+                      <h3 className="font-display text-h3 text-white drop-shadow-lg">
                         {leader.name}
                       </h3>
                     </div>
                   </div>
 
-                  <div className="p-4 sm:p-6">
-                    <p className="font-label text-[0.55rem] sm:text-[0.625rem] tracking-widest uppercase text-brand/70">
+                  <div className="p-6 sm:p-8 md:p-10 flex flex-col flex-1">
+                    <h3 className="hidden md:block font-display text-h3 text-brand">
+                      {leader.name}
+                    </h3>
+                    <p className="font-label text-[0.65rem] tracking-widest uppercase text-brand/70 md:mt-2">
                       {leader.role}
                     </p>
                     {leader.sector && (
-                      <Badge variant="navy" className="mt-2 self-start">
+                      <Badge variant="navy" className="mt-3 self-start">
                         {leader.sector.name}
                       </Badge>
                     )}
-                    <div>
-                      <LeaderBioButton leader={leader} />
-                    </div>
+                    <LeaderBio leader={leader} className="mt-5" />
                   </div>
 
                   <div className="gold-accent-line" />
@@ -198,9 +195,7 @@ export default function LeadershipPage() {
                     <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70 mt-2">
                       {leader.role}
                     </p>
-                    <div>
-                      <LeaderBioButton leader={leader} />
-                    </div>
+                    <LeaderBio leader={leader} className="mt-4" />
                   </div>
 
                   <div className="gold-accent-line" />
