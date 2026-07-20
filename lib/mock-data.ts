@@ -484,7 +484,7 @@ export const mockLeadership: Leadership[] = [
     name: 'Rajinder Kumar',
     role: 'Executive Director · Founder · Financial Advisor',
     sector: sector('Finance'),
-    bio: leaderBio('Rajinder Kumar, CRPC SE-AWMA, is a founding member of CVICC and a Financial Advisor at Merrill Lynch in Fresno. He specializes in personalized wealth planning, helping clients pursue education funding, retirement, and long-term financial goals.'),
+    bio: leaderBio('Rajinder Kumar, CPFA, CRPC, SE-AWMA, Financial Advisor, is a founding member of CVICC and a Financial Advisor at Merrill Lynch in Fresno. He specializes in personalized wealth planning, helping clients pursue education funding, retirement, and long-term financial goals.'),
     photo: mockImage,
     order: 3,
   },

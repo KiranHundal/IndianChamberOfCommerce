@@ -26,7 +26,7 @@ const testimonials = [
       'Having worked with over 5,500 individuals in our community, I know the power of trust and connection. CVICC bridges cultures and industries — it\'s where ambition meets opportunity, and where the Central Valley\'s next generation of leaders will emerge.',
     name: 'Rajinder Kumar',
     title: 'Executive Director & Founder',
-    credential: 'CRPC, Senior Portfolio Advisor at Merrill Lynch',
+    credential: 'CPFA, CRPC, SE-AWMA, Financial Advisor at Merrill Lynch',
     image: '/headshots/RajK.jpeg',
   },
 ]
