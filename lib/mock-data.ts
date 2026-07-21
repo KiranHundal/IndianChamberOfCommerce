@@ -495,9 +495,9 @@ As Chamber of Commerce President, Dr. Singh is committed to supporting local bus
     _id: 'leader-3',
     _type: 'leadership',
     name: 'Rajinder Kumar',
-    role: 'Executive Director · Founder · Financial Advisor',
+    role: 'Executive Director · Founder · Financial Advisor, Senior Portfolio Advisor',
     sector: sector('Finance'),
-    bio: leaderBio(`Rajinder Kumar — CPFA, CRPC, SE-AWMA — is a Financial Advisor at Merrill Lynch Wealth Management, community advocate, and multilingual literary contributor based in Fresno.
+    bio: leaderBio(`Rajinder Kumar — CPFA, CRPC, SE-AWMA — is a Financial Advisor and Senior Portfolio Advisor at Merrill Lynch Wealth Management, community advocate, and multilingual literary contributor based in Fresno.
 
 He was born and raised in Punjab and moved to Australia in 2006 as an international student, studying Community Development in Melbourne.
 

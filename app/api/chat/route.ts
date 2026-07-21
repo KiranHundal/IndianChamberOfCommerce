@@ -36,7 +36,7 @@ WHAT MEMBERS GET:
 BOARD OF DIRECTORS:
 - Sonia Heer — Chairwoman & Founder (Broker/Owner, Golden State Realty; Founder, Lavish Eventz)
 - Dr. Surdeep Singh — President & Founder (DDS, Robotic Dental Implant Center)
-- Rajinder Kumar — Executive Director & Founder (CPFA, CRPC, SE-AWMA, Financial Advisor at Merrill Lynch)
+- Rajinder Kumar — Executive Director & Founder (CPFA, CRPC, SE-AWMA — Financial Advisor, Senior Portfolio Advisor at Merrill Lynch)
 - Kiran Hundal — Treasurer, Chief Financial Officer & Founder (Software Developer)
 
 RULES:
