@@ -481,11 +481,13 @@ Building communities. Elevating businesses. Inspiring lives.`),
     name: 'Dr. Surdeep Singh',
     role: 'President · Founder',
     sector: sector('Healthcare'),
-    bio: leaderBio(`The Central Valley Indian Chamber of Commerce is dedicated to supporting and advancing Indian-owned businesses, entrepreneurs, and professionals throughout California's Central Valley.
+    bio: leaderBio(`Dr. Surdeep Singh is a dentist, entrepreneur, and community leader with a strong passion for business growth, innovation, and community development. Born and raised in Punjab, India, he completed his dental education before moving to the United States, where he started from scratch and built his professional journey through hard work, resilience, and determination.
 
-Our mission is to create opportunities for economic growth, business networking, mentorship, cultural celebration, and community leadership. Through strategic partnerships, educational programs, and community events, we aim to strengthen the presence and impact of the Indian business community while contributing to the overall prosperity of the region.
+After graduating from an International Dental Program, Dr. Singh began practicing dentistry in the U.S. and later opened his first dental practice in 2022, followed by a second office in 2025. His leadership and commitment to excellence have helped his offices earn recognition through the Fresno Bee Best of Central California People's Choice Awards for four consecutive years.
 
-We believe in building bridges between cultures, empowering future leaders, and creating a thriving ecosystem where businesses and communities grow together.`),
+As a business owner, Dr. Singh has focused on bringing growth, opportunity, and advanced innovation to the Central Valley, including the introduction of robotic dental implantology to the local community. His journey reflects the values of entrepreneurship, perseverance, and service.
+
+As Chamber of Commerce President, Dr. Singh is committed to supporting local businesses, strengthening community connections, encouraging collaboration, and creating opportunities for both business owners and community members to grow together. His vision is to lead with integrity, inspire progress, and help build a stronger, more connected Central Valley.`),
     photo: mockImage,
     order: 2,
   },
