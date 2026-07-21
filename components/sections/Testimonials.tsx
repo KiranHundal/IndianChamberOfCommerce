@@ -23,7 +23,7 @@ const testimonials = [
   },
   {
     quote:
-      'CVICC is more than a business network — it\'s a platform where our community\'s ambition, expertise, and values come together to shape the Central Valley\'s future. Together, we build bridges between industries, generations, and cultures.',
+      'Having worked with over 5,500 individuals in our community, I know the power of trust and connection. CVICC is more than a business network — it\'s a platform where our community\'s ambition, expertise, and values come together to shape the Central Valley\'s future.',
     name: 'Rajinder Kumar',
     title: 'Executive Director & Founder',
     credential: 'CPFA, CRPC, SE-AWMA, Financial Advisor at Merrill Lynch',
