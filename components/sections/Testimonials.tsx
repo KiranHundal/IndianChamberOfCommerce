@@ -23,7 +23,7 @@ const testimonials = [
   },
   {
     quote:
-      'Having worked with over 5,500 individuals in our community, I know the power of trust and connection. CVICC bridges cultures and industries — it\'s where ambition meets opportunity, and where the Central Valley\'s next generation of leaders will emerge.',
+      'CVICC is more than a business network — it\'s a platform where our community\'s ambition, expertise, and values come together to shape the Central Valley\'s future. Together, we build bridges between industries, generations, and cultures.',
     name: 'Rajinder Kumar',
     title: 'Executive Director & Founder',
     credential: 'CPFA, CRPC, SE-AWMA, Financial Advisor at Merrill Lynch',
@@ -58,14 +58,7 @@ export default function Testimonials() {
           {testimonials.map((t, i) => (
             <AnimatedSection key={t.name} delay={i + 3} className="h-full">
               <div className="flex flex-col h-full">
-                <div className="flex-1 relative">
-                  <span className="font-display text-[4rem] leading-none text-gold-600/20 absolute -top-2 -left-1">&ldquo;</span>
-                  <p className="text-body text-white/70 leading-relaxed pt-8 italic">
-                    {t.quote}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/10">
+                <div className="flex items-center gap-4 pb-6 border-b border-white/10">
                   <div className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-gold-600/30">
                     <Image
                       src={t.image}
@@ -83,6 +76,13 @@ export default function Testimonials() {
                       {t.credential}
                     </p>
                   </div>
+                </div>
+
+                <div className="flex-1 relative mt-6">
+                  <span className="font-display text-[4rem] leading-none text-gold-600/20 absolute -top-2 -left-1">&ldquo;</span>
+                  <p className="text-body text-white/70 leading-relaxed pt-8 italic">
+                    {t.quote}
+                  </p>
                 </div>
               </div>
             </AnimatedSection>
