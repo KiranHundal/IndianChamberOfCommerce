@@ -3,8 +3,7 @@ import { createClient } from '@libsql/client'
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
-  const key = url.searchParams.get('key')
-  if (key !== process.env.NEXTAUTH_SECRET && key !== 'cvicc-migrate-videos-2026') {
+  if (url.searchParams.get('key') !== process.env.NEXTAUTH_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
