@@ -35,10 +35,10 @@ const testimonials = [
   },
   {
     quote:
-      'CVICC is where numbers meet purpose. As a founder and treasurer, I\'m proud to help stewart the financial vision that empowers Indian-American entrepreneurs to build lasting businesses and give back to our Central Valley community.',
+      'CVICC is where numbers meet purpose. As treasurer, I\'m proud to help steward the financial vision that empowers Indian-American entrepreneurs to build lasting businesses and give back to our Central Valley community.',
     name: 'Kiran Hundal',
-    title: 'Treasurer & Founder',
-    credential: 'Chief Financial Officer · Software Developer',
+    title: 'Treasurer',
+    credential: 'Chief Financial Officer',
     image: '/headshots/KiranH.jpg',
   },
 ]
