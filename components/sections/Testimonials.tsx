@@ -1,8 +1,12 @@
-import Image from 'next/image'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import TestimonialCard from './TestimonialCard'
+import { db } from '@/lib/db'
+import { leaderVideos } from '@/lib/schema'
+
+export const revalidate = 60
 
 const testimonials = [
   {
@@ -29,9 +33,28 @@ const testimonials = [
     credential: 'CPFA, CRPC, SE-AWMA — Financial Advisor, Senior Portfolio Advisor, Merrill Lynch',
     image: '/headshots/RajK.jpeg',
   },
+  {
+    quote:
+      'CVICC is where numbers meet purpose. As a founder and treasurer, I\'m proud to help stewart the financial vision that empowers Indian-American entrepreneurs to build lasting businesses and give back to our Central Valley community.',
+    name: 'Kiran Hundal',
+    title: 'Treasurer & Founder',
+    credential: 'Chief Financial Officer · Software Developer',
+    image: '/headshots/KiranH.jpg',
+  },
 ]
 
-export default function Testimonials() {
+async function getVideoMap(): Promise<Map<string, string>> {
+  try {
+    const rows = await db.select().from(leaderVideos)
+    return new Map(rows.map((r) => [r.leaderName, r.url]))
+  } catch {
+    return new Map()
+  }
+}
+
+export default async function Testimonials() {
+  const videoMap = await getVideoMap()
+
   return (
     <section className="bg-navy-900 py-24 relative overflow-hidden">
       <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/20 hidden md:block" />
@@ -40,7 +63,7 @@ export default function Testimonials() {
       <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/20 hidden md:block" />
 
       <div className="max-w-6xl mx-auto px-8">
-        <div className="text-center mb-16">
+        <div className="text-center mb-14">
           <AnimatedSection>
             <SectionLabel dark>From Our Founders</SectionLabel>
           </AnimatedSection>
@@ -52,39 +75,17 @@ export default function Testimonials() {
           <AnimatedSection delay={2}>
             <Divider className="mx-auto mt-6" />
           </AnimatedSection>
+          <AnimatedSection delay={3}>
+            <p className="text-body text-white/50 mt-6 max-w-xl mx-auto">
+              Hear directly from the founders shaping CVICC&rsquo;s vision for the Central Valley.
+            </p>
+          </AnimatedSection>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
           {testimonials.map((t, i) => (
-            <AnimatedSection key={t.name} delay={i + 3} className="h-full">
-              <div className="flex flex-col h-full">
-                <div className="flex items-center gap-4 pb-6 border-b border-white/10">
-                  <div className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-gold-600/30">
-                    <Image
-                      src={t.image}
-                      alt={t.name}
-                      fill
-                      className="object-cover object-top"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-display text-[1rem] text-white">{t.name}</p>
-                    <p className="font-label text-[0.55rem] tracking-widest uppercase text-gold-600/80 mt-0.5">
-                      {t.title}
-                    </p>
-                    <p className="text-[0.7rem] text-white/40 mt-0.5">
-                      {t.credential}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex-1 relative mt-6">
-                  <span className="font-display text-[4rem] leading-none text-gold-600/20 absolute -top-2 -left-1">&ldquo;</span>
-                  <p className="text-body text-white/70 leading-relaxed pt-8 italic">
-                    {t.quote}
-                  </p>
-                </div>
-              </div>
+            <AnimatedSection key={t.name} delay={i + 4} className="h-full">
+              <TestimonialCard {...t} videoUrl={videoMap.get(t.name)} />
             </AnimatedSection>
           ))}
         </div>
