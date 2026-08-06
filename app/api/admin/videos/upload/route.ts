@@ -5,19 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { leaderVideos } from '@/lib/schema'
 
-async function requireAdmin() {
-  const session = await getServerSession(authOptions)
-  const user = session?.user as Record<string, unknown> | undefined
-  if (!user || user.role !== 'admin') return null
-  return session
-}
-
 export async function POST(req: NextRequest) {
-  const session = await requireAdmin()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const body = (await req.json()) as HandleUploadBody
 
   try {
@@ -25,6 +13,12 @@ export async function POST(req: NextRequest) {
       body,
       request: req,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const session = await getServerSession(authOptions)
+        const user = session?.user as Record<string, unknown> | undefined
+        if (!user || user.role !== 'admin') {
+          throw new Error('Unauthorized: admin session required to upload')
+        }
+
         const payload = clientPayload ? JSON.parse(clientPayload) : {}
         if (!payload.leaderName || typeof payload.leaderName !== 'string') {
           throw new Error('leaderName is required')
