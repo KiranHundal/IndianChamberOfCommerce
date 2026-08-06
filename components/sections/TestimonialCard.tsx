@@ -45,9 +45,11 @@ export default function TestimonialCard({ quote, name, title, credential, image,
             <p className="font-label text-[0.55rem] tracking-widest uppercase text-gold-600/80 mt-0.5">
               {title}
             </p>
-            <p className="text-[0.7rem] text-white/40 mt-0.5">
-              {credential}
-            </p>
+            {credential && (
+              <p className="text-[0.7rem] text-white/40 mt-0.5">
+                {credential}
+              </p>
+            )}
           </div>
         </div>
 

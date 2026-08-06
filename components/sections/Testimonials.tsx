@@ -38,7 +38,7 @@ const testimonials = [
       'CVICC is where numbers meet purpose. As treasurer, I\'m proud to help steward the financial vision that empowers Indian-American entrepreneurs to build lasting businesses and give back to our Central Valley community.',
     name: 'Kiran Hundal',
     title: 'Treasurer',
-    credential: 'Chief Financial Officer',
+    credential: '',
     image: '/headshots/KiranH.jpg',
   },
 ]
