@@ -19,6 +19,7 @@ import {
   Save,
   Award,
   RefreshCw,
+  KeyRound,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -107,6 +108,10 @@ export default function PortalPage() {
   const [saving, setSaving] = useState(false)
   const [deactivating, setDeactivating] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -522,7 +527,19 @@ export default function PortalPage() {
 
           {/* Actions */}
           <AnimatedSection delay={7}>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
+            <div className="mt-8 flex flex-col sm:flex-row flex-wrap gap-4">
+              <button
+                onClick={() => {
+                  setPasswordError('')
+                  setPasswordSuccess('')
+                  setShowPasswordModal(true)
+                }}
+                className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-label tracking-label uppercase px-6 py-3 rounded-sm hover:border-brand/30 transition-all"
+              >
+                <KeyRound className="w-4 h-4" />
+                Change Password
+              </button>
+
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-6 py-3 rounded-sm hover:border-brand/30 transition-all"
@@ -542,6 +559,134 @@ export default function PortalPage() {
               )}
             </div>
           </AnimatedSection>
+
+          {/* Change Password Modal */}
+          {showPasswordModal && (
+            <div
+              className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4"
+              onClick={() => setShowPasswordModal(false)}
+            >
+              <div
+                className="bg-white rounded-xl p-8 max-w-md w-full shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-navy-100 flex items-center justify-center">
+                    <KeyRound className="w-5 h-5 text-brand" />
+                  </div>
+                  <h3 className="font-display text-h4 text-brand">Change Password</h3>
+                </div>
+
+                <form
+                  onSubmit={async (e: FormEvent<HTMLFormElement>) => {
+                    e.preventDefault()
+                    setPasswordSaving(true)
+                    setPasswordError('')
+                    setPasswordSuccess('')
+                    const form = e.currentTarget
+                    const currentPassword = (form.elements.namedItem('currentPassword') as HTMLInputElement).value
+                    const newPassword = (form.elements.namedItem('newPassword') as HTMLInputElement).value
+                    const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value
+
+                    if (newPassword !== confirmPassword) {
+                      setPasswordError('New passwords do not match.')
+                      setPasswordSaving(false)
+                      return
+                    }
+                    if (newPassword.length < 6) {
+                      setPasswordError('New password must be at least 6 characters.')
+                      setPasswordSaving(false)
+                      return
+                    }
+
+                    try {
+                      const res = await fetch('/api/portal/change-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ currentPassword, newPassword }),
+                      })
+                      const data = await res.json()
+                      if (!res.ok) {
+                        setPasswordError(data.error || 'Something went wrong.')
+                      } else {
+                        setPasswordSuccess('Password updated successfully.')
+                        form.reset()
+                      }
+                    } catch {
+                      setPasswordError('Network error. Please try again.')
+                    }
+                    setPasswordSaving(false)
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                      Current Password
+                    </label>
+                    <input
+                      type="password"
+                      name="currentPassword"
+                      required
+                      className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      name="newPassword"
+                      required
+                      minLength={6}
+                      className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                      placeholder="Min 6 characters"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      required
+                      minLength={6}
+                      className="w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                    />
+                  </div>
+
+                  {passwordError && (
+                    <p className="text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
+                      {passwordError}
+                    </p>
+                  )}
+                  {passwordSuccess && (
+                    <p className="text-small text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-4 py-3">
+                      {passwordSuccess}
+                    </p>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordModal(false)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:border-brand/30 transition-all"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={passwordSaving}
+                      className="flex-1 flex items-center justify-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:bg-gold-900 transition-all disabled:opacity-50"
+                    >
+                      {passwordSaving ? 'Saving...' : 'Update Password'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Deactivation Confirmation Modal */}
           {showConfirm && (
