@@ -5,7 +5,12 @@ import Divider from "@/components/ui/Divider";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import Badge from "@/components/ui/Badge";
 import LeaderBio from "@/components/leadership/LeaderBio";
+import LeaderVideo from "@/components/leadership/LeaderVideo";
 import { mockLeadership } from "@/lib/mock-data";
+import { db } from "@/lib/db";
+import { leaderVideos } from "@/lib/schema";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Board of Directors — CVICC",
@@ -59,7 +64,17 @@ const boardMembers = mockLeadership.filter((l) =>
   ].includes(l.name)
 );
 
-export default function LeadershipPage() {
+async function getVideoMap(): Promise<Map<string, string>> {
+  try {
+    const rows = await db.select().from(leaderVideos)
+    return new Map(rows.map((r) => [r.leaderName, r.url]))
+  } catch {
+    return new Map()
+  }
+}
+
+export default async function LeadershipPage() {
+  const videoMap = await getVideoMap();
   return (
     <>
       {/* Hero */}
@@ -145,6 +160,9 @@ export default function LeadershipPage() {
                       </Badge>
                     )}
                     <LeaderBio leader={leader} className="mt-5" />
+                    {videoMap.get(leader.name) && (
+                      <LeaderVideo url={videoMap.get(leader.name)!} name={leader.name} className="mt-6" />
+                    )}
                   </div>
 
                   <div className="gold-accent-line" />
@@ -196,6 +214,9 @@ export default function LeadershipPage() {
                       {leader.role}
                     </p>
                     <LeaderBio leader={leader} className="mt-4" />
+                    {videoMap.get(leader.name) && (
+                      <LeaderVideo url={videoMap.get(leader.name)!} name={leader.name} className="mt-4" />
+                    )}
                   </div>
 
                   <div className="gold-accent-line" />

@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import {
   Shield,
   CheckCircle,
@@ -11,6 +12,7 @@ import {
   Users,
   RefreshCw,
   Search,
+  Video,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -152,6 +154,19 @@ export default function AdminPage() {
 
       <section className="bg-page-bg py-16">
         <div className="max-w-6xl mx-auto px-8">
+          {/* Quick Links */}
+          <AnimatedSection>
+            <div className="mb-10 flex flex-wrap gap-3">
+              <Link
+                href="/admin/videos"
+                className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 hover:shadow-hover transition-all"
+              >
+                <Video className="w-3.5 h-3.5 text-accent" />
+                Manage Leadership Videos
+              </Link>
+            </div>
+          </AnimatedSection>
+
           {/* Stats Row */}
           <AnimatedSection>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">

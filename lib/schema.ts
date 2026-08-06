@@ -18,5 +18,12 @@ export const members = sqliteTable('members', {
   deactivatedAt: integer('deactivated_at', { mode: 'timestamp' }),
 })
 
+export const leaderVideos = sqliteTable('leader_videos', {
+  leaderName: text('leader_name').primaryKey(),
+  url: text('url').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export type Member = typeof members.$inferSelect
 export type NewMember = typeof members.$inferInsert
+export type LeaderVideo = typeof leaderVideos.$inferSelect

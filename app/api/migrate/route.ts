@@ -42,5 +42,19 @@ export async function GET(req: Request) {
     results.push(`unique index error: ${msg}`)
   }
 
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS leader_videos (
+        leader_name TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `)
+    results.push('Created leader_videos table')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    results.push(`leader_videos table error: ${msg}`)
+  }
+
   return NextResponse.json({ success: true, results })
 }
