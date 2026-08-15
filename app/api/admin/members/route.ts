@@ -20,7 +20,8 @@ async function getNextMembershipNumber(): Promise<string> {
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
-  if (!session?.user || (session.user as Record<string, unknown>).role !== 'admin') {
+  const role = (session?.user as Record<string, unknown> | undefined)?.role
+  if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -37,7 +38,8 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions)
-  if (!session?.user || (session.user as Record<string, unknown>).role !== 'admin') {
+  const role = (session?.user as Record<string, unknown> | undefined)?.role
+  if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -81,6 +83,9 @@ export async function PATCH(req: Request) {
   }
 
   if (action === 'deactivate') {
+    if ((session.user as Record<string, unknown>).role !== 'admin') {
+      return NextResponse.json({ error: 'Only admins can deactivate members.' }, { status: 403 })
+    }
     await db.update(members).set({ status: 'deactivated', deactivatedAt: new Date() }).where(eq(members.id, memberId))
     return NextResponse.json({ success: true, message: 'Member deactivated.' })
   }

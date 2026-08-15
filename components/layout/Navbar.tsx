@@ -72,7 +72,10 @@ export default function Navbar() {
                 <LogIn className="w-3.5 h-3.5" />
                 Portal
               </Link>
-              {(session.user as Record<string, unknown>)?.role === 'admin' && (
+              {(() => {
+                const role = (session.user as Record<string, unknown>)?.role
+                return role === 'admin' || role === 'moderator'
+              })() && (
                 <Link
                   href="/admin"
                   className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 transition-all"
@@ -145,7 +148,10 @@ export default function Navbar() {
                 <LogIn className="w-3.5 h-3.5" />
                 Portal
               </Link>
-              {(session.user as Record<string, unknown>)?.role === 'admin' && (
+              {(() => {
+                const role = (session.user as Record<string, unknown>)?.role
+                return role === 'admin' || role === 'moderator'
+              })() && (
                 <Link
                   href="/admin"
                   onClick={() => setMobileOpen(false)}

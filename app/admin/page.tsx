@@ -46,6 +46,7 @@ const statusBadge: Record<string, { label: string; color: string; bg: string }> 
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const isAdmin = (session?.user as Record<string, unknown> | undefined)?.role === 'admin'
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -73,7 +74,7 @@ export default function AdminPage() {
     }
     if (status === 'authenticated') {
       const user = session?.user as Record<string, unknown>
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'moderator') {
         router.push('/portal')
         return
       }
@@ -154,18 +155,20 @@ export default function AdminPage() {
 
       <section className="bg-page-bg py-16">
         <div className="max-w-6xl mx-auto px-8">
-          {/* Quick Links */}
-          <AnimatedSection>
-            <div className="mb-10 flex flex-wrap gap-3">
-              <Link
-                href="/admin/videos"
-                className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 hover:shadow-hover transition-all"
-              >
-                <Video className="w-3.5 h-3.5 text-accent" />
-                Manage Leadership Videos
-              </Link>
-            </div>
-          </AnimatedSection>
+          {/* Quick Links (admin-only) */}
+          {isAdmin && (
+            <AnimatedSection>
+              <div className="mb-10 flex flex-wrap gap-3">
+                <Link
+                  href="/admin/videos"
+                  className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 hover:shadow-hover transition-all"
+                >
+                  <Video className="w-3.5 h-3.5 text-accent" />
+                  Manage Leadership Videos
+                </Link>
+              </div>
+            </AnimatedSection>
+          )}
 
           {/* Stats Row */}
           <AnimatedSection>
@@ -288,7 +291,7 @@ export default function AdminPage() {
                               </button>
                             </>
                           )}
-                          {member.status === 'approved' && member.role !== 'admin' && (
+                          {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
                             <button
                               onClick={() => handleAction(member.id, 'deactivate')}
                               disabled={actionLoading === `${member.id}-deactivate`}
