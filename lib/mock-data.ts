@@ -510,15 +510,6 @@ In addition to his professional work, Rajinder writes Punjabi poetry and has tra
     order: 3,
   },
   {
-    _id: 'leader-4',
-    _type: 'leadership',
-    name: 'Isha Lochab',
-    role: 'Board Member',
-    bio: leaderBio('Isha Lochab serves on the CVICC Board of Directors, bringing fresh perspective and energy to the chamber\'s initiatives.'),
-    photo: mockImage,
-    order: 4,
-  },
-  {
     _id: 'leader-5',
     _type: 'leadership',
     name: 'Kiran Hundal',
