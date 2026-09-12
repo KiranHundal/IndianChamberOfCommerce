@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { boardMembers } from '@/lib/schema'
-import { asc } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { put } from '@vercel/blob'
+import { sendBoardMemberWelcomeEmail } from '@/lib/email'
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions)
@@ -34,11 +35,17 @@ export async function POST(req: NextRequest) {
     const name = formData.get('name')?.toString()?.trim()
     const role = formData.get('role')?.toString()?.trim() || 'Board Member'
     const bio = formData.get('bio')?.toString()?.trim() || null
+    const email = formData.get('email')?.toString()?.trim()?.toLowerCase() || null
+    const sendWelcome = formData.get('sendWelcome') === 'true'
     const displayOrder = parseInt(formData.get('displayOrder')?.toString() || '100', 10)
     const photo = formData.get('photo') as File | null
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required.' }, { status: 400 })
+    }
+
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
     }
 
     let photoUrl: string | null = null
@@ -64,11 +71,24 @@ export async function POST(req: NextRequest) {
       role,
       bio,
       photoUrl,
+      email,
       displayOrder: Number.isFinite(displayOrder) ? displayOrder : 100,
       createdAt: new Date(),
     })
 
-    return NextResponse.json({ success: true, id })
+    let emailStatus: 'sent' | 'failed' | 'skipped' = 'skipped'
+    if (email && sendWelcome) {
+      try {
+        await sendBoardMemberWelcomeEmail({ name, email, role })
+        await db.update(boardMembers).set({ welcomeEmailSentAt: new Date() }).where(eq(boardMembers.id, id))
+        emailStatus = 'sent'
+      } catch (emailError) {
+        console.error('Board member welcome email error:', emailError)
+        emailStatus = 'failed'
+      }
+    }
+
+    return NextResponse.json({ success: true, id, emailStatus })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create board member'
     console.error('Board member create error:', error)

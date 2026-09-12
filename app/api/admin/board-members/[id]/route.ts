@@ -33,6 +33,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (role) updates.role = role
     const bioRaw = formData.get('bio')
     if (bioRaw !== null) updates.bio = bioRaw.toString().trim() || null
+    const emailRaw = formData.get('email')
+    if (emailRaw !== null) {
+      const emailValue = emailRaw.toString().trim().toLowerCase() || null
+      if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+        return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
+      }
+      updates.email = emailValue
+    }
     const displayOrderRaw = formData.get('displayOrder')?.toString()
     if (displayOrderRaw !== undefined) {
       const parsed = parseInt(displayOrderRaw, 10)

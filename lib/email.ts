@@ -250,3 +250,66 @@ export async function sendMemberApprovedEmail(member: {
     `,
   })
 }
+
+export async function sendBoardMemberWelcomeEmail(member: {
+  name: string
+  email: string
+  role: string
+}) {
+  const resend = getResend()
+  if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
+
+  const { fromEmail, siteUrl } = getConfig()
+  return resend.emails.send({
+    from: `CVICC <${fromEmail}>`,
+    to: member.email,
+    subject: 'Welcome to the CVICC Board of Directors',
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
+        <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
+          <h1 style="color: #D4A830; font-size: 24px; margin: 0; font-weight: 300; letter-spacing: 2px;">
+            CENTRAL VALLEY INDIAN<br/>CHAMBER OF COMMERCE
+          </h1>
+        </div>
+        <div style="padding: 40px 32px; background: #FAFAF7;">
+          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">
+            Board of Directors
+          </p>
+          <h2 style="color: #1E3A5F; font-size: 24px; font-weight: 300; margin: 0 0 20px;">
+            Welcome, ${member.name}
+          </h2>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
+            On behalf of the Central Valley Indian Chamber of Commerce, it is our honor to welcome you as our new <strong>${member.role}</strong>.
+          </p>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
+            Your leadership, expertise, and commitment to our community will play an essential role in advancing CVICC's mission — connecting, supporting, and elevating Indian-American businesses throughout the Central Valley.
+          </p>
+          <div style="background: #FFFFFF; border: 1px solid #EDE6D3; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
+            <p style="color: #1E3A5F; margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;">
+              Your Profile
+            </p>
+            <p style="color: #5A6A7A; margin: 0 0 12px; font-size: 14px;">
+              Your profile is now listed on the CVICC Board of Directors page.
+            </p>
+            <a href="${siteUrl}/about/leadership" style="display: inline-block; background: #D4A830; color: #FFFFFF; text-decoration: none; padding: 10px 20px; border-radius: 4px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">
+              View the Board Page
+            </a>
+          </div>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 24px 0 0;">
+            We look forward to working alongside you. If you have any questions, please don't hesitate to reach out.
+          </p>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0;">
+            Warm regards,<br/>
+            <strong style="color: #1E3A5F;">The CVICC Board</strong>
+          </p>
+        </div>
+        <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
+          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+            Central Valley Indian Chamber of Commerce, Inc.<br/>
+            4610 W Jacquelyn Ave, Fresno, CA 93722
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}

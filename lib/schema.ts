@@ -30,8 +30,10 @@ export const boardMembers = sqliteTable('board_members', {
   role: text('role').notNull().default('Board Member'),
   bio: text('bio'),
   photoUrl: text('photo_url'),
+  email: text('email'),
   displayOrder: integer('display_order').notNull().default(100),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  welcomeEmailSentAt: integer('welcome_email_sent_at', { mode: 'timestamp' }),
 })
 
 export type Member = typeof members.$inferSelect

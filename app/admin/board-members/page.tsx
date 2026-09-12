@@ -14,6 +14,8 @@ import {
   Save,
   User,
   Loader2,
+  Mail,
+  MailCheck,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -26,8 +28,10 @@ interface BoardMemberRow {
   role: string
   bio: string | null
   photoUrl: string | null
+  email: string | null
   displayOrder: number
   createdAt: string | number
+  welcomeEmailSentAt: string | number | null
 }
 
 const inputClass =
@@ -44,6 +48,8 @@ export default function AdminBoardMembersPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const photoRef = useRef<HTMLInputElement>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [sendingWelcomeFor, setSendingWelcomeFor] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
@@ -98,11 +104,36 @@ export default function AdminBoardMembersPage() {
       } else {
         await fetchRows()
         resetForm()
+        if (data.emailStatus === 'sent') {
+          setNotice({ type: 'success', text: 'Board member added and welcome email sent.' })
+        } else if (data.emailStatus === 'failed') {
+          setNotice({ type: 'error', text: 'Board member added, but welcome email failed to send. You can resend it from the list.' })
+        } else if (data.emailStatus === 'skipped') {
+          setNotice({ type: 'success', text: editingId ? 'Board member updated.' : 'Board member added.' })
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Network error.')
     }
     setSaving(false)
+  }
+
+  async function handleSendWelcome(id: string, name: string) {
+    setSendingWelcomeFor(id)
+    setNotice(null)
+    try {
+      const res = await fetch(`/api/admin/board-members/${id}/send-welcome`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Failed to send welcome email.' })
+      } else {
+        setNotice({ type: 'success', text: `Welcome email sent to ${name}.` })
+        await fetchRows()
+      }
+    } catch {
+      setNotice({ type: 'error', text: 'Network error sending welcome email.' })
+    }
+    setSendingWelcomeFor(null)
   }
 
   async function handleDelete(id: string, name: string) {
@@ -173,6 +204,19 @@ export default function AdminBoardMembersPage() {
             )}
           </div>
 
+          {notice && (
+            <div className={`mb-6 border rounded-lg px-4 py-3 text-small flex items-start gap-3 ${
+              notice.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              <span className="flex-1">{notice.text}</span>
+              <button onClick={() => setNotice(null)} className="opacity-60 hover:opacity-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {showAdd && (
             <div className="bg-white border border-ivory-200 rounded-xl p-8 mb-8 shadow-card">
               <div className="flex items-center justify-between mb-6">
@@ -210,6 +254,33 @@ export default function AdminBoardMembersPage() {
                     placeholder="Board Member"
                   />
                 </div>
+                <div>
+                  <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    defaultValue={editingRow?.email || ''}
+                    className={inputClass}
+                    placeholder="member@example.com"
+                  />
+                  <p className="text-[0.7rem] text-hint mt-1">Optional. Required to send a welcome email.</p>
+                </div>
+                {!editingId && (
+                  <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      name="sendWelcome"
+                      value="true"
+                      defaultChecked
+                      className="mt-1 w-4 h-4 accent-accent"
+                    />
+                    <span className="text-small text-charcoal">
+                      Send welcome email now (only if email is provided)
+                    </span>
+                  </label>
+                )}
                 <div>
                   <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                     Short Bio
@@ -326,24 +397,57 @@ export default function AdminBoardMembersPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-display text-h5 text-brand">{row.name}</p>
                     <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70 mt-0.5">{row.role}</p>
+                    {row.email && (
+                      <p className="text-small text-mid mt-1 flex items-center gap-1.5">
+                        <Mail className="w-3 h-3" />
+                        {row.email}
+                        {row.welcomeEmailSentAt && (
+                          <span className="inline-flex items-center gap-1 text-[0.65rem] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                            <MailCheck className="w-3 h-3" />
+                            Welcome sent
+                          </span>
+                        )}
+                      </p>
+                    )}
                     {row.bio && <p className="text-small text-mid mt-1 line-clamp-2">{row.bio}</p>}
                     <p className="text-[0.7rem] text-hint mt-1">Order: {row.displayOrder}</p>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => startEdit(row)}
-                      className="flex items-center gap-1.5 bg-white border border-ivory-200 text-brand font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:border-accent/40 transition-all"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(row.id, row.name)}
-                      className="flex items-center gap-1.5 bg-white border border-red-200 text-red-600 font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:bg-red-50 transition-all"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Delete
-                    </button>
+                  <div className="flex flex-col gap-2 flex-shrink-0">
+                    {row.email && (
+                      <button
+                        onClick={() => handleSendWelcome(row.id, row.name)}
+                        disabled={sendingWelcomeFor === row.id}
+                        className="flex items-center justify-center gap-1.5 bg-white border border-accent/40 text-accent font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:bg-gold-50 transition-all disabled:opacity-50"
+                      >
+                        {sendingWelcomeFor === row.id ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Sending
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-3.5 h-3.5" />
+                            {row.welcomeEmailSentAt ? 'Resend Welcome' : 'Send Welcome'}
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEdit(row)}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-ivory-200 text-brand font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:border-accent/40 transition-all"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(row.id, row.name)}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-red-200 text-red-600 font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:bg-red-50 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

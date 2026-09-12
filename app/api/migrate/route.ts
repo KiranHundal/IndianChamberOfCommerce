@@ -65,14 +65,34 @@ export async function GET(req: Request) {
         role TEXT NOT NULL DEFAULT 'Board Member',
         bio TEXT,
         photo_url TEXT,
+        email TEXT,
         display_order INTEGER NOT NULL DEFAULT 100,
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        welcome_email_sent_at INTEGER
       )
     `)
     results.push('Created board_members table')
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     results.push(`board_members table error: ${msg}`)
+  }
+
+  const boardColumns = [
+    { name: 'email', type: 'TEXT' },
+    { name: 'welcome_email_sent_at', type: 'INTEGER' },
+  ]
+  for (const col of boardColumns) {
+    try {
+      await client.execute(`ALTER TABLE board_members ADD COLUMN ${col.name} ${col.type}`)
+      results.push(`Added board_members.${col.name}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg.includes('duplicate column')) {
+        results.push(`board_members.${col.name} already exists`)
+      } else {
+        results.push(`board_members.${col.name} error: ${msg}`)
+      }
+    }
   }
 
   return NextResponse.json({ success: true, results })
