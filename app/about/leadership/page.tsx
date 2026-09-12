@@ -8,9 +8,19 @@ import LeaderBio from "@/components/leadership/LeaderBio";
 import LeaderVideo from "@/components/leadership/LeaderVideo";
 import { mockLeadership } from "@/lib/mock-data";
 import { db } from "@/lib/db";
-import { leaderVideos } from "@/lib/schema";
+import { leaderVideos, boardMembers as boardMembersTable } from "@/lib/schema";
+import { asc } from "drizzle-orm";
 
 export const revalidate = 60;
+
+interface DisplayBoardMember {
+  key: string;
+  name: string;
+  role: string;
+  photoUrl: string;
+  isPlaceholder: boolean;
+  displayOrder: number;
+}
 
 export const metadata: Metadata = {
   title: "Board of Directors — CVICC",
@@ -70,8 +80,39 @@ async function getVideoMap(): Promise<Map<string, string>> {
   }
 }
 
+async function getDbBoardMembers(): Promise<DisplayBoardMember[]> {
+  try {
+    const rows = await db.select().from(boardMembersTable).orderBy(asc(boardMembersTable.displayOrder))
+    return rows.map((r) => ({
+      key: `db-${r.id}`,
+      name: r.name,
+      role: r.role,
+      photoUrl: r.photoUrl || "/headshots/placeholder.jpg",
+      isPlaceholder: !r.photoUrl,
+      displayOrder: r.displayOrder,
+    }))
+  } catch {
+    return []
+  }
+}
+
 export default async function LeadershipPage() {
   const videoMap = await getVideoMap();
+  const dbBoardMembers = await getDbBoardMembers();
+
+  const hardcodedBoardMembers: DisplayBoardMember[] = boardMembers.map((leader, i) => ({
+    key: leader._id,
+    name: leader.name,
+    role: leader.role,
+    photoUrl: HEADSHOT_MAP[leader.name] || "/headshots/placeholder.jpg",
+    isPlaceholder: PLACEHOLDER_MEMBERS.has(leader.name),
+    displayOrder: i,
+  }));
+
+  const allBoardMembers: DisplayBoardMember[] = [
+    ...hardcodedBoardMembers,
+    ...dbBoardMembers,
+  ].sort((a, b) => a.displayOrder - b.displayOrder);
   return (
     <>
       {/* Hero */}
@@ -237,43 +278,41 @@ export default async function LeadershipPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
-            {boardMembers.map((leader, i) => {
-              const isPlaceholder = PLACEHOLDER_MEMBERS.has(leader.name);
-              return (
-                <AnimatedSection key={leader._id} delay={i + 2}>
-                  <div className="board-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
-                    <div className={`card-image relative overflow-hidden flex-shrink-0 ${isPlaceholder ? "h-44 sm:h-48 lg:h-52 bg-navy-800" : "h-48 sm:h-52 lg:h-52"}`}>
-                      <Image
-                        src={HEADSHOT_MAP[leader.name] || "/headshots/placeholder.jpg"}
-                        alt={leader.name}
-                        fill
-                        className={`transition-transform duration-700 board-member-img ${isPlaceholder ? "object-contain p-4" : "object-cover"}`}
-                        data-member={leader.name}
-                        style={{
-                          objectPosition: isPlaceholder
-                            ? "center center"
-                            : HEADSHOT_POSITION[leader.name] || "center top",
-                        }}
-                      />
-                      <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
-                      <div className="card-name absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4">
-                        <h3 className="font-display text-[1rem] sm:text-h4 text-white drop-shadow-lg leading-tight">
-                          {leader.name}
-                        </h3>
-                      </div>
+            {allBoardMembers.map((member, i) => (
+              <AnimatedSection key={member.key} delay={i + 2}>
+                <div className="board-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col h-full relative">
+                  <div className={`card-image relative overflow-hidden flex-shrink-0 ${member.isPlaceholder ? "h-44 sm:h-48 lg:h-52 bg-navy-800" : "h-48 sm:h-52 lg:h-52"}`}>
+                    <Image
+                      src={member.photoUrl}
+                      alt={member.name}
+                      fill
+                      unoptimized={member.photoUrl.startsWith("http")}
+                      className={`transition-transform duration-700 board-member-img ${member.isPlaceholder ? "object-contain p-4" : "object-cover"}`}
+                      data-member={member.name}
+                      style={{
+                        objectPosition: member.isPlaceholder
+                          ? "center center"
+                          : HEADSHOT_POSITION[member.name] || "center top",
+                      }}
+                    />
+                    <div className="card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
+                    <div className="card-name absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4">
+                      <h3 className="font-display text-[1rem] sm:text-h4 text-white drop-shadow-lg leading-tight">
+                        {member.name}
+                      </h3>
                     </div>
-
-                    <div className="p-3 sm:p-4">
-                      <p className="font-label text-[0.5rem] sm:text-[0.625rem] tracking-widest uppercase text-brand/70">
-                        {leader.role}
-                      </p>
-                    </div>
-
-                    <div className="gold-accent-line" />
                   </div>
-                </AnimatedSection>
-              );
-            })}
+
+                  <div className="p-3 sm:p-4">
+                    <p className="font-label text-[0.5rem] sm:text-[0.625rem] tracking-widest uppercase text-brand/70">
+                      {member.role}
+                    </p>
+                  </div>
+
+                  <div className="gold-accent-line" />
+                </div>
+              </AnimatedSection>
+            ))}
           </div>
         </div>
       </section>

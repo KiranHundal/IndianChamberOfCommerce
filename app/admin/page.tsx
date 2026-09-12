@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Search,
   Video,
+  UserPlus,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -165,6 +166,13 @@ export default function AdminPage() {
                 >
                   <Video className="w-3.5 h-3.5 text-accent" />
                   Manage Leadership Videos
+                </Link>
+                <Link
+                  href="/admin/board-members"
+                  className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 hover:shadow-hover transition-all"
+                >
+                  <UserPlus className="w-3.5 h-3.5 text-accent" />
+                  Manage Board Members
                 </Link>
               </div>
             </AnimatedSection>

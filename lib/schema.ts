@@ -24,6 +24,18 @@ export const leaderVideos = sqliteTable('leader_videos', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
+export const boardMembers = sqliteTable('board_members', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  role: text('role').notNull().default('Board Member'),
+  bio: text('bio'),
+  photoUrl: text('photo_url'),
+  displayOrder: integer('display_order').notNull().default(100),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export type Member = typeof members.$inferSelect
 export type NewMember = typeof members.$inferInsert
 export type LeaderVideo = typeof leaderVideos.$inferSelect
+export type BoardMember = typeof boardMembers.$inferSelect
+export type NewBoardMember = typeof boardMembers.$inferInsert
