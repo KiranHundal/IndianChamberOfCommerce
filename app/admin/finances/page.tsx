@@ -610,6 +610,44 @@ export default function AdminFinancesPage() {
             </div>
 
             {(() => {
+              const visible = summary.memberList.filter((m) => {
+                if (memberFilter !== 'all' && m.status !== memberFilter) return false
+                if (memberSearch) {
+                  const q = memberSearch.toLowerCase()
+                  return (
+                    m.name.toLowerCase().includes(q) ||
+                    m.email.toLowerCase().includes(q) ||
+                    m.businessName?.toLowerCase().includes(q) ||
+                    m.membershipNumber?.includes(q)
+                  )
+                }
+                return true
+              })
+              const visibleTotal = visible.reduce((sum, m) => sum + m.inferredAmount, 0)
+              const hasEstimated = visible.some((m) => m.isEstimated)
+              return (
+                <div className="mb-4 flex items-center justify-between bg-page-bg border border-ivory-200 rounded-lg px-4 py-3 gap-3 flex-wrap">
+                  <div>
+                    <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">
+                      Sum of amounts shown
+                    </p>
+                    <p className="font-display text-h4 text-brand mt-0.5">{money(visibleTotal)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[0.7rem] text-mid">
+                      {visible.length} {visible.length === 1 ? 'row' : 'rows'} visible
+                    </p>
+                    {hasEstimated && (
+                      <p className="text-[0.65rem] text-hint mt-0.5">
+                        Includes tier-default estimates for older records
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {(() => {
               const filtered = summary.memberList.filter((m) => {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (memberSearch) {
