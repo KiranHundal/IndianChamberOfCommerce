@@ -4,7 +4,7 @@ import { createClient } from '@libsql/client'
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const key = url.searchParams.get('key')
-  if (key !== process.env.NEXTAUTH_SECRET && key !== 'cvicc-migrate-payments-2026') {
+  if (key !== process.env.NEXTAUTH_SECRET && key !== 'cvicc-migrate-finance-2026') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -79,6 +79,47 @@ export async function GET(req: Request) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     results.push(`board_members table error: ${msg}`)
+  }
+
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS expenses (
+        id TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        vendor TEXT NOT NULL,
+        description TEXT,
+        amount INTEGER NOT NULL,
+        payment_method TEXT,
+        payment_reference TEXT,
+        expense_date INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        created_by TEXT
+      )
+    `)
+    results.push('Created expenses table')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    results.push(`expenses table error: ${msg}`)
+  }
+
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS invitations (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        name TEXT,
+        business_name TEXT,
+        suggested_tier TEXT,
+        personal_note TEXT,
+        sent_at INTEGER NOT NULL,
+        sent_by TEXT,
+        converted_at INTEGER
+      )
+    `)
+    results.push('Created invitations table')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    results.push(`invitations table error: ${msg}`)
   }
 
   const boardColumns = [

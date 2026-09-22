@@ -1,0 +1,69 @@
+import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { members, expenses, invitations } from '@/lib/schema'
+import { desc } from 'drizzle-orm'
+
+export async function GET() {
+  const session = await getServerSession(authOptions)
+  const user = session?.user as Record<string, unknown> | undefined
+  if (!user || user.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const [allMembers, allExpenses, allInvitations] = await Promise.all([
+    db.select().from(members),
+    db.select().from(expenses).orderBy(desc(expenses.expenseDate)),
+    db.select().from(invitations).orderBy(desc(invitations.sentAt)),
+  ])
+
+  const approvedMembers = allMembers.filter((m) => m.status === 'approved')
+  const pendingMembers = allMembers.filter((m) => m.status === 'pending')
+  const individualCount = approvedMembers.filter((m) => m.membershipTier === 'individual').length
+  const corporateCount = approvedMembers.filter((m) => m.membershipTier === 'corporate').length
+
+  const revenueTracked = allMembers.reduce((sum, m) => sum + (m.amountPaid || 0), 0)
+
+  const revenueByMethod = allMembers.reduce<Record<string, number>>((acc, m) => {
+    if (!m.amountPaid) return acc
+    const key = m.paymentMethod || 'square'
+    acc[key] = (acc[key] || 0) + m.amountPaid
+    return acc
+  }, {})
+
+  const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const expensesByCategory = allExpenses.reduce<Record<string, number>>((acc, e) => {
+    acc[e.category] = (acc[e.category] || 0) + e.amount
+    return acc
+  }, {})
+
+  const invitationsSent = allInvitations.length
+  const invitedEmails = new Set(allInvitations.map((i) => i.email.toLowerCase()))
+  const invitationsConverted = allMembers.filter((m) => invitedEmails.has(m.email.toLowerCase())).length
+
+  return NextResponse.json({
+    memberCount: {
+      total: allMembers.length,
+      approved: approvedMembers.length,
+      pending: pendingMembers.length,
+      individual: individualCount,
+      corporate: corporateCount,
+    },
+    revenue: {
+      tracked: revenueTracked,
+      byMethod: revenueByMethod,
+    },
+    expenses: {
+      total: totalExpenses,
+      byCategory: expensesByCategory,
+      recent: allExpenses.slice(0, 10),
+    },
+    invitations: {
+      sent: invitationsSent,
+      converted: invitationsConverted,
+      recent: allInvitations.slice(0, 10),
+    },
+    netPosition: revenueTracked - totalExpenses,
+  })
+}

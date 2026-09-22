@@ -237,6 +237,13 @@ export default function AdminPage() {
                   <UserPlus className="w-3.5 h-3.5 text-accent" />
                   Manage Board Members
                 </Link>
+                <Link
+                  href="/admin/finances"
+                  className="inline-flex items-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:bg-navy-800 transition-all"
+                >
+                  <DollarSign className="w-3.5 h-3.5 text-gold-400" />
+                  Executive Dashboard
+                </Link>
               </div>
             </AnimatedSection>
           )}

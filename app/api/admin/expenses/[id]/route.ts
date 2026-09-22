@@ -1,0 +1,22 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { expenses } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
+
+async function requireAdmin() {
+  const session = await getServerSession(authOptions)
+  const user = session?.user as Record<string, unknown> | undefined
+  if (!user || user.role !== 'admin') return null
+  return session
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await requireAdmin()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  await db.delete(expenses).where(eq(expenses.id, params.id))
+  return NextResponse.json({ success: true })
+}

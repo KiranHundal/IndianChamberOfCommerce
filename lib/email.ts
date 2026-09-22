@@ -313,3 +313,84 @@ export async function sendBoardMemberWelcomeEmail(member: {
     `,
   })
 }
+
+export async function sendMembershipInvitationEmail(invite: {
+  name?: string | null
+  email: string
+  businessName?: string | null
+  suggestedTier?: string | null
+  personalNote?: string | null
+  fromName?: string | null
+}) {
+  const resend = getResend()
+  if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
+
+  const { fromEmail, siteUrl } = getConfig()
+  const greeting = invite.name ? `Dear ${invite.name},` : 'Hello,'
+  const tierLine = invite.suggestedTier === 'corporate'
+    ? 'For your organization, we recommend our <strong>Corporate Membership</strong> ($395/year, founding rate — regularly $495).'
+    : invite.suggestedTier === 'individual'
+      ? 'We recommend our <strong>Individual Membership</strong> ($95/year, founding rate — regularly $195).'
+      : 'We offer <strong>Individual Membership</strong> ($95/year) and <strong>Corporate Membership</strong> ($395/year) — both at founding-member pricing.'
+
+  const businessLine = invite.businessName
+    ? `<p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">We&rsquo;d be honored to have <strong>${invite.businessName}</strong> represented in our chamber.</p>`
+    : ''
+
+  const noteBlock = invite.personalNote
+    ? `<div style="background: #FFFFFF; border-left: 3px solid #D4A830; padding: 14px 18px; margin: 20px 0; color: #5A6A7A; font-style: italic; line-height: 1.7;">${invite.personalNote}</div>`
+    : ''
+
+  return resend.emails.send({
+    from: `CVICC <${fromEmail}>`,
+    to: invite.email,
+    subject: 'A Personal Invitation to Join CVICC',
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
+        <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
+          <h1 style="color: #D4A830; font-size: 24px; margin: 0; font-weight: 300; letter-spacing: 2px;">
+            CENTRAL VALLEY INDIAN<br/>CHAMBER OF COMMERCE
+          </h1>
+        </div>
+        <div style="padding: 40px 32px; background: #FAFAF7;">
+          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">
+            You&rsquo;re Invited
+          </p>
+          <h2 style="color: #1E3A5F; font-size: 22px; font-weight: 300; margin: 0 0 20px;">
+            ${greeting}
+          </h2>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
+            On behalf of the Central Valley Indian Chamber of Commerce, I&rsquo;m personally inviting you to join our growing network of Indian-American business leaders across California&rsquo;s Central Valley.
+          </p>
+          ${businessLine}
+          ${noteBlock}
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
+            CVICC connects, supports, and elevates Indian-American businesses through networking events, mentorship, community advocacy, and cultural celebration. As a member, you&rsquo;ll access exclusive events, a business directory listing, and the opportunity to shape the future of our community.
+          </p>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 24px;">
+            ${tierLine}
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${siteUrl}/join" style="display: inline-block; background: #D4A830; color: #FFFFFF; text-decoration: none; padding: 14px 32px; border-radius: 4px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">
+              Join CVICC Today
+            </a>
+          </div>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0; font-size: 14px;">
+            Questions? Reply to this email or visit <a href="${siteUrl}/contact" style="color: #1E3A5F;">${siteUrl}/contact</a>.
+          </p>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0;">
+            Warm regards,<br/>
+            <strong style="color: #1E3A5F;">${invite.fromName || 'The CVICC Board'}</strong><br/>
+            <span style="font-size: 13px;">Central Valley Indian Chamber of Commerce</span>
+          </p>
+        </div>
+        <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
+          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+            Central Valley Indian Chamber of Commerce, Inc.<br/>
+            4610 W Jacquelyn Ave, Fresno, CA 93722
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}

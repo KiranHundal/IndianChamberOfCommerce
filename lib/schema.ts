@@ -28,6 +28,31 @@ export const leaderVideos = sqliteTable('leader_videos', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
+export const expenses = sqliteTable('expenses', {
+  id: text('id').primaryKey(),
+  category: text('category').notNull(),
+  vendor: text('vendor').notNull(),
+  description: text('description'),
+  amount: integer('amount').notNull(),
+  paymentMethod: text('payment_method'),
+  paymentReference: text('payment_reference'),
+  expenseDate: integer('expense_date', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdBy: text('created_by'),
+})
+
+export const invitations = sqliteTable('invitations', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull(),
+  name: text('name'),
+  businessName: text('business_name'),
+  suggestedTier: text('suggested_tier'),
+  personalNote: text('personal_note'),
+  sentAt: integer('sent_at', { mode: 'timestamp' }).notNull(),
+  sentBy: text('sent_by'),
+  convertedAt: integer('converted_at', { mode: 'timestamp' }),
+})
+
 export const boardMembers = sqliteTable('board_members', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -45,3 +70,7 @@ export type NewMember = typeof members.$inferInsert
 export type LeaderVideo = typeof leaderVideos.$inferSelect
 export type BoardMember = typeof boardMembers.$inferSelect
 export type NewBoardMember = typeof boardMembers.$inferInsert
+export type Expense = typeof expenses.$inferSelect
+export type NewExpense = typeof expenses.$inferInsert
+export type Invitation = typeof invitations.$inferSelect
+export type NewInvitation = typeof invitations.$inferInsert
