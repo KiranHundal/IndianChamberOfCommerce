@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { members, expenses, invitations, squarePayments, squareSync } from '@/lib/schema'
 import { desc } from 'drizzle-orm'
+import { nameSimilarity } from '@/lib/name-match'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -113,20 +114,43 @@ export async function GET() {
 
   const netRevenue = Math.round((revenueTracked - estimatedSquareFees) * 100) / 100
 
+  // For each orphan, suggest the most likely member by name/email similarity.
+  // Only consider non-staff members that don't already have method='square' recorded.
+  const eligibleMembersForMatch = allMembers.filter((m) =>
+    m.role !== 'admin' && m.role !== 'moderator' && (m.paymentMethod == null || m.paymentMethod !== 'square')
+  )
+
   const squareOrphans = allSquarePayments
     .filter((p) => !p.matchedMemberId && p.status === 'COMPLETED')
-    .map((p) => ({
-      id: p.id,
-      amountCents: p.amountCents,
-      feeCents: p.feeCents,
-      buyerEmail: p.buyerEmail,
-      buyerName: p.buyerName,
-      paidAt: p.paidAt,
-      receiptUrl: p.receiptUrl,
-      receiptNumber: p.receiptNumber,
-      cardBrand: p.cardBrand,
-      last4: p.last4,
-    }))
+    .map((p) => {
+      let bestMatch: { id: string; name: string; email: string; membershipNumber: string | null; businessName: string | null; score: number } | null = null
+      for (const m of eligibleMembersForMatch) {
+        const score = nameSimilarity(p.buyerName, p.buyerEmail, m.name, m.businessName, m.email)
+        if (score > (bestMatch?.score || 0)) {
+          bestMatch = {
+            id: m.id,
+            name: m.name,
+            email: m.email,
+            membershipNumber: m.membershipNumber,
+            businessName: m.businessName,
+            score,
+          }
+        }
+      }
+      return {
+        id: p.id,
+        amountCents: p.amountCents,
+        feeCents: p.feeCents,
+        buyerEmail: p.buyerEmail,
+        buyerName: p.buyerName,
+        paidAt: p.paidAt,
+        receiptUrl: p.receiptUrl,
+        receiptNumber: p.receiptNumber,
+        cardBrand: p.cardBrand,
+        last4: p.last4,
+        suggestedMatch: bestMatch && bestMatch.score >= 0.4 ? bestMatch : null,
+      }
+    })
 
   const loggedExpensesTotal = allExpenses.reduce((sum, e) => sum + e.amount, 0)
   const expensesByCategory = allExpenses.reduce<Record<string, number>>((acc, e) => {

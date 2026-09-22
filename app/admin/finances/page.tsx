@@ -89,6 +89,14 @@ interface Summary {
       receiptNumber: string | null
       cardBrand: string | null
       last4: string | null
+      suggestedMatch: {
+        id: string
+        name: string
+        email: string
+        membershipNumber: string | null
+        businessName: string | null
+        score: number
+      } | null
     }>
   }
   expenses: {
@@ -158,6 +166,7 @@ export default function AdminFinancesPage() {
   const [memberFilter, setMemberFilter] = useState<string>('all')
   const [methodFilter, setMethodFilter] = useState<string>('all')
   const [syncing, setSyncing] = useState(false)
+  const [matchingId, setMatchingId] = useState<string | null>(null)
 
   const [fetchError, setFetchError] = useState('')
 
@@ -280,6 +289,28 @@ export default function AdminFinancesPage() {
       setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
     }
     setSyncing(false)
+  }
+
+  async function handleMatchOrphan(paymentId: string, memberId: string, memberName: string) {
+    setMatchingId(paymentId)
+    setNotice(null)
+    try {
+      const res = await fetch(`/api/admin/square/orphans/${paymentId}/match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Match failed.' })
+      } else {
+        setNotice({ type: 'success', text: `Matched to ${memberName}. Their record now reflects the Square payment.` })
+        await fetchSummary()
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setMatchingId(null)
   }
 
   async function handleDeleteExpense(id: string) {
@@ -559,30 +590,76 @@ export default function AdminFinancesPage() {
                 These people paid on Square but don&rsquo;t have a member record. They may have entered a different email on Square than the join form, or their application never completed.
               </p>
               <div className="divide-y divide-ivory-200">
-                {summary.square.orphans.map((o) => (
-                  <div key={o.id} className="py-3 flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-brand">
-                        {o.buyerName || o.buyerEmail || '(no name)'}
-                      </p>
-                      {o.buyerEmail && <p className="text-[0.7rem] text-hint truncate">{o.buyerEmail}</p>}
-                      <p className="text-[0.65rem] text-hint mt-1">
-                        {new Date(o.paidAt).toLocaleDateString()}
-                        {o.cardBrand && <> · {o.cardBrand} ····{o.last4}</>}
-                        {o.receiptNumber && <> · Receipt #{o.receiptNumber}</>}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-medium text-brand">${(o.amountCents / 100).toFixed(2)}</p>
-                      <p className="text-[0.65rem] text-hint">${(o.feeCents / 100).toFixed(2)} fee</p>
-                      {o.receiptUrl && (
-                        <a href={o.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[0.65rem] text-accent hover:underline mt-1">
-                          Receipt <ExternalLink className="w-3 h-3" />
-                        </a>
+                {summary.square.orphans.map((o) => {
+                  const confidence = o.suggestedMatch ? Math.round(o.suggestedMatch.score * 100) : 0
+                  const isHighConfidence = confidence >= 70
+                  const isMatching = matchingId === o.id
+                  return (
+                    <div key={o.id} className="py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-brand">
+                            {o.buyerName || o.buyerEmail || '(no name)'}
+                          </p>
+                          {o.buyerEmail && <p className="text-[0.7rem] text-hint truncate">{o.buyerEmail}</p>}
+                          <p className="text-[0.65rem] text-hint mt-1">
+                            {new Date(o.paidAt).toLocaleDateString()}
+                            {o.cardBrand && <> · {o.cardBrand} ····{o.last4}</>}
+                            {o.receiptNumber && <> · Receipt #{o.receiptNumber}</>}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-medium text-brand">${(o.amountCents / 100).toFixed(2)}</p>
+                          <p className="text-[0.65rem] text-hint">${(o.feeCents / 100).toFixed(2)} fee</p>
+                          {o.receiptUrl && (
+                            <a href={o.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[0.65rem] text-accent hover:underline mt-1">
+                              Receipt <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {o.suggestedMatch && (
+                        <div className={`mt-3 flex items-center justify-between gap-3 flex-wrap rounded-lg border px-3 py-2 ${
+                          isHighConfidence ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
+                        }`}>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[0.65rem] font-label tracking-widest uppercase text-brand/70">
+                              Suggested match · {confidence}% confidence
+                            </p>
+                            <p className="text-small text-brand mt-0.5">
+                              <strong>{o.suggestedMatch.name}</strong>
+                              {o.suggestedMatch.membershipNumber && <span className="text-hint text-[0.7rem] ml-2">#{o.suggestedMatch.membershipNumber}</span>}
+                            </p>
+                            {o.suggestedMatch.businessName && <p className="text-[0.7rem] text-mid">{o.suggestedMatch.businessName}</p>}
+                            <p className="text-[0.65rem] text-hint truncate">{o.suggestedMatch.email}</p>
+                          </div>
+                          <button
+                            onClick={() => handleMatchOrphan(o.id, o.suggestedMatch!.id, o.suggestedMatch!.name)}
+                            disabled={isMatching}
+                            className={`flex-shrink-0 flex items-center gap-1.5 font-label text-[0.6rem] tracking-widest uppercase px-3 py-1.5 rounded-sm transition-all disabled:opacity-50 ${
+                              isHighConfidence
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-white border border-amber-300 text-amber-800 hover:bg-amber-100'
+                            }`}
+                          >
+                            {isMatching ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Matching…
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-3 h-3" />
+                                Confirm Match
+                              </>
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
