@@ -53,13 +53,22 @@ export async function GET() {
     return m.membershipTier === 'corporate' ? 395 : 95
   }
 
-  const revenueTracked = allMembers.reduce((sum, m) => sum + inferredAmount(m), 0)
+  // Non-Square revenue from members (check, Zelle, cash, other)
+  const nonSquareRevenue = allMembers.reduce((sum, m) => {
+    if (m.role === 'admin' || m.role === 'moderator') return sum
+    const method = m.paymentMethod || 'square'
+    if (method === 'square') return sum
+    const amount = inferredAmount(m)
+    return sum + amount
+  }, 0)
 
   const revenueByMethod = allMembers.reduce<Record<string, number>>((acc, m) => {
+    if (m.role === 'admin' || m.role === 'moderator') return acc
+    const method = m.paymentMethod || 'square'
+    if (method === 'square') return acc // Square is added separately from squarePayments
     const amount = inferredAmount(m)
     if (amount === 0) return acc
-    const key = m.paymentMethod || 'square'
-    acc[key] = (acc[key] || 0) + amount
+    acc[method] = (acc[method] || 0) + amount
     return acc
   }, {})
 
@@ -97,6 +106,11 @@ export async function GET() {
 
   estimatedSquareFees = Math.round(estimatedSquareFees * 100) / 100
   squareGross = Math.round(squareGross * 100) / 100
+
+  // Total revenue = Square (authoritative from Square API) + non-Square from members
+  const revenueTracked = Math.round((squareGross + nonSquareRevenue) * 100) / 100
+  if (squareGross > 0) revenueByMethod['square'] = squareGross
+
   const netRevenue = Math.round((revenueTracked - estimatedSquareFees) * 100) / 100
 
   const squareOrphans = allSquarePayments
