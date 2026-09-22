@@ -156,6 +156,7 @@ export default function AdminFinancesPage() {
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [memberSearch, setMemberSearch] = useState('')
   const [memberFilter, setMemberFilter] = useState<string>('all')
+  const [methodFilter, setMethodFilter] = useState<string>('all')
   const [syncing, setSyncing] = useState(false)
 
   const [fetchError, setFetchError] = useState('')
@@ -606,12 +607,34 @@ export default function AdminFinancesPage() {
                   <option value="rejected">Rejected</option>
                   <option value="deactivated">Deactivated</option>
                 </select>
+                <select
+                  value={methodFilter}
+                  onChange={(e) => setMethodFilter(e.target.value)}
+                  className="border border-ivory-200 rounded-md px-3 py-1.5 text-small focus:outline-none focus:ring-2 focus:ring-brand/30"
+                >
+                  <option value="all">All payment methods</option>
+                  <option value="square">Website (Square)</option>
+                  <option value="offline">Offline (Check / Zelle / Cash / Other)</option>
+                  <option value="check">Check only</option>
+                  <option value="zelle">Zelle only</option>
+                  <option value="cash">Cash only</option>
+                  <option value="other">Other only</option>
+                  <option value="none">No payment recorded</option>
+                </select>
               </div>
             </div>
 
             {(() => {
-              const visible = summary.memberList.filter((m) => {
+              const matchesFilters = (m: MemberRow) => {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
+                if (methodFilter !== 'all') {
+                  const method = (m.paymentMethod || (m.isStaff ? '' : m.inferredAmount > 0 ? 'square' : 'none')).toLowerCase()
+                  if (methodFilter === 'offline') {
+                    if (!['check', 'zelle', 'cash', 'other'].includes(method)) return false
+                  } else if (methodFilter === 'none') {
+                    if (method !== 'none') return false
+                  } else if (method !== methodFilter) return false
+                }
                 if (memberSearch) {
                   const q = memberSearch.toLowerCase()
                   return (
@@ -622,7 +645,8 @@ export default function AdminFinancesPage() {
                   )
                 }
                 return true
-              })
+              }
+              const visible = summary.memberList.filter(matchesFilters)
               const visibleTotal = visible.reduce((sum, m) => sum + m.inferredAmount, 0)
               const hasEstimated = visible.some((m) => m.isEstimated)
               return (
@@ -648,8 +672,16 @@ export default function AdminFinancesPage() {
             })()}
 
             {(() => {
-              const filtered = summary.memberList.filter((m) => {
+              const matchesFilters = (m: MemberRow) => {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
+                if (methodFilter !== 'all') {
+                  const method = (m.paymentMethod || (m.isStaff ? '' : m.inferredAmount > 0 ? 'square' : 'none')).toLowerCase()
+                  if (methodFilter === 'offline') {
+                    if (!['check', 'zelle', 'cash', 'other'].includes(method)) return false
+                  } else if (methodFilter === 'none') {
+                    if (method !== 'none') return false
+                  } else if (method !== methodFilter) return false
+                }
                 if (memberSearch) {
                   const q = memberSearch.toLowerCase()
                   return (
@@ -660,7 +692,8 @@ export default function AdminFinancesPage() {
                   )
                 }
                 return true
-              })
+              }
+              const filtered = summary.memberList.filter(matchesFilters)
 
               if (filtered.length === 0) {
                 return <p className="text-small text-hint py-6 text-center">No members match your filter.</p>
