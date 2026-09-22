@@ -374,14 +374,25 @@ export default function AdminPage() {
                               <> &middot; Joined {new Date(member.createdAt).toLocaleDateString()}</>
                             )}
                           </div>
-                          {member.paymentMethod && (
-                            <div className="mt-2 inline-flex items-center gap-1.5 text-[0.65rem] px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-brand">
-                              <CreditCard className="w-3 h-3" />
-                              <span className="capitalize font-medium">{member.paymentMethod}</span>
-                              {member.amountPaid && <>· ${member.amountPaid}</>}
-                              {member.paymentReference && <> · {member.paymentReference}</>}
-                            </div>
-                          )}
+                          {(() => {
+                            const explicit = member.amountPaid && member.amountPaid > 0
+                            const isApproved = member.status === 'approved'
+                            if (!explicit && !isApproved) return null
+                            const amount = explicit
+                              ? member.amountPaid!
+                              : member.membershipTier === 'corporate' ? 395 : 95
+                            const method = member.paymentMethod || 'square'
+                            return (
+                              <div className="mt-2 inline-flex items-center gap-1.5 text-[0.65rem] px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-brand">
+                                <CreditCard className="w-3 h-3" />
+                                <span className="font-semibold">${amount}</span>
+                                <span>· </span>
+                                <span className="capitalize">{method}</span>
+                                {!explicit && <span className="text-hint">· est.</span>}
+                                {member.paymentReference && <> · {member.paymentReference}</>}
+                              </div>
+                            )
+                          })()}
                         </div>
 
                         {/* Action buttons */}
