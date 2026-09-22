@@ -375,6 +375,8 @@ export default function AdminPage() {
                             )}
                           </div>
                           {(() => {
+                            const isStaff = member.role === 'admin' || member.role === 'moderator'
+                            if (isStaff) return null
                             const explicit = member.amountPaid && member.amountPaid > 0
                             const isApproved = member.status === 'approved'
                             if (!explicit && !isApproved) return null

@@ -32,11 +32,13 @@ interface MemberRow {
   businessName: string | null
   membershipTier: string
   status: string
+  role: string
   membershipNumber: string | null
   paymentMethod: string | null
   amountPaid: number | null
   inferredAmount: number
   isEstimated: boolean
+  isStaff: boolean
   paymentReference: string | null
   paymentDate: string | number | null
   createdAt: string | number
@@ -481,10 +483,16 @@ export default function AdminFinancesPage() {
                                 </span>
                               </td>
                               <td className="px-3 py-2.5 text-right">
-                                <p className="font-medium text-brand">
-                                  {money(m.inferredAmount)}
-                                  {m.isEstimated && <span className="text-hint text-[0.6rem] ml-1">est.</span>}
-                                </p>
+                                {m.isStaff ? (
+                                  <span className="inline-flex px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-[0.6rem] font-medium text-brand">
+                                    Staff
+                                  </span>
+                                ) : (
+                                  <p className="font-medium text-brand">
+                                    {money(m.inferredAmount)}
+                                    {m.isEstimated && <span className="text-hint text-[0.6rem] ml-1">est.</span>}
+                                  </p>
+                                )}
                               </td>
                               <td className="px-3 py-2.5">
                                 {m.paymentMethod ? (
@@ -529,10 +537,18 @@ export default function AdminFinancesPage() {
                               <p className="text-[0.65rem] text-hint truncate">{m.email}</p>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="font-display text-h5 text-brand leading-none">
-                                {money(m.inferredAmount)}
-                              </p>
-                              {m.isEstimated && <p className="text-hint text-[0.55rem] mt-0.5">est.</p>}
+                              {m.isStaff ? (
+                                <span className="inline-flex px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-[0.6rem] font-medium text-brand">
+                                  Staff
+                                </span>
+                              ) : (
+                                <>
+                                  <p className="font-display text-h5 text-brand leading-none">
+                                    {money(m.inferredAmount)}
+                                  </p>
+                                  {m.isEstimated && <p className="text-hint text-[0.55rem] mt-0.5">est.</p>}
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-1.5 items-center">

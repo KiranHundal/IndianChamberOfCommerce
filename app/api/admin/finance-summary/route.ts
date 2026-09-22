@@ -24,15 +24,19 @@ export async function GET() {
     .orderBy(desc(invitations.sentAt))
     .catch(() => [] as (typeof invitations.$inferSelect)[])
 
-  const approvedMembers = allMembers.filter((m) => m.status === 'approved')
-  const pendingMembers = allMembers.filter((m) => m.status === 'pending')
+  const nonStaffMembers = allMembers.filter((m) => m.role !== 'admin' && m.role !== 'moderator')
+  const approvedMembers = nonStaffMembers.filter((m) => m.status === 'approved')
+  const pendingMembers = nonStaffMembers.filter((m) => m.status === 'pending')
   const individualCount = approvedMembers.filter((m) => m.membershipTier === 'individual').length
   const corporateCount = approvedMembers.filter((m) => m.membershipTier === 'corporate').length
 
   // Estimate amount for members that don't have amountPaid explicitly set
   // (older records from before manual payment tracking was added).
   // Uses founding-member pricing: $95 individual, $395 corporate.
+  // Admin and moderator accounts are staff, not paying members — they never
+  // count toward revenue even if they have an amountPaid on record.
   function inferredAmount(m: typeof allMembers[number]): number {
+    if (m.role === 'admin' || m.role === 'moderator') return 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
     return m.membershipTier === 'corporate' ? 395 : 95
@@ -59,22 +63,28 @@ export async function GET() {
   const invitationsConverted = allMembers.filter((m) => invitedEmails.has(m.email.toLowerCase())).length
 
   const memberList = allMembers
-    .map((m) => ({
-      id: m.id,
-      name: m.name,
-      email: m.email,
-      businessName: m.businessName,
-      membershipTier: m.membershipTier,
-      status: m.status,
-      membershipNumber: m.membershipNumber,
-      paymentMethod: m.paymentMethod,
-      amountPaid: m.amountPaid,
-      inferredAmount: inferredAmount(m),
-      isEstimated: !m.amountPaid || m.amountPaid <= 0,
-      paymentReference: m.paymentReference,
-      paymentDate: m.paymentDate,
-      createdAt: m.createdAt,
-    }))
+    .map((m) => {
+      const isStaff = m.role === 'admin' || m.role === 'moderator'
+      const amt = inferredAmount(m)
+      return {
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        businessName: m.businessName,
+        membershipTier: m.membershipTier,
+        status: m.status,
+        role: m.role,
+        membershipNumber: m.membershipNumber,
+        paymentMethod: m.paymentMethod,
+        amountPaid: m.amountPaid,
+        inferredAmount: amt,
+        isEstimated: !isStaff && (!m.amountPaid || m.amountPaid <= 0) && amt > 0,
+        isStaff,
+        paymentReference: m.paymentReference,
+        paymentDate: m.paymentDate,
+        createdAt: m.createdAt,
+      }
+    })
     .sort((a, b) => {
       const aDate = a.paymentDate ? new Date(a.paymentDate).getTime() : new Date(a.createdAt).getTime()
       const bDate = b.paymentDate ? new Date(b.paymentDate).getTime() : new Date(b.createdAt).getTime()
@@ -83,7 +93,7 @@ export async function GET() {
 
   return NextResponse.json({
     memberCount: {
-      total: allMembers.length,
+      total: nonStaffMembers.length,
       approved: approvedMembers.length,
       pending: pendingMembers.length,
       individual: individualCount,
