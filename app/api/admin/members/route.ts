@@ -36,6 +36,110 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ members: allMembers, page, limit, total })
 }
 
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as Record<string, unknown> | undefined)?.role
+  if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const body = await req.json()
+    const {
+      name,
+      email,
+      phone,
+      businessName,
+      city,
+      sector,
+      membershipTier,
+      paymentMethod,
+      amountPaid,
+      paymentReference,
+      paymentDate,
+      sendEmail,
+    } = body
+
+    if (!name || !email) {
+      return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 })
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
+    }
+    if (!paymentMethod || !['check', 'zelle', 'cash', 'other'].includes(paymentMethod)) {
+      return NextResponse.json({ error: 'Payment method must be check, zelle, cash, or other.' }, { status: 400 })
+    }
+    const amount = parseInt(String(amountPaid), 10)
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: 'Amount paid must be a positive number.' }, { status: 400 })
+    }
+    const tier = membershipTier === 'corporate' ? 'corporate' : 'individual'
+
+    const existing = await db
+      .select({ id: members.id })
+      .from(members)
+      .where(eq(members.email, email.toLowerCase()))
+      .limit(1)
+
+    if (existing.length > 0) {
+      return NextResponse.json({ error: 'A member with this email already exists.' }, { status: 409 })
+    }
+
+    const membershipNumber = await getNextMembershipNumber()
+    const id = crypto.randomUUID()
+    const now = new Date()
+    const parsedPaymentDate = paymentDate ? new Date(paymentDate) : now
+
+    await db.insert(members).values({
+      id,
+      email: email.toLowerCase(),
+      passwordHash: '',
+      name,
+      phone: phone || null,
+      businessName: businessName || null,
+      city: city || null,
+      sector: sector || null,
+      membershipTier: tier,
+      status: 'approved',
+      role: 'member',
+      membershipNumber,
+      createdAt: now,
+      approvedAt: now,
+      paymentMethod,
+      amountPaid: amount,
+      paymentReference: paymentReference || null,
+      paymentDate: isNaN(parsedPaymentDate.getTime()) ? now : parsedPaymentDate,
+    })
+
+    let emailStatus: 'sent' | 'failed' | 'skipped' = 'skipped'
+    if (sendEmail) {
+      try {
+        await sendMemberApprovedEmail({
+          name,
+          email: email.toLowerCase(),
+          membershipTier: tier,
+          membershipNumber,
+        })
+        emailStatus = 'sent'
+      } catch (e) {
+        console.error('Manual payment approval email error:', e)
+        emailStatus = 'failed'
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      id,
+      membershipNumber,
+      emailStatus,
+    })
+  } catch (error) {
+    console.error('Manual payment error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to log payment'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions)
   const role = (session?.user as Record<string, unknown> | undefined)?.role

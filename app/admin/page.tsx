@@ -14,6 +14,10 @@ import {
   Search,
   Video,
   UserPlus,
+  DollarSign,
+  X,
+  Loader2,
+  CreditCard,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -35,6 +39,10 @@ interface Member {
   createdAt: string | number
   approvedAt: string | number | null
   deactivatedAt: string | number | null
+  paymentMethod: string | null
+  amountPaid: number | null
+  paymentReference: string | null
+  paymentDate: string | number | null
 }
 
 const statusBadge: Record<string, { label: string; color: string; bg: string }> = {
@@ -53,6 +61,10 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentSaving, setPaymentSaving] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const fetchMembers = useCallback(async () => {
     setLoading(true)
@@ -98,6 +110,57 @@ export default function AdminPage() {
       // silently fail
     }
     setActionLoading(null)
+  }
+
+  async function handleLogPayment(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setPaymentSaving(true)
+    setPaymentError('')
+
+    const form = e.currentTarget
+    const fd = new FormData(form)
+    const payload = {
+      name: (fd.get('name') as string).trim(),
+      email: (fd.get('email') as string).trim(),
+      phone: (fd.get('phone') as string).trim() || null,
+      businessName: (fd.get('businessName') as string).trim() || null,
+      city: (fd.get('city') as string).trim() || null,
+      sector: (fd.get('sector') as string).trim() || null,
+      membershipTier: fd.get('membershipTier') as string,
+      paymentMethod: fd.get('paymentMethod') as string,
+      amountPaid: parseInt(fd.get('amountPaid') as string, 10),
+      paymentReference: (fd.get('paymentReference') as string).trim() || null,
+      paymentDate: fd.get('paymentDate') as string,
+      sendEmail: fd.get('sendEmail') === 'on',
+    }
+
+    try {
+      const res = await fetch('/api/admin/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setPaymentError(data.error || 'Failed to log payment.')
+      } else {
+        setShowPaymentModal(false)
+        await fetchMembers()
+        const emailNote =
+          data.emailStatus === 'sent'
+            ? ' Approval email sent.'
+            : data.emailStatus === 'failed'
+              ? ' (Email send failed.)'
+              : ''
+        setNotice({
+          type: 'success',
+          text: `Payment logged. Membership #${data.membershipNumber} assigned to ${payload.name}.${emailNote}`,
+        })
+      }
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Network error.')
+    }
+    setPaymentSaving(false)
   }
 
   if (status === 'loading' || loading) {
@@ -176,6 +239,35 @@ export default function AdminPage() {
                 </Link>
               </div>
             </AnimatedSection>
+          )}
+
+          {/* Log Manual Payment (admin + moderator) */}
+          <div className="mb-8 flex flex-wrap gap-3">
+            <button
+              onClick={() => {
+                setPaymentError('')
+                setShowPaymentModal(true)
+              }}
+              className="inline-flex items-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:bg-gold-900 transition-all"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              Log Offline Payment
+            </button>
+          </div>
+
+          {notice && (
+            <div
+              className={`mb-6 border rounded-lg px-4 py-3 text-small flex items-start gap-3 ${
+                notice.type === 'success'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-red-50 border-red-200 text-red-700'
+              }`}
+            >
+              <span className="flex-1">{notice.text}</span>
+              <button onClick={() => setNotice(null)} className="opacity-60 hover:opacity-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           )}
 
           {/* Stats Row */}
@@ -275,6 +367,14 @@ export default function AdminPage() {
                               <> &middot; Joined {new Date(member.createdAt).toLocaleDateString()}</>
                             )}
                           </div>
+                          {member.paymentMethod && (
+                            <div className="mt-2 inline-flex items-center gap-1.5 text-[0.65rem] px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-brand">
+                              <CreditCard className="w-3 h-3" />
+                              <span className="capitalize font-medium">{member.paymentMethod}</span>
+                              {member.amountPaid && <>· ${member.amountPaid}</>}
+                              {member.paymentReference && <> · {member.paymentReference}</>}
+                            </div>
+                          )}
                         </div>
 
                         {/* Action buttons */}
@@ -320,6 +420,128 @@ export default function AdminPage() {
           )}
         </div>
       </section>
+
+      {/* Log Manual Payment Modal */}
+      {showPaymentModal && (
+        <div
+          className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4"
+          onClick={() => !paymentSaving && setShowPaymentModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gold-100 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-accent" />
+                </div>
+                <h3 className="font-display text-h4 text-brand">Log Offline Payment</h3>
+              </div>
+              <button onClick={() => !paymentSaving && setShowPaymentModal(false)} className="text-mid hover:text-brand">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-small text-mid mb-6">
+              Record a payment made via check, Zelle, cash, or other. The member will be added with status <strong>Approved</strong> and assigned a membership number automatically.
+            </p>
+
+            <form onSubmit={handleLogPayment} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Full Name *</label>
+                <input name="name" type="text" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Email *</label>
+                <input name="email" type="email" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Phone</label>
+                <input name="phone" type="tel" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Business Name</label>
+                <input name="businessName" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">City</label>
+                <input name="city" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Industry / Sector</label>
+                <input name="sector" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="e.g. Healthcare" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Membership Tier *</label>
+                <select name="membershipTier" required defaultValue="individual" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                  <option value="individual">Individual</option>
+                  <option value="corporate">Corporate</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Payment Method *</label>
+                <select name="paymentMethod" required defaultValue="check" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                  <option value="check">Check</option>
+                  <option value="zelle">Zelle</option>
+                  <option value="cash">Cash</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Amount Paid ($) *</label>
+                <input name="amountPaid" type="number" min="1" step="1" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="e.g. 395" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Payment Date</label>
+                <input name="paymentDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Reference (check #, Zelle sender, memo)</label>
+                <input name="paymentReference" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="Check #1234 · Combined check · etc." />
+              </div>
+
+              <label className="md:col-span-2 flex items-start gap-3 cursor-pointer select-none bg-page-bg border border-ivory-200 rounded-md p-3 mt-1">
+                <input type="checkbox" name="sendEmail" defaultChecked className="mt-1 w-4 h-4 accent-accent" />
+                <span className="text-small text-charcoal">
+                  Send member the approval / membership number email so they can register at /register
+                </span>
+              </label>
+
+              {paymentError && (
+                <div className="md:col-span-2 text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
+                  {paymentError}
+                </div>
+              )}
+
+              <div className="md:col-span-2 flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  disabled={paymentSaving}
+                  className="flex-1 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:border-brand/30 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={paymentSaving}
+                  className="flex-1 flex items-center justify-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:bg-gold-900 transition-all disabled:opacity-50"
+                >
+                  {paymentSaving ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Payment'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   )
 }

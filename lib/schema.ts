@@ -16,6 +16,10 @@ export const members = sqliteTable('members', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   approvedAt: integer('approved_at', { mode: 'timestamp' }),
   deactivatedAt: integer('deactivated_at', { mode: 'timestamp' }),
+  paymentMethod: text('payment_method'),
+  amountPaid: integer('amount_paid'),
+  paymentReference: text('payment_reference'),
+  paymentDate: integer('payment_date', { mode: 'timestamp' }),
 })
 
 export const leaderVideos = sqliteTable('leader_videos', {

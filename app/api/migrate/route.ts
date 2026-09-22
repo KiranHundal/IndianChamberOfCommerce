@@ -4,7 +4,7 @@ import { createClient } from '@libsql/client'
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const key = url.searchParams.get('key')
-  if (key !== process.env.NEXTAUTH_SECRET && key !== 'cvicc-migrate-board-2026') {
+  if (key !== process.env.NEXTAUTH_SECRET && key !== 'cvicc-migrate-payments-2026') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -19,6 +19,10 @@ export async function GET(req: Request) {
     { name: 'membership_number', type: 'TEXT' },
     { name: 'approved_at', type: 'INTEGER' },
     { name: 'deactivated_at', type: 'INTEGER' },
+    { name: 'payment_method', type: 'TEXT' },
+    { name: 'amount_paid', type: 'INTEGER' },
+    { name: 'payment_reference', type: 'TEXT' },
+    { name: 'payment_date', type: 'INTEGER' },
   ]
 
   for (const col of columns) {
