@@ -25,6 +25,23 @@ import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 
+interface MemberRow {
+  id: string
+  name: string
+  email: string
+  businessName: string | null
+  membershipTier: string
+  status: string
+  membershipNumber: string | null
+  paymentMethod: string | null
+  amountPaid: number | null
+  inferredAmount: number
+  isEstimated: boolean
+  paymentReference: string | null
+  paymentDate: string | number | null
+  createdAt: string | number
+}
+
 interface Summary {
   memberCount: {
     total: number
@@ -64,6 +81,7 @@ interface Summary {
       convertedAt: string | number | null
     }>
   }
+  memberList: MemberRow[]
   netPosition: number
 }
 
@@ -97,6 +115,8 @@ export default function AdminFinancesPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberFilter, setMemberFilter] = useState<string>('all')
 
   const [fetchError, setFetchError] = useState('')
 
@@ -359,9 +379,134 @@ export default function AdminFinancesPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex justify-center">
-              <Link href="/admin" className="text-small text-accent hover:underline">View full member list →</Link>
+          </div>
+
+          {/* Members list — full detail with payment info */}
+          <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-accent" />
+                <h3 className="font-label text-label tracking-widest uppercase text-brand">
+                  Members &amp; Payments ({summary.memberList.length})
+                </h3>
+              </div>
+              <div className="flex gap-2 flex-wrap items-center">
+                <input
+                  type="text"
+                  placeholder="Search name, email, business..."
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                  className="border border-ivory-200 rounded-md px-3 py-1.5 text-small focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
+                <select
+                  value={memberFilter}
+                  onChange={(e) => setMemberFilter(e.target.value)}
+                  className="border border-ivory-200 rounded-md px-3 py-1.5 text-small focus:outline-none focus:ring-2 focus:ring-brand/30"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="deactivated">Deactivated</option>
+                </select>
+              </div>
             </div>
+
+            {(() => {
+              const filtered = summary.memberList.filter((m) => {
+                if (memberFilter !== 'all' && m.status !== memberFilter) return false
+                if (memberSearch) {
+                  const q = memberSearch.toLowerCase()
+                  return (
+                    m.name.toLowerCase().includes(q) ||
+                    m.email.toLowerCase().includes(q) ||
+                    m.businessName?.toLowerCase().includes(q) ||
+                    m.membershipNumber?.includes(q)
+                  )
+                }
+                return true
+              })
+
+              if (filtered.length === 0) {
+                return <p className="text-small text-hint py-6 text-center">No members match your filter.</p>
+              }
+
+              return (
+                <div className="overflow-x-auto -mx-6">
+                  <table className="min-w-full text-small">
+                    <thead>
+                      <tr className="border-b border-ivory-200">
+                        <th className="text-left px-6 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Member</th>
+                        <th className="text-left px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Tier</th>
+                        <th className="text-left px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Status</th>
+                        <th className="text-right px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Amount</th>
+                        <th className="text-left px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Method</th>
+                        <th className="text-left px-6 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Date / Ref</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((m) => {
+                        const badge = m.status === 'approved'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : m.status === 'pending'
+                            ? 'bg-amber-50 border-amber-200 text-amber-700'
+                            : m.status === 'rejected'
+                              ? 'bg-red-50 border-red-200 text-red-700'
+                              : 'bg-gray-50 border-gray-200 text-gray-600'
+                        const dateStr = m.paymentDate
+                          ? new Date(m.paymentDate).toLocaleDateString()
+                          : new Date(m.createdAt).toLocaleDateString()
+                        return (
+                          <tr key={m.id} className="border-b border-ivory-200/60 hover:bg-page-bg/50">
+                            <td className="px-6 py-2.5">
+                              <p className="font-medium text-brand">
+                                {m.name}
+                                {m.membershipNumber && <span className="ml-2 text-[0.65rem] font-normal text-hint">#{m.membershipNumber}</span>}
+                              </p>
+                              {m.businessName && <p className="text-[0.7rem] text-mid">{m.businessName}</p>}
+                              <p className="text-[0.65rem] text-hint truncate max-w-xs">{m.email}</p>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${
+                                m.membershipTier === 'corporate' ? 'bg-navy-50 border-navy-100 text-brand' : 'bg-ivory-100 border-ivory-200 text-mid'
+                              }`}>
+                                {m.membershipTier}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${badge}`}>
+                                {m.status}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              <p className="font-medium text-brand">
+                                {money(m.inferredAmount)}
+                                {m.isEstimated && <span className="text-hint text-[0.6rem] ml-1">est.</span>}
+                              </p>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {m.paymentMethod ? (
+                                <span className="capitalize text-charcoal">{m.paymentMethod}</span>
+                              ) : (
+                                <span className="text-hint text-[0.7rem]">—</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-2.5">
+                              <p className="text-[0.7rem] text-charcoal">{dateStr}</p>
+                              {m.paymentReference && <p className="text-[0.65rem] text-hint truncate max-w-[10rem]">{m.paymentReference}</p>}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            })()}
+
+            <p className="text-[0.7rem] text-hint mt-4 text-center">
+              <em>est.</em> = estimated from tier default (older members without recorded amount). Log via the Offline Payment form on /admin to record the exact amount.
+            </p>
           </div>
 
           {/* Revenue by method + Expenses by category */}

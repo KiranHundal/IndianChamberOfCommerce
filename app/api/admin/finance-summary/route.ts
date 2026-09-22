@@ -58,6 +58,29 @@ export async function GET() {
   const invitedEmails = new Set(allInvitations.map((i) => i.email.toLowerCase()))
   const invitationsConverted = allMembers.filter((m) => invitedEmails.has(m.email.toLowerCase())).length
 
+  const memberList = allMembers
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      email: m.email,
+      businessName: m.businessName,
+      membershipTier: m.membershipTier,
+      status: m.status,
+      membershipNumber: m.membershipNumber,
+      paymentMethod: m.paymentMethod,
+      amountPaid: m.amountPaid,
+      inferredAmount: inferredAmount(m),
+      isEstimated: !m.amountPaid || m.amountPaid <= 0,
+      paymentReference: m.paymentReference,
+      paymentDate: m.paymentDate,
+      createdAt: m.createdAt,
+    }))
+    .sort((a, b) => {
+      const aDate = a.paymentDate ? new Date(a.paymentDate).getTime() : new Date(a.createdAt).getTime()
+      const bDate = b.paymentDate ? new Date(b.paymentDate).getTime() : new Date(b.createdAt).getTime()
+      return bDate - aDate
+    })
+
   return NextResponse.json({
     memberCount: {
       total: allMembers.length,
@@ -80,6 +103,7 @@ export async function GET() {
       converted: invitationsConverted,
       recent: allInvitations.slice(0, 10),
     },
+    memberList,
     netPosition: revenueTracked - totalExpenses,
   })
 }
