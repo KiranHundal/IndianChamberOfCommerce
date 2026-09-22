@@ -98,15 +98,23 @@ export default function AdminFinancesPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  const [fetchError, setFetchError] = useState('')
+
   const fetchSummary = useCallback(async () => {
     setLoading(true)
+    setFetchError('')
     try {
       const res = await fetch('/api/admin/finance-summary')
-      if (res.ok) {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setFetchError(data.error || `Failed to load dashboard (HTTP ${res.status}). If this is the first load, the migration may not have run yet — visit /api/migrate?key=cvicc-migrate-finance-2026`)
+      } else {
         const data = await res.json()
         setSummary(data)
       }
-    } catch {}
+    } catch (e) {
+      setFetchError(e instanceof Error ? e.message : 'Network error loading dashboard.')
+    }
     setLoading(false)
   }, [])
 
@@ -200,10 +208,36 @@ export default function AdminFinancesPage() {
     } catch {}
   }
 
-  if (status === 'loading' || loading || !summary) {
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-page-bg flex items-center justify-center">
         <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!summary) {
+    return (
+      <div className="min-h-screen bg-page-bg flex items-center justify-center px-6">
+        <div className="max-w-md text-center bg-white border border-ivory-200 rounded-xl p-8">
+          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+          <h3 className="font-display text-h4 text-brand mb-2">Couldn&rsquo;t load dashboard</h3>
+          <p className="text-small text-mid mb-4 whitespace-pre-line">{fetchError || 'Unknown error.'}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={fetchSummary}
+              className="bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-sm hover:bg-gold-900 transition-all"
+            >
+              Retry
+            </button>
+            <Link
+              href="/admin"
+              className="bg-white border border-ivory-200 text-mid font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-sm hover:border-brand/30 transition-all"
+            >
+              Back to Admin
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }

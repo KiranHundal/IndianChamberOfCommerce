@@ -12,11 +12,17 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const [allMembers, allExpenses, allInvitations] = await Promise.all([
-    db.select().from(members),
-    db.select().from(expenses).orderBy(desc(expenses.expenseDate)),
-    db.select().from(invitations).orderBy(desc(invitations.sentAt)),
-  ])
+  const allMembers = await db.select().from(members).catch(() => [])
+  const allExpenses = await db
+    .select()
+    .from(expenses)
+    .orderBy(desc(expenses.expenseDate))
+    .catch(() => [] as (typeof expenses.$inferSelect)[])
+  const allInvitations = await db
+    .select()
+    .from(invitations)
+    .orderBy(desc(invitations.sentAt))
+    .catch(() => [] as (typeof invitations.$inferSelect)[])
 
   const approvedMembers = allMembers.filter((m) => m.status === 'approved')
   const pendingMembers = allMembers.filter((m) => m.status === 'pending')
