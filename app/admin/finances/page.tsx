@@ -541,11 +541,19 @@ export default function AdminFinancesPage() {
           {/* Orphan Square payments — paid on Square but no matching member */}
           {summary.square.orphanCount > 0 && (
             <div className="bg-white border border-amber-200 rounded-xl p-6 mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <AlertCircle className="w-5 h-5 text-amber-600" />
-                <h3 className="font-label text-label tracking-widest uppercase text-brand">
-                  Unmatched Square Payments ({summary.square.orphanCount})
-                </h3>
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <h3 className="font-label text-label tracking-widest uppercase text-brand">
+                    Unmatched Square Payments ({summary.square.orphanCount})
+                  </h3>
+                </div>
+                <div className="text-right">
+                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Total unmatched</p>
+                  <p className="font-display text-h4 text-brand">
+                    {money(summary.square.orphans.reduce((sum, o) => sum + o.amountCents / 100, 0))}
+                  </p>
+                </div>
               </div>
               <p className="text-small text-mid mb-4">
                 These people paid on Square but don&rsquo;t have a member record. They may have entered a different email on Square than the join form, or their application never completed.
