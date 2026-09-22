@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
     }
 
     const id = crypto.randomUUID()
+    const tier = membershipTier === 'corporate' ? 'corporate' : 'individual'
+    const amountForTier = tier === 'corporate' ? 395 : 95
 
     await db.insert(members).values({
       id,
@@ -42,10 +44,13 @@ export async function POST(req: NextRequest) {
       businessName: businessName || null,
       city: city || null,
       sector: sector || null,
-      membershipTier: membershipTier || 'individual',
+      membershipTier: tier,
       status: 'pending',
       role: 'member',
       createdAt: new Date(),
+      paymentMethod: 'square',
+      amountPaid: amountForTier,
+      paymentDate: new Date(),
     })
 
     let emailFailed = false

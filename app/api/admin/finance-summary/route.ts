@@ -29,12 +29,22 @@ export async function GET() {
   const individualCount = approvedMembers.filter((m) => m.membershipTier === 'individual').length
   const corporateCount = approvedMembers.filter((m) => m.membershipTier === 'corporate').length
 
-  const revenueTracked = allMembers.reduce((sum, m) => sum + (m.amountPaid || 0), 0)
+  // Estimate amount for members that don't have amountPaid explicitly set
+  // (older records from before manual payment tracking was added).
+  // Uses founding-member pricing: $95 individual, $395 corporate.
+  function inferredAmount(m: typeof allMembers[number]): number {
+    if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
+    if (m.status !== 'approved') return 0
+    return m.membershipTier === 'corporate' ? 395 : 95
+  }
+
+  const revenueTracked = allMembers.reduce((sum, m) => sum + inferredAmount(m), 0)
 
   const revenueByMethod = allMembers.reduce<Record<string, number>>((acc, m) => {
-    if (!m.amountPaid) return acc
+    const amount = inferredAmount(m)
+    if (amount === 0) return acc
     const key = m.paymentMethod || 'square'
-    acc[key] = (acc[key] || 0) + m.amountPaid
+    acc[key] = (acc[key] || 0) + amount
     return acc
   }, {})
 
