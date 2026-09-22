@@ -52,6 +52,23 @@ export async function GET() {
     return acc
   }, {})
 
+  // Square processing fees: 2.9% + $0.30 per transaction on Card/Online payments.
+  // Only Square-paid members incur fees; check, Zelle, cash don't.
+  const SQUARE_FEE_RATE = 0.029
+  const SQUARE_FEE_FIXED = 0.30
+  const squareTransactions = allMembers.filter((m) => {
+    if (m.role === 'admin' || m.role === 'moderator') return false
+    const amount = inferredAmount(m)
+    if (amount <= 0) return false
+    const method = m.paymentMethod || 'square'
+    return method === 'square'
+  })
+  const squareGross = squareTransactions.reduce((sum, m) => sum + inferredAmount(m), 0)
+  const estimatedSquareFees = Math.round(
+    squareTransactions.reduce((sum, m) => sum + inferredAmount(m) * SQUARE_FEE_RATE + SQUARE_FEE_FIXED, 0) * 100
+  ) / 100
+  const netRevenue = Math.round((revenueTracked - estimatedSquareFees) * 100) / 100
+
   const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0)
   const expensesByCategory = allExpenses.reduce<Record<string, number>>((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount
@@ -102,6 +119,10 @@ export async function GET() {
     revenue: {
       tracked: revenueTracked,
       byMethod: revenueByMethod,
+      squareGross,
+      squareTransactionCount: squareTransactions.length,
+      estimatedSquareFees,
+      net: netRevenue,
     },
     expenses: {
       total: totalExpenses,
@@ -114,6 +135,6 @@ export async function GET() {
       recent: allInvitations.slice(0, 10),
     },
     memberList,
-    netPosition: revenueTracked - totalExpenses,
+    netPosition: Math.round((netRevenue - totalExpenses) * 100) / 100,
   })
 }

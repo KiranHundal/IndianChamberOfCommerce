@@ -55,6 +55,10 @@ interface Summary {
   revenue: {
     tracked: number
     byMethod: Record<string, number>
+    squareGross: number
+    squareTransactionCount: number
+    estimatedSquareFees: number
+    net: number
   }
   expenses: {
     total: number
@@ -322,23 +326,35 @@ export default function AdminFinancesPage() {
           )}
 
           {/* Top KPI cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="bg-white border border-ivory-200 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-emerald-600" />
                 </div>
-                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">Total Revenue Tracked</p>
+                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">Gross Revenue</p>
               </div>
               <p className="font-display text-h2 text-brand font-light">{money(summary.revenue.tracked)}</p>
-              <p className="text-[0.7rem] text-hint mt-1">Includes Square + manually logged offline payments</p>
+              <p className="text-[0.7rem] text-hint mt-1">Square + offline payments</p>
+            </div>
+            <div className="bg-white border border-amber-200 rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                  <TrendingDown className="w-5 h-5 text-amber-600" />
+                </div>
+                <p className="font-label text-[0.6rem] tracking-widest uppercase text-amber-700">Square Fees (est.)</p>
+              </div>
+              <p className="font-display text-h2 text-amber-700 font-light">−{money(summary.revenue.estimatedSquareFees)}</p>
+              <p className="text-[0.7rem] text-hint mt-1">
+                2.9% + $0.30 × {summary.revenue.squareTransactionCount} Square transactions
+              </p>
             </div>
             <div className="bg-white border border-ivory-200 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
                   <TrendingDown className="w-5 h-5 text-red-600" />
                 </div>
-                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">Total Expenses</p>
+                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">Other Expenses</p>
               </div>
               <p className="font-display text-h2 text-brand font-light">{money(summary.expenses.total)}</p>
               <p className="text-[0.7rem] text-hint mt-1">Across {Object.keys(summary.expenses.byCategory).length} categories</p>
@@ -356,9 +372,41 @@ export default function AdminFinancesPage() {
                 {money(summary.netPosition)}
               </p>
               <p className={`text-[0.7rem] mt-1 ${summary.netPosition >= 0 ? 'text-white/50' : 'text-red-600'}`}>
-                Revenue − Expenses
+                Gross − Fees − Expenses
               </p>
             </div>
+          </div>
+
+          {/* Revenue waterfall */}
+          <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-8">
+            <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Revenue Waterfall</h3>
+            <div className="space-y-2 text-small">
+              <div className="flex justify-between items-center py-2 border-b border-ivory-200">
+                <span className="text-charcoal">Gross Revenue Collected</span>
+                <span className="font-medium text-emerald-700">{money(summary.revenue.tracked)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-ivory-200">
+                <span className="text-mid">− Square Processing Fees (est.)</span>
+                <span className="font-medium text-amber-700">−{money(summary.revenue.estimatedSquareFees)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b-2 border-ivory-200">
+                <span className="text-brand font-medium">Net Revenue (in bank)</span>
+                <span className="font-medium text-brand">{money(summary.revenue.net)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-ivory-200">
+                <span className="text-mid">− Other Expenses</span>
+                <span className="font-medium text-red-600">−{money(summary.expenses.total)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-brand font-bold">= Net Position</span>
+                <span className={`font-display text-h4 font-bold ${summary.netPosition >= 0 ? 'text-brand' : 'text-red-600'}`}>
+                  {money(summary.netPosition)}
+                </span>
+              </div>
+            </div>
+            <p className="text-[0.7rem] text-hint mt-4">
+              Square fees estimated at 2.9% + $0.30 per online transaction. Actual fees on your Square statements may vary slightly.
+            </p>
           </div>
 
           {/* Member stats */}
