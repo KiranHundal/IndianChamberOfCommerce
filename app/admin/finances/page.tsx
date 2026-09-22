@@ -62,6 +62,7 @@ interface Summary {
   }
   expenses: {
     total: number
+    logged: number
     byCategory: Record<string, number>
     recent: Array<{
       id: string
@@ -72,6 +73,7 @@ interface Summary {
       paymentMethod: string | null
       paymentReference: string | null
       expenseDate: string | number
+      isSynthetic?: boolean
     }>
   }
   invitations: {
@@ -326,7 +328,7 @@ export default function AdminFinancesPage() {
           )}
 
           {/* Top KPI cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="bg-white border border-ivory-200 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
@@ -337,27 +339,19 @@ export default function AdminFinancesPage() {
               <p className="font-display text-h2 text-brand font-light">{money(summary.revenue.tracked)}</p>
               <p className="text-[0.7rem] text-hint mt-1">Square + offline payments</p>
             </div>
-            <div className="bg-white border border-amber-200 rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
-                  <TrendingDown className="w-5 h-5 text-amber-600" />
-                </div>
-                <p className="font-label text-[0.6rem] tracking-widest uppercase text-amber-700">Square Fees (est.)</p>
-              </div>
-              <p className="font-display text-h2 text-amber-700 font-light">−{money(summary.revenue.estimatedSquareFees)}</p>
-              <p className="text-[0.7rem] text-hint mt-1">
-                2.9% + $0.30 × {summary.revenue.squareTransactionCount} Square transactions
-              </p>
-            </div>
             <div className="bg-white border border-ivory-200 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
                   <TrendingDown className="w-5 h-5 text-red-600" />
                 </div>
-                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">Other Expenses</p>
+                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">Total Expenses</p>
               </div>
               <p className="font-display text-h2 text-brand font-light">{money(summary.expenses.total)}</p>
-              <p className="text-[0.7rem] text-hint mt-1">Across {Object.keys(summary.expenses.byCategory).length} categories</p>
+              <p className="text-[0.7rem] text-hint mt-1">
+                {summary.expenses.logged > 0 && <>{money(summary.expenses.logged)} logged</>}
+                {summary.expenses.logged > 0 && summary.revenue.estimatedSquareFees > 0 && ' + '}
+                {summary.revenue.estimatedSquareFees > 0 && <>{money(summary.revenue.estimatedSquareFees)} Square fees</>}
+              </p>
             </div>
             <div className={`rounded-xl p-6 ${summary.netPosition >= 0 ? 'bg-navy-900 text-white' : 'bg-red-50 border border-red-200'}`}>
               <div className="flex items-center gap-3 mb-3">
@@ -372,7 +366,7 @@ export default function AdminFinancesPage() {
                 {money(summary.netPosition)}
               </p>
               <p className={`text-[0.7rem] mt-1 ${summary.netPosition >= 0 ? 'text-white/50' : 'text-red-600'}`}>
-                Gross − Fees − Expenses
+                Gross Revenue − Total Expenses
               </p>
             </div>
           </div>
@@ -385,18 +379,20 @@ export default function AdminFinancesPage() {
                 <span className="text-charcoal">Gross Revenue Collected</span>
                 <span className="font-medium text-emerald-700">{money(summary.revenue.tracked)}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-ivory-200">
-                <span className="text-mid">− Square Processing Fees (est.)</span>
-                <span className="font-medium text-amber-700">−{money(summary.revenue.estimatedSquareFees)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b-2 border-ivory-200">
-                <span className="text-brand font-medium">Net Revenue (in bank)</span>
-                <span className="font-medium text-brand">{money(summary.revenue.net)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-ivory-200">
-                <span className="text-mid">− Other Expenses</span>
-                <span className="font-medium text-red-600">−{money(summary.expenses.total)}</span>
-              </div>
+              {summary.revenue.estimatedSquareFees > 0 && (
+                <div className="flex justify-between items-center py-2 border-b border-ivory-200">
+                  <span className="text-mid">
+                    − Square Processing Fees <span className="text-hint">(est., {summary.revenue.squareTransactionCount} txns)</span>
+                  </span>
+                  <span className="font-medium text-amber-700">−{money(summary.revenue.estimatedSquareFees)}</span>
+                </div>
+              )}
+              {summary.expenses.logged > 0 && (
+                <div className="flex justify-between items-center py-2 border-b border-ivory-200">
+                  <span className="text-mid">− Other Expenses (logged)</span>
+                  <span className="font-medium text-red-600">−{money(summary.expenses.logged)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center py-2">
                 <span className="text-brand font-bold">= Net Position</span>
                 <span className={`font-display text-h4 font-bold ${summary.netPosition >= 0 ? 'text-brand' : 'text-red-600'}`}>
@@ -696,11 +692,19 @@ export default function AdminFinancesPage() {
             ) : (
               <div className="divide-y divide-ivory-200">
                 {summary.expenses.recent.map((e) => (
-                  <div key={e.id} className="py-3 flex items-center justify-between gap-4">
+                  <div key={e.id} className={`py-3 flex items-center justify-between gap-4 ${e.isSynthetic ? 'bg-amber-50/40 -mx-6 px-6 border-y border-amber-100' : ''}`}>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-brand">{e.vendor}</p>
+                      <p className="font-medium text-brand flex items-center gap-2">
+                        {e.vendor}
+                        {e.isSynthetic && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-100 border border-amber-200 text-amber-700 text-[0.55rem] font-medium tracking-wider uppercase">
+                            Auto · est.
+                          </span>
+                        )}
+                      </p>
                       <p className="text-[0.7rem] text-hint">
-                        {e.category} · {new Date(e.expenseDate).toLocaleDateString()}
+                        {e.category}
+                        {!e.isSynthetic && <> · {new Date(e.expenseDate).toLocaleDateString()}</>}
                         {e.paymentMethod && <> · <span className="capitalize">{e.paymentMethod}</span></>}
                         {e.paymentReference && <> · {e.paymentReference}</>}
                       </p>
@@ -708,9 +712,11 @@ export default function AdminFinancesPage() {
                     </div>
                     <div className="text-right flex items-center gap-3">
                       <p className="font-display text-h5 text-red-600">−{money(e.amount)}</p>
-                      <button onClick={() => handleDeleteExpense(e.id)} className="text-hint hover:text-red-600">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!e.isSynthetic && (
+                        <button onClick={() => handleDeleteExpense(e.id)} className="text-hint hover:text-red-600">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

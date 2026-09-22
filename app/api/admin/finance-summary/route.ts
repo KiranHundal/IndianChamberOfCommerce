@@ -69,11 +69,49 @@ export async function GET() {
   ) / 100
   const netRevenue = Math.round((revenueTracked - estimatedSquareFees) * 100) / 100
 
-  const totalExpenses = allExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const loggedExpensesTotal = allExpenses.reduce((sum, e) => sum + e.amount, 0)
   const expensesByCategory = allExpenses.reduce<Record<string, number>>((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount
     return acc
   }, {})
+
+  // Fold estimated Square fees into the expenses view as a virtual category
+  // so they're visible in Total Expenses / breakdown, not just in the waterfall.
+  const SQUARE_FEE_CATEGORY = 'Payment Processing (Square)'
+  if (estimatedSquareFees > 0) {
+    expensesByCategory[SQUARE_FEE_CATEGORY] =
+      (expensesByCategory[SQUARE_FEE_CATEGORY] || 0) + estimatedSquareFees
+  }
+  const totalExpenses = loggedExpensesTotal + estimatedSquareFees
+
+  // Build a "recent" list that surfaces the Square fees line at the top
+  // as a synthetic entry (not stored in DB — computed from members table).
+  const recentExpenses: Array<{
+    id: string
+    category: string
+    vendor: string
+    description: string | null
+    amount: number
+    paymentMethod: string | null
+    paymentReference: string | null
+    expenseDate: string | number | Date
+    isSynthetic?: boolean
+  }> = []
+
+  if (estimatedSquareFees > 0) {
+    recentExpenses.push({
+      id: 'synthetic-square-fees',
+      category: SQUARE_FEE_CATEGORY,
+      vendor: 'Square',
+      description: `Estimated at 2.9% + $0.30 per transaction across ${squareTransactions.length} Square payments.`,
+      amount: estimatedSquareFees,
+      paymentMethod: 'auto-deducted',
+      paymentReference: null,
+      expenseDate: new Date(),
+      isSynthetic: true,
+    })
+  }
+  recentExpenses.push(...allExpenses.slice(0, 10))
 
   const invitationsSent = allInvitations.length
   const invitedEmails = new Set(allInvitations.map((i) => i.email.toLowerCase()))
@@ -125,9 +163,10 @@ export async function GET() {
       net: netRevenue,
     },
     expenses: {
-      total: totalExpenses,
+      total: Math.round(totalExpenses * 100) / 100,
+      logged: Math.round(loggedExpensesTotal * 100) / 100,
       byCategory: expensesByCategory,
-      recent: allExpenses.slice(0, 10),
+      recent: recentExpenses,
     },
     invitations: {
       sent: invitationsSent,
@@ -135,6 +174,6 @@ export async function GET() {
       recent: allInvitations.slice(0, 10),
     },
     memberList,
-    netPosition: Math.round((netRevenue - totalExpenses) * 100) / 100,
+    netPosition: Math.round((revenueTracked - totalExpenses) * 100) / 100,
   })
 }
