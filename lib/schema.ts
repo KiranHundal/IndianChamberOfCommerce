@@ -41,6 +41,39 @@ export const expenses = sqliteTable('expenses', {
   createdBy: text('created_by'),
 })
 
+export const squarePayments = sqliteTable('square_payments', {
+  id: text('id').primaryKey(),
+  status: text('status').notNull(),
+  amountCents: integer('amount_cents').notNull(),
+  feeCents: integer('fee_cents').notNull().default(0),
+  refundedCents: integer('refunded_cents').notNull().default(0),
+  buyerEmail: text('buyer_email'),
+  buyerName: text('buyer_name'),
+  receiptNumber: text('receipt_number'),
+  receiptUrl: text('receipt_url'),
+  orderId: text('order_id'),
+  cardBrand: text('card_brand'),
+  last4: text('last_4'),
+  note: text('note'),
+  paidAt: integer('paid_at', { mode: 'timestamp' }).notNull(),
+  syncedAt: integer('synced_at', { mode: 'timestamp' }).notNull(),
+  matchedMemberId: text('matched_member_id'),
+})
+
+export const squareSync = sqliteTable('square_sync', {
+  id: text('id').primaryKey(),
+  startedAt: integer('started_at', { mode: 'timestamp' }).notNull(),
+  finishedAt: integer('finished_at', { mode: 'timestamp' }),
+  status: text('status').notNull(),
+  paymentCount: integer('payment_count').notNull().default(0),
+  newCount: integer('new_count').notNull().default(0),
+  updatedCount: integer('updated_count').notNull().default(0),
+  matchedCount: integer('matched_count').notNull().default(0),
+  unmatchedCount: integer('unmatched_count').notNull().default(0),
+  errorMessage: text('error_message'),
+  triggeredBy: text('triggered_by'),
+})
+
 export const invitations = sqliteTable('invitations', {
   id: text('id').primaryKey(),
   email: text('email').notNull(),
@@ -74,3 +107,6 @@ export type Expense = typeof expenses.$inferSelect
 export type NewExpense = typeof expenses.$inferInsert
 export type Invitation = typeof invitations.$inferSelect
 export type NewInvitation = typeof invitations.$inferInsert
+export type SquarePayment = typeof squarePayments.$inferSelect
+export type NewSquarePayment = typeof squarePayments.$inferInsert
+export type SquareSyncRun = typeof squareSync.$inferSelect

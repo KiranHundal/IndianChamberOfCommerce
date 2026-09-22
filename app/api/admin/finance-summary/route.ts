@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { members, expenses, invitations } from '@/lib/schema'
+import { members, expenses, invitations, squarePayments, squareSync } from '@/lib/schema'
 import { desc } from 'drizzle-orm'
 
 export async function GET() {
@@ -23,6 +23,17 @@ export async function GET() {
     .from(invitations)
     .orderBy(desc(invitations.sentAt))
     .catch(() => [] as (typeof invitations.$inferSelect)[])
+  const allSquarePayments = await db
+    .select()
+    .from(squarePayments)
+    .orderBy(desc(squarePayments.paidAt))
+    .catch(() => [] as (typeof squarePayments.$inferSelect)[])
+  const [lastSyncRow] = await db
+    .select()
+    .from(squareSync)
+    .orderBy(desc(squareSync.startedAt))
+    .limit(1)
+    .catch(() => [] as (typeof squareSync.$inferSelect)[])
 
   const nonStaffMembers = allMembers.filter((m) => m.role !== 'admin' && m.role !== 'moderator')
   const approvedMembers = nonStaffMembers.filter((m) => m.status === 'approved')
@@ -52,22 +63,56 @@ export async function GET() {
     return acc
   }, {})
 
-  // Square processing fees: 2.9% + $0.30 per transaction on Card/Online payments.
-  // Only Square-paid members incur fees; check, Zelle, cash don't.
-  const SQUARE_FEE_RATE = 0.029
-  const SQUARE_FEE_FIXED = 0.30
-  const squareTransactions = allMembers.filter((m) => {
-    if (m.role === 'admin' || m.role === 'moderator') return false
-    const amount = inferredAmount(m)
-    if (amount <= 0) return false
-    const method = m.paymentMethod || 'square'
-    return method === 'square'
-  })
-  const squareGross = squareTransactions.reduce((sum, m) => sum + inferredAmount(m), 0)
-  const estimatedSquareFees = Math.round(
-    squareTransactions.reduce((sum, m) => sum + inferredAmount(m) * SQUARE_FEE_RATE + SQUARE_FEE_FIXED, 0) * 100
-  ) / 100
+  // Square processing fees — prefer real data from synced Square payments,
+  // fall back to estimate (2.9% + $0.30) when no sync has happened yet.
+  const hasSquareData = allSquarePayments.length > 0
+
+  let squareGross = 0
+  let estimatedSquareFees = 0
+  let squareTransactionCount = 0
+  let squareFeesAreReal = false
+
+  if (hasSquareData) {
+    const completed = allSquarePayments.filter((p) => p.status === 'COMPLETED')
+    squareTransactionCount = completed.length
+    squareGross = completed.reduce((sum, p) => sum + (p.amountCents - p.refundedCents) / 100, 0)
+    estimatedSquareFees = Math.round(completed.reduce((sum, p) => sum + p.feeCents, 0)) / 100
+    squareFeesAreReal = true
+  } else {
+    const SQUARE_FEE_RATE = 0.029
+    const SQUARE_FEE_FIXED = 0.30
+    const squareTransactions = allMembers.filter((m) => {
+      if (m.role === 'admin' || m.role === 'moderator') return false
+      const amount = inferredAmount(m)
+      if (amount <= 0) return false
+      const method = m.paymentMethod || 'square'
+      return method === 'square'
+    })
+    squareTransactionCount = squareTransactions.length
+    squareGross = squareTransactions.reduce((sum, m) => sum + inferredAmount(m), 0)
+    estimatedSquareFees = Math.round(
+      squareTransactions.reduce((sum, m) => sum + inferredAmount(m) * SQUARE_FEE_RATE + SQUARE_FEE_FIXED, 0) * 100
+    ) / 100
+  }
+
+  estimatedSquareFees = Math.round(estimatedSquareFees * 100) / 100
+  squareGross = Math.round(squareGross * 100) / 100
   const netRevenue = Math.round((revenueTracked - estimatedSquareFees) * 100) / 100
+
+  const squareOrphans = allSquarePayments
+    .filter((p) => !p.matchedMemberId && p.status === 'COMPLETED')
+    .map((p) => ({
+      id: p.id,
+      amountCents: p.amountCents,
+      feeCents: p.feeCents,
+      buyerEmail: p.buyerEmail,
+      buyerName: p.buyerName,
+      paidAt: p.paidAt,
+      receiptUrl: p.receiptUrl,
+      receiptNumber: p.receiptNumber,
+      cardBrand: p.cardBrand,
+      last4: p.last4,
+    }))
 
   const loggedExpensesTotal = allExpenses.reduce((sum, e) => sum + e.amount, 0)
   const expensesByCategory = allExpenses.reduce<Record<string, number>>((acc, e) => {
@@ -103,7 +148,7 @@ export async function GET() {
       id: 'synthetic-square-fees',
       category: SQUARE_FEE_CATEGORY,
       vendor: 'Square',
-      description: `Estimated at 2.9% + $0.30 per transaction across ${squareTransactions.length} Square payments.`,
+      description: `${squareFeesAreReal ? 'Actual fees synced from Square' : 'Estimated at 2.9% + $0.30 per transaction'} across ${squareTransactionCount} Square payments.`,
       amount: estimatedSquareFees,
       paymentMethod: 'auto-deducted',
       paymentReference: null,
@@ -158,9 +203,16 @@ export async function GET() {
       tracked: revenueTracked,
       byMethod: revenueByMethod,
       squareGross,
-      squareTransactionCount: squareTransactions.length,
+      squareTransactionCount,
       estimatedSquareFees,
+      squareFeesAreReal,
       net: netRevenue,
+    },
+    square: {
+      lastSync: lastSyncRow || null,
+      totalPayments: allSquarePayments.length,
+      orphans: squareOrphans,
+      orphanCount: squareOrphans.length,
     },
     expenses: {
       total: Math.round(totalExpenses * 100) / 100,

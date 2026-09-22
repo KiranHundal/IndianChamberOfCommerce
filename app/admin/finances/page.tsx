@@ -19,6 +19,8 @@ import {
   Send,
   CheckCircle,
   AlertCircle,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -58,7 +60,36 @@ interface Summary {
     squareGross: number
     squareTransactionCount: number
     estimatedSquareFees: number
+    squareFeesAreReal: boolean
     net: number
+  }
+  square: {
+    lastSync: {
+      id: string
+      startedAt: string | number
+      finishedAt: string | number | null
+      status: string
+      paymentCount: number
+      newCount: number
+      updatedCount: number
+      matchedCount: number
+      unmatchedCount: number
+      errorMessage: string | null
+    } | null
+    totalPayments: number
+    orphanCount: number
+    orphans: Array<{
+      id: string
+      amountCents: number
+      feeCents: number
+      buyerEmail: string | null
+      buyerName: string | null
+      paidAt: string | number
+      receiptUrl: string | null
+      receiptNumber: string | null
+      cardBrand: string | null
+      last4: string | null
+    }>
   }
   expenses: {
     total: number
@@ -125,6 +156,7 @@ export default function AdminFinancesPage() {
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [memberSearch, setMemberSearch] = useState('')
   const [memberFilter, setMemberFilter] = useState<string>('all')
+  const [syncing, setSyncing] = useState(false)
 
   const [fetchError, setFetchError] = useState('')
 
@@ -228,6 +260,27 @@ export default function AdminFinancesPage() {
     setSaving(false)
   }
 
+  async function handleSyncSquare() {
+    setSyncing(true)
+    setNotice(null)
+    try {
+      const res = await fetch('/api/admin/square/sync', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Sync failed.' })
+      } else {
+        await fetchSummary()
+        setNotice({
+          type: 'success',
+          text: `Synced ${data.paymentCount} Square payments. ${data.matchedCount} matched to members, ${data.unmatchedCount} orphaned.`,
+        })
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setSyncing(false)
+  }
+
   async function handleDeleteExpense(id: string) {
     if (!confirm('Delete this expense?')) return
     try {
@@ -301,6 +354,23 @@ export default function AdminFinancesPage() {
               Back to Admin
             </Link>
             <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={handleSyncSquare}
+                disabled={syncing}
+                className="inline-flex items-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:bg-navy-800 transition-all disabled:opacity-50"
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 text-gold-400" />
+                    Sync from Square
+                  </>
+                )}
+              </button>
               <button
                 onClick={() => { setError(''); setShowInvite(true) }}
                 className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 transition-all"
@@ -382,7 +452,10 @@ export default function AdminFinancesPage() {
               {summary.revenue.estimatedSquareFees > 0 && (
                 <div className="flex justify-between items-center py-2 border-b border-ivory-200">
                   <span className="text-mid">
-                    − Square Processing Fees <span className="text-hint">(est., {summary.revenue.squareTransactionCount} txns)</span>
+                    − Square Processing Fees{' '}
+                    <span className="text-hint">
+                      ({summary.revenue.squareFeesAreReal ? 'actual' : 'est.'}, {summary.revenue.squareTransactionCount} txns)
+                    </span>
                   </span>
                   <span className="font-medium text-amber-700">−{money(summary.revenue.estimatedSquareFees)}</span>
                 </div>
@@ -426,6 +499,84 @@ export default function AdminFinancesPage() {
               ))}
             </div>
           </div>
+
+          {/* Square sync status */}
+          <div className={`rounded-xl p-5 mb-8 border ${
+            summary.square.lastSync?.status === 'success'
+              ? 'bg-emerald-50 border-emerald-200'
+              : summary.square.lastSync?.status === 'error'
+                ? 'bg-red-50 border-red-200'
+                : 'bg-amber-50 border-amber-200'
+          }`}>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <RefreshCw className={`w-4 h-4 ${
+                  summary.square.lastSync?.status === 'success' ? 'text-emerald-600'
+                    : summary.square.lastSync?.status === 'error' ? 'text-red-600'
+                    : 'text-amber-600'
+                }`} />
+                <div>
+                  <p className="font-label text-[0.65rem] tracking-widest uppercase text-brand">Square Connection</p>
+                  <p className="text-small text-mid mt-1">
+                    {summary.square.lastSync ? (
+                      <>
+                        Last synced {new Date(summary.square.lastSync.finishedAt || summary.square.lastSync.startedAt).toLocaleString()}
+                        {' · '}
+                        {summary.square.totalPayments} payments in system
+                        {summary.revenue.squareFeesAreReal && ' · fees shown are actual, not estimated'}
+                      </>
+                    ) : (
+                      <>Not yet synced. Click <strong>Sync from Square</strong> to pull real payment data and exact fees.</>
+                    )}
+                  </p>
+                  {summary.square.lastSync?.status === 'error' && (
+                    <p className="text-small text-red-700 mt-1">{summary.square.lastSync.errorMessage}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Orphan Square payments — paid on Square but no matching member */}
+          {summary.square.orphanCount > 0 && (
+            <div className="bg-white border border-amber-200 rounded-xl p-6 mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+                <h3 className="font-label text-label tracking-widest uppercase text-brand">
+                  Unmatched Square Payments ({summary.square.orphanCount})
+                </h3>
+              </div>
+              <p className="text-small text-mid mb-4">
+                These people paid on Square but don&rsquo;t have a member record. They may have entered a different email on Square than the join form, or their application never completed.
+              </p>
+              <div className="divide-y divide-ivory-200">
+                {summary.square.orphans.map((o) => (
+                  <div key={o.id} className="py-3 flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-brand">
+                        {o.buyerName || o.buyerEmail || '(no name)'}
+                      </p>
+                      {o.buyerEmail && <p className="text-[0.7rem] text-hint truncate">{o.buyerEmail}</p>}
+                      <p className="text-[0.65rem] text-hint mt-1">
+                        {new Date(o.paidAt).toLocaleDateString()}
+                        {o.cardBrand && <> · {o.cardBrand} ····{o.last4}</>}
+                        {o.receiptNumber && <> · Receipt #{o.receiptNumber}</>}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-medium text-brand">${(o.amountCents / 100).toFixed(2)}</p>
+                      <p className="text-[0.65rem] text-hint">${(o.feeCents / 100).toFixed(2)} fee</p>
+                      {o.receiptUrl && (
+                        <a href={o.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[0.65rem] text-accent hover:underline mt-1">
+                          Receipt <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Members list — full detail with payment info */}
           <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-8">

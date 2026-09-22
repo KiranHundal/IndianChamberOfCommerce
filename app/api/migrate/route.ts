@@ -4,7 +4,7 @@ import { createClient } from '@libsql/client'
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const key = url.searchParams.get('key')
-  if (key !== process.env.NEXTAUTH_SECRET && key !== 'cvicc-migrate-finance-2026') {
+  if (key !== process.env.NEXTAUTH_SECRET && key !== 'cvicc-migrate-square-2026') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -120,6 +120,55 @@ export async function GET(req: Request) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     results.push(`invitations table error: ${msg}`)
+  }
+
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS square_payments (
+        id TEXT PRIMARY KEY,
+        status TEXT NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        fee_cents INTEGER NOT NULL DEFAULT 0,
+        refunded_cents INTEGER NOT NULL DEFAULT 0,
+        buyer_email TEXT,
+        buyer_name TEXT,
+        receipt_number TEXT,
+        receipt_url TEXT,
+        order_id TEXT,
+        card_brand TEXT,
+        last_4 TEXT,
+        note TEXT,
+        paid_at INTEGER NOT NULL,
+        synced_at INTEGER NOT NULL,
+        matched_member_id TEXT
+      )
+    `)
+    results.push('Created square_payments table')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    results.push(`square_payments table error: ${msg}`)
+  }
+
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS square_sync (
+        id TEXT PRIMARY KEY,
+        started_at INTEGER NOT NULL,
+        finished_at INTEGER,
+        status TEXT NOT NULL,
+        payment_count INTEGER NOT NULL DEFAULT 0,
+        new_count INTEGER NOT NULL DEFAULT 0,
+        updated_count INTEGER NOT NULL DEFAULT 0,
+        matched_count INTEGER NOT NULL DEFAULT 0,
+        unmatched_count INTEGER NOT NULL DEFAULT 0,
+        error_message TEXT,
+        triggered_by TEXT
+      )
+    `)
+    results.push('Created square_sync table')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    results.push(`square_sync table error: ${msg}`)
   }
 
   const boardColumns = [
