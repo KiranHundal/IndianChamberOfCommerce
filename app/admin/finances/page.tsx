@@ -619,7 +619,7 @@ export default function AdminFinancesPage() {
                   <option value="zelle">Zelle only</option>
                   <option value="cash">Cash only</option>
                   <option value="other">Other only</option>
-                  <option value="none">No payment recorded</option>
+                  <option value="unknown">Method not recorded (—)</option>
                 </select>
               </div>
             </div>
@@ -628,11 +628,11 @@ export default function AdminFinancesPage() {
               const matchesFilters = (m: MemberRow) => {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (methodFilter !== 'all') {
-                  const method = (m.paymentMethod || (m.isStaff ? '' : m.inferredAmount > 0 ? 'square' : 'none')).toLowerCase()
-                  if (methodFilter === 'offline') {
+                  const method = (m.paymentMethod || '').toLowerCase()
+                  if (methodFilter === 'unknown') {
+                    if (method !== '') return false
+                  } else if (methodFilter === 'offline') {
                     if (!['check', 'zelle', 'cash', 'other'].includes(method)) return false
-                  } else if (methodFilter === 'none') {
-                    if (method !== 'none') return false
                   } else if (method !== methodFilter) return false
                 }
                 if (memberSearch) {
@@ -675,11 +675,11 @@ export default function AdminFinancesPage() {
               const matchesFilters = (m: MemberRow) => {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (methodFilter !== 'all') {
-                  const method = (m.paymentMethod || (m.isStaff ? '' : m.inferredAmount > 0 ? 'square' : 'none')).toLowerCase()
-                  if (methodFilter === 'offline') {
+                  const method = (m.paymentMethod || '').toLowerCase()
+                  if (methodFilter === 'unknown') {
+                    if (method !== '') return false
+                  } else if (methodFilter === 'offline') {
                     if (!['check', 'zelle', 'cash', 'other'].includes(method)) return false
-                  } else if (methodFilter === 'none') {
-                    if (method !== 'none') return false
                   } else if (method !== methodFilter) return false
                 }
                 if (memberSearch) {
