@@ -729,6 +729,179 @@ export default function AdminFinancesPage() {
             </div>
           )}
 
+          {/* Duplicate reconciliation — Square orphans ↔ members with no method */}
+          {(() => {
+            const noMethodMembers = summary.memberList.filter(
+              (m) => !m.isStaff && !m.hasSquareReceipt && !m.paymentMethod && m.inferredAmount > 0
+            )
+            const orphans = summary.square.orphans
+            if (orphans.length === 0 && noMethodMembers.length === 0) return null
+
+            const orphansTotal = orphans.reduce((sum, o) => sum + o.amountCents / 100, 0)
+            const noMethodTotal = noMethodMembers.reduce((sum, m) => sum + m.inferredAmount, 0)
+
+            const rowCount = Math.max(orphans.length, noMethodMembers.length)
+            const rows: Array<{
+              orphan: typeof orphans[number] | null
+              member: typeof noMethodMembers[number] | null
+              isPair: boolean
+            }> = []
+
+            const usedMemberIds = new Set<string>()
+
+            // First, pair each orphan with its suggested match (if any)
+            for (const o of orphans) {
+              let pair: typeof noMethodMembers[number] | null = null
+              if (o.suggestedMatch) {
+                const found = noMethodMembers.find((m) => m.id === o.suggestedMatch!.id)
+                if (found) {
+                  pair = found
+                  usedMemberIds.add(found.id)
+                }
+              }
+              rows.push({ orphan: o, member: pair, isPair: !!pair })
+            }
+
+            // Then, list remaining unpaired no-method members
+            for (const m of noMethodMembers) {
+              if (usedMemberIds.has(m.id)) continue
+              rows.push({ orphan: null, member: m, isPair: false })
+            }
+
+            return (
+              <div className="bg-white border border-amber-200 rounded-xl p-6 mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <h3 className="font-label text-label tracking-widest uppercase text-brand">
+                    Duplicate Reconciliation
+                  </h3>
+                </div>
+                <p className="text-small text-mid mb-6">
+                  Left: Square payments with no matching member. Right: members whose payment method is not recorded. Rows where they line up side-by-side are likely the same person (paid via Square with a different email than the join form).
+                </p>
+
+                {/* Column totals */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                    <p className="font-label text-[0.6rem] tracking-widest uppercase text-emerald-800">
+                      Square Orphans Total
+                    </p>
+                    <p className="font-display text-h4 text-emerald-800 mt-1">{money(orphansTotal)}</p>
+                    <p className="text-[0.65rem] text-emerald-700 mt-0.5">{orphans.length} unmatched payments</p>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p className="font-label text-[0.6rem] tracking-widest uppercase text-amber-800">
+                      No-Method Members Total
+                    </p>
+                    <p className="font-display text-h4 text-amber-800 mt-1">{money(noMethodTotal)}</p>
+                    <p className="text-[0.65rem] text-amber-700 mt-0.5">{noMethodMembers.length} members</p>
+                  </div>
+                </div>
+
+                <p className="text-[0.7rem] text-hint mb-3">
+                  {rowCount} row{rowCount !== 1 ? 's' : ''} · Green rows are auto-suggested matches. Click <strong>Match</strong> to link.
+                </p>
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-small">
+                    <thead>
+                      <tr className="border-b border-ivory-200 text-left">
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">
+                          Square Payment (Left)
+                        </th>
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">
+                          Site Member (Right)
+                        </th>
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row, i) => (
+                        <tr
+                          key={i}
+                          className={`border-b border-ivory-200/60 ${
+                            row.isPair ? 'bg-emerald-50/40' : ''
+                          }`}
+                        >
+                          <td className="px-3 py-3 align-top">
+                            {row.orphan ? (
+                              <>
+                                <p className="font-medium text-brand">
+                                  {row.orphan.buyerName || row.orphan.buyerEmail || '(no name)'}
+                                </p>
+                                {row.orphan.buyerEmail && (
+                                  <p className="text-[0.7rem] text-hint truncate max-w-[14rem]">
+                                    {row.orphan.buyerEmail}
+                                  </p>
+                                )}
+                                <p className="text-[0.65rem] text-hint mt-1">
+                                  ${(row.orphan.amountCents / 100).toFixed(2)} · {new Date(row.orphan.paidAt).toLocaleDateString()}
+                                  {row.orphan.cardBrand && <> · {row.orphan.cardBrand} ····{row.orphan.last4}</>}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-hint text-[0.7rem] italic">—</p>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 align-top">
+                            {row.member ? (
+                              <>
+                                <p className="font-medium text-brand">
+                                  {row.member.name}
+                                  {row.member.membershipNumber && (
+                                    <span className="ml-2 text-[0.65rem] font-normal text-hint">
+                                      #{row.member.membershipNumber}
+                                    </span>
+                                  )}
+                                </p>
+                                {row.member.businessName && (
+                                  <p className="text-[0.7rem] text-mid truncate max-w-[14rem]">{row.member.businessName}</p>
+                                )}
+                                <p className="text-[0.7rem] text-hint truncate max-w-[14rem]">{row.member.email}</p>
+                                <p className="text-[0.65rem] text-hint mt-1">
+                                  <span className="capitalize">{row.member.membershipTier}</span> · est. ${row.member.inferredAmount}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-hint text-[0.7rem] italic">— no matching member found</p>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-right align-middle">
+                            {row.isPair && row.orphan && row.member ? (
+                              <button
+                                onClick={() => handleMatchOrphan(row.orphan!.id, row.member!.id, row.member!.name)}
+                                disabled={matchingId === row.orphan.id}
+                                className="inline-flex items-center gap-1.5 bg-emerald-600 text-white font-label text-[0.6rem] tracking-widest uppercase px-3 py-1.5 rounded-sm hover:bg-emerald-700 transition-all disabled:opacity-50"
+                              >
+                                {matchingId === row.orphan.id ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    Matching…
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="w-3 h-3" />
+                                    Match
+                                  </>
+                                )}
+                              </button>
+                            ) : row.orphan ? (
+                              <span className="text-[0.65rem] text-hint">No suggestion</span>
+                            ) : (
+                              <span className="text-[0.65rem] text-hint">Review manually</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Members list — full detail with payment info */}
           <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-8">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
