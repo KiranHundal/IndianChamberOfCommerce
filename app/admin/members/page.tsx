@@ -336,17 +336,24 @@ export default function AdminPage() {
                             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[0.6rem] font-label tracking-widest uppercase ${badge.bg} ${badge.color}`}>
                               {badge.label}
                             </span>
-                            {member.status === 'pending' && member.role !== 'admin' && member.role !== 'moderator' && (
-                              <>
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-ivory-200 bg-ivory-100 text-mid text-[0.6rem] font-label tracking-widest uppercase capitalize">
-                                  {member.membershipTier}
-                                </span>
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-navy-100 bg-navy-50 text-brand text-[0.6rem] font-label tracking-widest uppercase">
-                                  <span className="font-semibold">${member.membershipTier === 'corporate' ? '395' : '95'}</span>
-                                  <span>Due</span>
-                                </span>
-                              </>
-                            )}
+                            {(() => {
+                              if (member.status !== 'pending') return null
+                              if (member.role === 'admin' || member.role === 'moderator') return null
+                              const hasPaid = (member.amountPaid && member.amountPaid > 0) || !!member.paymentMethod
+                              return (
+                                <>
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-ivory-200 bg-ivory-100 text-mid text-[0.6rem] font-label tracking-widest uppercase capitalize">
+                                    {member.membershipTier}
+                                  </span>
+                                  {!hasPaid && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-navy-100 bg-navy-50 text-brand text-[0.6rem] font-label tracking-widest uppercase">
+                                      <span className="font-semibold">${member.membershipTier === 'corporate' ? '395' : '95'}</span>
+                                      <span>Due</span>
+                                    </span>
+                                  )}
+                                </>
+                              )
+                            })()}
                             {member.role === 'admin' && (
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-navy-900 text-gold-400 text-[0.6rem] font-label tracking-widest uppercase">
                                 <Shield className="w-3 h-3" />
