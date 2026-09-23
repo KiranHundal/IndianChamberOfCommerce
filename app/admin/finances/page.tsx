@@ -63,8 +63,10 @@ interface Summary {
     estimatedSquareFees: number
     squareFeesAreReal: boolean
     net: number
-    nonSquare: number
-    nonSquareMemberCount: number
+    verifiedOffline: number
+    verifiedOfflineMemberCount: number
+    unverified: number
+    unverifiedMemberCount: number
   }
   square: {
     lastSync: {
@@ -476,13 +478,13 @@ export default function AdminFinancesPage() {
             </div>
           </div>
 
-          {/* Revenue breakdown — Square vs Offline */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white border border-navy-100 rounded-xl p-5">
+          {/* Revenue breakdown — Square-verified / Offline-verified / Unverified */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white border border-emerald-200 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
                 <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">
-                  With Square Receipts
+                  Square Verified
                 </p>
               </div>
               <p className="font-display text-h3 text-brand font-light">{money(summary.revenue.squareGross)}</p>
@@ -490,16 +492,28 @@ export default function AdminFinancesPage() {
                 {summary.revenue.squareTransactionCount} Square payments · matches Square Dashboard
               </p>
             </div>
-            <div className="bg-white border border-amber-200 rounded-xl p-5">
+            <div className="bg-white border border-emerald-200 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-4 h-4 text-amber-600" />
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
                 <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">
-                  Without Square Receipts
+                  Offline Verified
                 </p>
               </div>
-              <p className="font-display text-h3 text-brand font-light">{money(summary.revenue.nonSquare)}</p>
+              <p className="font-display text-h3 text-brand font-light">{money(summary.revenue.verifiedOffline)}</p>
               <p className="text-[0.7rem] text-hint mt-1">
-                {summary.revenue.nonSquareMemberCount} members · offline payments + estimates
+                {summary.revenue.verifiedOfflineMemberCount} members · check / Zelle / cash / other
+              </p>
+            </div>
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-amber-600" />
+                <p className="font-label text-[0.6rem] tracking-widest uppercase text-amber-800">
+                  Unverified (not in total)
+                </p>
+              </div>
+              <p className="font-display text-h3 text-amber-800 font-light">{money(summary.revenue.unverified)}</p>
+              <p className="text-[0.7rem] text-amber-800 mt-1">
+                {summary.revenue.unverifiedMemberCount} members · likely duplicates of Square orphans, resolve to add to total
               </p>
             </div>
           </div>
@@ -510,20 +524,28 @@ export default function AdminFinancesPage() {
             <div className="space-y-2 text-small">
               <div className="flex justify-between items-center py-2 border-b border-ivory-200">
                 <span className="text-charcoal">
-                  ✓ With Square Receipts <span className="text-hint">({summary.revenue.squareTransactionCount} payments)</span>
+                  ✓ Square Verified <span className="text-hint">({summary.revenue.squareTransactionCount} payments)</span>
                 </span>
                 <span className="font-medium text-emerald-700">{money(summary.revenue.squareGross)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-ivory-200">
                 <span className="text-charcoal">
-                  ⚠ Without Square Receipts <span className="text-hint">({summary.revenue.nonSquareMemberCount} members)</span>
+                  ✓ Offline Verified <span className="text-hint">({summary.revenue.verifiedOfflineMemberCount} members)</span>
                 </span>
-                <span className="font-medium text-amber-700">{money(summary.revenue.nonSquare)}</span>
+                <span className="font-medium text-emerald-700">{money(summary.revenue.verifiedOffline)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b-2 border-ivory-200">
                 <span className="text-brand font-bold">Gross Revenue Collected</span>
                 <span className="font-medium text-brand">{money(summary.revenue.tracked)}</span>
               </div>
+              {summary.revenue.unverified > 0 && (
+                <div className="flex justify-between items-center py-2 border-b border-amber-200 bg-amber-50 -mx-6 px-6">
+                  <span className="text-amber-800">
+                    ⚠ Unverified (excluded, likely duplicates) <span className="text-amber-700">({summary.revenue.unverifiedMemberCount} members)</span>
+                  </span>
+                  <span className="font-medium text-amber-800">{money(summary.revenue.unverified)}</span>
+                </div>
+              )}
               {summary.revenue.estimatedSquareFees > 0 && (
                 <div className="flex justify-between items-center py-2 border-b border-ivory-200">
                   <span className="text-mid">

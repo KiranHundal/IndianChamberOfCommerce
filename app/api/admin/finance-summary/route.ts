@@ -60,22 +60,36 @@ export async function GET() {
     allSquarePayments.map((p) => p.matchedMemberId).filter((id): id is string => Boolean(id))
   )
 
-  // Non-Square revenue: members WITHOUT a linked Square payment. This is money
-  // that came in outside of Square (checks, Zelle, cash) plus estimates for
-  // members whose payment method we haven't recorded yet.
-  const nonSquareRevenue = allMembers.reduce((sum, m) => {
+  const OFFLINE_METHODS = ['check', 'zelle', 'cash', 'other']
+
+  // Verified offline revenue: members WITHOUT a Square link, WITH an explicit
+  // offline payment method recorded (check / Zelle / cash / other). No guesses.
+  const verifiedOfflineRevenue = allMembers.reduce((sum, m) => {
     if (m.role === 'admin' || m.role === 'moderator') return sum
     if (squareLinkedMemberIds.has(m.id)) return sum
+    if (!m.paymentMethod || !OFFLINE_METHODS.includes(m.paymentMethod)) return sum
     return sum + inferredAmount(m)
   }, 0)
+
+  // Unverified: members with no Square link AND no explicit offline method.
+  // These might be duplicates of Square orphans (paid on Square with different
+  // email), or applicants who never actually paid. Kept out of the grand
+  // total until you reconcile them.
+  const unverifiedMembers = allMembers.filter((m) => {
+    if (m.role === 'admin' || m.role === 'moderator') return false
+    if (squareLinkedMemberIds.has(m.id)) return false
+    if (m.paymentMethod && OFFLINE_METHODS.includes(m.paymentMethod)) return false
+    return inferredAmount(m) > 0
+  })
+  const unverifiedRevenue = unverifiedMembers.reduce((sum, m) => sum + inferredAmount(m), 0)
 
   const revenueByMethod = allMembers.reduce<Record<string, number>>((acc, m) => {
     if (m.role === 'admin' || m.role === 'moderator') return acc
     if (squareLinkedMemberIds.has(m.id)) return acc // Square counted separately
+    const method = m.paymentMethod
+    if (!method || !OFFLINE_METHODS.includes(method)) return acc
     const amount = inferredAmount(m)
     if (amount === 0) return acc
-    const method = m.paymentMethod || 'unknown'
-    if (method === 'square') return acc
     acc[method] = (acc[method] || 0) + amount
     return acc
   }, {})
@@ -115,8 +129,10 @@ export async function GET() {
   estimatedSquareFees = Math.round(estimatedSquareFees * 100) / 100
   squareGross = Math.round(squareGross * 100) / 100
 
-  // Total revenue = Square (authoritative from Square API) + non-Square from members
-  const revenueTracked = Math.round((squareGross + nonSquareRevenue) * 100) / 100
+  // Total revenue = Square (authoritative from Square API) + verified offline
+  // Unverified members are NOT included — they're shown separately for
+  // reconciliation because we're not sure they actually paid.
+  const revenueTracked = Math.round((squareGross + verifiedOfflineRevenue) * 100) / 100
   if (squareGross > 0) revenueByMethod['square'] = squareGross
 
   const netRevenue = Math.round((revenueTracked - estimatedSquareFees) * 100) / 100
@@ -253,10 +269,12 @@ export async function GET() {
       estimatedSquareFees,
       squareFeesAreReal,
       net: netRevenue,
-      nonSquare: Math.round(nonSquareRevenue * 100) / 100,
-      nonSquareMemberCount: allMembers.filter(
-        (m) => m.role !== 'admin' && m.role !== 'moderator' && !squareLinkedMemberIds.has(m.id) && inferredAmount(m) > 0
+      verifiedOffline: Math.round(verifiedOfflineRevenue * 100) / 100,
+      verifiedOfflineMemberCount: allMembers.filter(
+        (m) => m.role !== 'admin' && m.role !== 'moderator' && !squareLinkedMemberIds.has(m.id) && m.paymentMethod && OFFLINE_METHODS.includes(m.paymentMethod)
       ).length,
+      unverified: Math.round(unverifiedRevenue * 100) / 100,
+      unverifiedMemberCount: unverifiedMembers.length,
     },
     square: {
       lastSync: lastSyncRow || null,
