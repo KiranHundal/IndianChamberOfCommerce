@@ -2,81 +2,83 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  Shield,
-  CheckCircle,
-  XCircle,
-  UserX,
   Users,
-  RefreshCw,
-  Search,
-  Video,
-  UserPlus,
   DollarSign,
-  X,
+  TrendingUp,
+  Receipt,
+  Wallet,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  ArrowRight,
+  Send,
+  Plus,
+  RefreshCw,
+  UserPlus,
+  Video,
+  FileText,
   Loader2,
-  CreditCard,
+  Settings,
+  Mail,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 
-interface Member {
-  id: string
-  name: string
-  email: string
-  phone: string | null
-  businessName: string | null
-  city: string | null
-  sector: string | null
-  membershipTier: string
-  status: string
-  role: string
-  membershipNumber: string | null
-  createdAt: string | number
-  approvedAt: string | number | null
-  deactivatedAt: string | number | null
-  paymentMethod: string | null
-  amountPaid: number | null
-  paymentReference: string | null
-  paymentDate: string | number | null
+interface HomeSummary {
+  role: 'admin' | 'moderator'
+  alerts: {
+    pendingMembers: number
+    orphanPayments: number
+    unverifiedApproved: number
+  }
+  kpis: {
+    revenueYtd: number
+    expensesYtd: number
+    netPosition: number
+    totalMembers: number
+  }
+  recentActivity: Array<{
+    id: string
+    type: 'payment' | 'expense' | 'invitation' | 'approval'
+    title: string
+    subtitle: string
+    amount: number | null
+    at: string | number
+  }>
+  lastSync: {
+    finishedAt: string | number | null
+    status: string
+  } | null
 }
 
-const statusBadge: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: 'Pending', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
-  approved: { label: 'Active', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
-  rejected: { label: 'Rejected', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
-  deactivated: { label: 'Deactivated', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200' },
+function money(n: number) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 }
 
-export default function AdminPage() {
+export default function AdminHomePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const isAdmin = (session?.user as Record<string, unknown> | undefined)?.role === 'admin'
-  const [members, setMembers] = useState<Member[]>([])
+  const [summary, setSummary] = useState<HomeSummary | null>(null)
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [filter, setFilter] = useState<string>('all')
-  const [search, setSearch] = useState('')
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [paymentSaving, setPaymentSaving] = useState(false)
-  const [paymentError, setPaymentError] = useState('')
+  const [syncing, setSyncing] = useState(false)
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const fetchMembers = useCallback(async () => {
+  const isAdmin = summary?.role === 'admin'
+
+  const fetchSummary = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/members')
+      const res = await fetch('/api/admin/home-summary')
       if (res.ok) {
         const data = await res.json()
-        setMembers(data.members || [])
+        setSummary(data)
       }
-    } catch {
-      // silently fail
-    }
+    } catch {}
     setLoading(false)
   }, [])
 
@@ -91,79 +93,32 @@ export default function AdminPage() {
         router.push('/portal')
         return
       }
-      fetchMembers()
+      fetchSummary()
     }
-  }, [status, session, router, fetchMembers])
+  }, [status, session, router, fetchSummary])
 
-  async function handleAction(memberId: string, action: string) {
-    setActionLoading(`${memberId}-${action}`)
+  async function handleSyncSquare() {
+    setSyncing(true)
+    setNotice(null)
     try {
-      const res = await fetch('/api/admin/members', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId, action }),
-      })
-      if (res.ok) {
-        await fetchMembers()
-      }
-    } catch {
-      // silently fail
-    }
-    setActionLoading(null)
-  }
-
-  async function handleLogPayment(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setPaymentSaving(true)
-    setPaymentError('')
-
-    const form = e.currentTarget
-    const fd = new FormData(form)
-    const payload = {
-      name: (fd.get('name') as string).trim(),
-      email: (fd.get('email') as string).trim(),
-      phone: (fd.get('phone') as string).trim() || null,
-      businessName: (fd.get('businessName') as string).trim() || null,
-      city: (fd.get('city') as string).trim() || null,
-      sector: (fd.get('sector') as string).trim() || null,
-      membershipTier: fd.get('membershipTier') as string,
-      paymentMethod: fd.get('paymentMethod') as string,
-      amountPaid: parseInt(fd.get('amountPaid') as string, 10),
-      paymentReference: (fd.get('paymentReference') as string).trim() || null,
-      paymentDate: fd.get('paymentDate') as string,
-      sendEmail: fd.get('sendEmail') === 'on',
-    }
-
-    try {
-      const res = await fetch('/api/admin/members', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const res = await fetch('/api/admin/square/sync', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
-        setPaymentError(data.error || 'Failed to log payment.')
+        setNotice({ type: 'error', text: data.error || 'Sync failed.' })
       } else {
-        setShowPaymentModal(false)
-        await fetchMembers()
-        const emailNote =
-          data.emailStatus === 'sent'
-            ? ' Approval email sent.'
-            : data.emailStatus === 'failed'
-              ? ' (Email send failed.)'
-              : ''
+        await fetchSummary()
         setNotice({
           type: 'success',
-          text: `Payment logged. Membership #${data.membershipNumber} assigned to ${payload.name}.${emailNote}`,
+          text: `Synced ${data.paymentCount} Square payments · ${data.matchedCount} matched · ${data.unmatchedCount} orphaned.`,
         })
       }
     } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : 'Network error.')
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
     }
-    setPaymentSaving(false)
+    setSyncing(false)
   }
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || loading || !summary) {
     return (
       <div className="min-h-screen bg-page-bg flex items-center justify-center">
         <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
@@ -171,44 +126,27 @@ export default function AdminPage() {
     )
   }
 
-  const filteredMembers = members.filter((m) => {
-    if (filter !== 'all' && m.status !== filter) return false
-    if (search) {
-      const q = search.toLowerCase()
-      return (
-        m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q) ||
-        m.businessName?.toLowerCase().includes(q) ||
-        m.city?.toLowerCase().includes(q) ||
-        m.membershipNumber?.includes(q)
-      )
-    }
-    return true
-  })
-
-  const counts = {
-    all: members.length,
-    pending: members.filter((m) => m.status === 'pending').length,
-    approved: members.filter((m) => m.status === 'approved').length,
-    rejected: members.filter((m) => m.status === 'rejected').length,
-    deactivated: members.filter((m) => m.status === 'deactivated').length,
-  }
+  const userName = ((session?.user as { name?: string })?.name || 'Admin').split(' ')[0]
+  const hasAlerts =
+    summary.alerts.pendingMembers > 0 ||
+    summary.alerts.orphanPayments > 0 ||
+    summary.alerts.unverifiedApproved > 0
 
   return (
     <>
-      <section className="bg-navy-900 py-32 text-center relative overflow-hidden">
-        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30 corner-bracket corner-bracket-tl" />
-        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30 corner-bracket corner-bracket-tr" />
-        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30 corner-bracket corner-bracket-bl" />
-        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30 corner-bracket corner-bracket-br" />
-
+      {/* Hero */}
+      <section className="bg-navy-900 py-24 text-center relative overflow-hidden">
+        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
+        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
+        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
+        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30" />
         <div className="max-w-4xl mx-auto px-8">
           <AnimatedSection>
-            <SectionLabel dark>Admin</SectionLabel>
+            <SectionLabel dark>Admin Dashboard</SectionLabel>
           </AnimatedSection>
           <AnimatedSection delay={1}>
             <SectionTitle dark className="mt-4">
-              Member Management
+              Welcome, {userName}
             </SectionTitle>
           </AnimatedSection>
           <AnimatedSection delay={2}>
@@ -217,51 +155,8 @@ export default function AdminPage() {
         </div>
       </section>
 
-      <section className="bg-page-bg py-16">
+      <section className="bg-page-bg py-12">
         <div className="max-w-6xl mx-auto px-8">
-          {/* Quick Links (admin-only) */}
-          {isAdmin && (
-            <AnimatedSection>
-              <div className="mb-10 flex flex-wrap gap-3">
-                <Link
-                  href="/admin/videos"
-                  className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 hover:shadow-hover transition-all"
-                >
-                  <Video className="w-3.5 h-3.5 text-accent" />
-                  Manage Leadership Videos
-                </Link>
-                <Link
-                  href="/admin/board-members"
-                  className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 hover:shadow-hover transition-all"
-                >
-                  <UserPlus className="w-3.5 h-3.5 text-accent" />
-                  Manage Board Members
-                </Link>
-                <Link
-                  href="/admin/finances"
-                  className="inline-flex items-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:bg-navy-800 transition-all"
-                >
-                  <DollarSign className="w-3.5 h-3.5 text-gold-400" />
-                  Executive Dashboard
-                </Link>
-              </div>
-            </AnimatedSection>
-          )}
-
-          {/* Log Manual Payment (admin + moderator) */}
-          <div className="mb-8 flex flex-wrap gap-3">
-            <button
-              onClick={() => {
-                setPaymentError('')
-                setShowPaymentModal(true)
-              }}
-              className="inline-flex items-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:bg-gold-900 transition-all"
-            >
-              <DollarSign className="w-3.5 h-3.5" />
-              Log Offline Payment
-            </button>
-          </div>
-
           {notice && (
             <div
               className={`mb-6 border rounded-lg px-4 py-3 text-small flex items-start gap-3 ${
@@ -271,297 +166,247 @@ export default function AdminPage() {
               }`}
             >
               <span className="flex-1">{notice.text}</span>
-              <button onClick={() => setNotice(null)} className="opacity-60 hover:opacity-100">
-                <X className="w-4 h-4" />
-              </button>
+              <button onClick={() => setNotice(null)} className="opacity-60 hover:opacity-100">×</button>
             </div>
           )}
 
-          {/* Stats Row */}
-          <AnimatedSection>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
-              {(['all', 'pending', 'approved', 'rejected', 'deactivated'] as const).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setFilter(key)}
-                  className={`leadership-card p-4 rounded-xl border text-center transition-all ${
-                    filter === key
-                      ? 'bg-navy-900 border-navy-800 text-white'
-                      : 'bg-white border-ivory-200 text-brand hover:border-accent/40'
-                  }`}
-                >
-                  <p className="font-display text-h3 font-light">{counts[key]}</p>
-                  <p className="font-label text-[0.6rem] tracking-widest uppercase mt-1 opacity-60">
-                    {key === 'all' ? 'Total' : key}
-                  </p>
-                </button>
-              ))}
+          {/* Alerts */}
+          {hasAlerts && (
+            <AnimatedSection>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                  <p className="font-label text-[0.65rem] tracking-widest uppercase text-amber-800">Needs your attention</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {summary.alerts.pendingMembers > 0 && (
+                    <Link
+                      href="/admin/members?status=pending"
+                      className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-4 py-3 hover:border-amber-400 transition-all"
+                    >
+                      <div>
+                        <p className="font-display text-h4 text-brand">{summary.alerts.pendingMembers}</p>
+                        <p className="text-[0.7rem] text-mid">Pending members</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-amber-600" />
+                    </Link>
+                  )}
+                  {summary.alerts.orphanPayments > 0 && (
+                    <Link
+                      href="/admin/finances"
+                      className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-4 py-3 hover:border-amber-400 transition-all"
+                    >
+                      <div>
+                        <p className="font-display text-h4 text-brand">{summary.alerts.orphanPayments}</p>
+                        <p className="text-[0.7rem] text-mid">Unmatched Square payments</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-amber-600" />
+                    </Link>
+                  )}
+                  {summary.alerts.unverifiedApproved > 0 && (
+                    <Link
+                      href="/admin/members?status=approved&method=unknown"
+                      className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-4 py-3 hover:border-amber-400 transition-all"
+                    >
+                      <div>
+                        <p className="font-display text-h4 text-brand">{summary.alerts.unverifiedApproved}</p>
+                        <p className="text-[0.7rem] text-mid">Approved w/ no method</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-amber-600" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </AnimatedSection>
+          )}
+
+          {/* KPIs */}
+          <AnimatedSection delay={1}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Revenue YTD</p>
+                </div>
+                <p className="font-display text-h3 text-brand font-light">{money(summary.kpis.revenueYtd)}</p>
+              </Link>
+              <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <Receipt className="w-4 h-4 text-red-600" />
+                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Expenses YTD</p>
+                </div>
+                <p className="font-display text-h3 text-brand font-light">{money(summary.kpis.expensesYtd)}</p>
+              </Link>
+              <Link href="/admin/finances" className={`${summary.kpis.netPosition >= 0 ? 'bg-navy-900 text-white' : 'bg-red-50 border border-red-200'} rounded-xl p-5 hover:opacity-95 transition-all`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Wallet className={`w-4 h-4 ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-600'}`} />
+                  <p className={`font-label text-[0.6rem] tracking-widest uppercase ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-700'}`}>Net Position</p>
+                </div>
+                <p className={`font-display text-h3 font-light ${summary.kpis.netPosition >= 0 ? 'text-white' : 'text-brand'}`}>{money(summary.kpis.netPosition)}</p>
+              </Link>
+              <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-accent" />
+                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Members</p>
+                </div>
+                <p className="font-display text-h3 text-brand font-light">{summary.kpis.totalMembers}</p>
+              </Link>
             </div>
           </AnimatedSection>
 
-          {/* Search & Refresh */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-hint" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, email, business..."
-                className="w-full bg-white border border-ivory-200 rounded-lg pl-10 pr-4 py-2.5 text-small text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
-              />
-            </div>
-            <button
-              onClick={fetchMembers}
-              className="flex items-center gap-2 text-mid font-label text-[0.65rem] tracking-widest uppercase hover:text-brand transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
-            </button>
-          </div>
-
-          {/* Result count */}
-          {(search || filter !== 'all') && (
-            <p className="text-small text-mid mb-4">
-              Showing {filteredMembers.length} of {members.length} members
-              {search && <> matching &ldquo;{search}&rdquo;</>}
-            </p>
-          )}
-
-          {/* Members List */}
-          {filteredMembers.length === 0 ? (
-            <AnimatedSection>
-              <div className="bg-white border border-ivory-200 rounded-xl p-12 text-center">
-                <Users className="w-10 h-10 text-hint mx-auto mb-4" />
-                <p className="text-body text-mid">No members found.</p>
+          {/* Quick actions */}
+          <AnimatedSection delay={2}>
+            <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-6">
+              <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {isAdmin && (
+                  <button
+                    onClick={handleSyncSquare}
+                    disabled={syncing}
+                    className="flex items-center justify-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-navy-800 transition-all disabled:opacity-50"
+                  >
+                    {syncing ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 text-gold-400" />
+                        Sync Square
+                      </>
+                    )}
+                  </button>
+                )}
+                <Link
+                  href="/admin/members?openLogPayment=1"
+                  className="flex items-center justify-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-gold-900 transition-all"
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  Log Payment
+                </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin/finances?openExpense=1"
+                    className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-red-600" />
+                    Add Expense
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link
+                    href="/admin/finances?openInvite=1"
+                    className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
+                  >
+                    <Send className="w-3.5 h-3.5 text-accent" />
+                    Send Invitation
+                  </Link>
+                )}
               </div>
-            </AnimatedSection>
-          ) : (
-            <div className="space-y-4">
-              {filteredMembers.map((member, i) => {
-                const badge = statusBadge[member.status] || statusBadge.pending
-                return (
-                  <AnimatedSection key={member.id} delay={i < 10 ? i : 0}>
-                    <div className="leadership-card bg-white border border-ivory-200 rounded-xl p-6 relative">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <h3 className="font-display text-h4 text-brand">{member.name}</h3>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[0.6rem] font-label tracking-widest uppercase ${badge.bg} ${badge.color}`}>
-                              {badge.label}
-                            </span>
-                            {member.role === 'admin' && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-navy-900 text-gold-400 text-[0.6rem] font-label tracking-widest uppercase">
-                                <Shield className="w-3 h-3" />
-                                Admin
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-small text-mid">
-                            <span>{member.email}</span>
-                            {member.phone && <span>{member.phone}</span>}
-                            {member.businessName && <span>{member.businessName}</span>}
-                            {member.city && <span>{member.city}</span>}
-                            {member.sector && <span>{member.sector}</span>}
-                          </div>
-                          <div className="mt-1 text-[0.7rem] text-hint">
-                            {member.membershipNumber && (
-                              <span className="font-medium text-brand">#{member.membershipNumber}</span>
-                            )}
-                            {member.membershipNumber && <> &middot; </>}
-                            <span className="capitalize">{member.membershipTier}</span> membership
-                            {member.createdAt && (
-                              <> &middot; Joined {new Date(member.createdAt).toLocaleDateString()}</>
-                            )}
-                          </div>
-                          {(() => {
-                            const isStaff = member.role === 'admin' || member.role === 'moderator'
-                            if (isStaff) return null
-                            const explicit = member.amountPaid && member.amountPaid > 0
-                            const isApproved = member.status === 'approved'
-                            if (!explicit && !isApproved) return null
-                            const amount = explicit
-                              ? member.amountPaid!
-                              : member.membershipTier === 'corporate' ? 395 : 95
-                            const method = member.paymentMethod || 'square'
-                            return (
-                              <div className="mt-2 inline-flex items-center gap-1.5 text-[0.65rem] px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-brand">
-                                <CreditCard className="w-3 h-3" />
-                                <span className="font-semibold">${amount}</span>
-                                <span>· </span>
-                                <span className="capitalize">{method}</span>
-                                {!explicit && <span className="text-hint">· est.</span>}
-                                {member.paymentReference && <> · {member.paymentReference}</>}
-                              </div>
-                            )
-                          })()}
-                        </div>
+              {summary.lastSync?.finishedAt && (
+                <p className="text-[0.7rem] text-hint mt-3">
+                  Last Square sync: {new Date(summary.lastSync.finishedAt).toLocaleString()} · {summary.lastSync.status}
+                </p>
+              )}
+            </div>
+          </AnimatedSection>
 
-                        {/* Action buttons */}
-                        <div className="flex gap-2 flex-shrink-0">
-                          {member.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => handleAction(member.id, 'approve')}
-                                disabled={actionLoading === `${member.id}-approve`}
-                                className="flex items-center gap-1.5 bg-emerald-600 text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-emerald-700 transition-all disabled:opacity-50"
-                              >
-                                <CheckCircle className="w-3.5 h-3.5" />
-                                {actionLoading === `${member.id}-approve` ? '...' : 'Approve'}
-                              </button>
-                              <button
-                                onClick={() => handleAction(member.id, 'reject')}
-                                disabled={actionLoading === `${member.id}-reject`}
-                                className="flex items-center gap-1.5 bg-white border border-red-200 text-red-600 font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-red-50 transition-all disabled:opacity-50"
-                              >
-                                <XCircle className="w-3.5 h-3.5" />
-                                {actionLoading === `${member.id}-reject` ? '...' : 'Reject'}
-                              </button>
-                            </>
+          {/* Navigation cards */}
+          <AnimatedSection delay={3}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                <Users className="w-6 h-6 text-accent mb-3" />
+                <p className="font-display text-h5 text-brand">Members</p>
+                <p className="text-[0.7rem] text-mid mt-1">Approve, review, log offline payments</p>
+              </Link>
+              <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                <DollarSign className="w-6 h-6 text-accent mb-3" />
+                <p className="font-display text-h5 text-brand">Finances</p>
+                <p className="text-[0.7rem] text-mid mt-1">Square + offline payments, expenses</p>
+              </Link>
+              {isAdmin && (
+                <Link href="/admin/team" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                  <Settings className="w-6 h-6 text-accent mb-3" />
+                  <p className="font-display text-h5 text-brand">Team &amp; Content</p>
+                  <p className="text-[0.7rem] text-mid mt-1">Board, videos, team accounts</p>
+                </Link>
+              )}
+              {isAdmin && (
+                <Link href="/admin/reports" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                  <FileText className="w-6 h-6 text-accent mb-3" />
+                  <p className="font-display text-h5 text-brand">Reports</p>
+                  <p className="text-[0.7rem] text-mid mt-1">Board meeting PDF, CSV exports</p>
+                </Link>
+              )}
+            </div>
+          </AnimatedSection>
+
+          {/* Recent activity */}
+          <AnimatedSection delay={4}>
+            <div className="bg-white border border-ivory-200 rounded-xl p-6">
+              <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Recent Activity</h3>
+              {summary.recentActivity.length === 0 ? (
+                <p className="text-small text-hint py-4 text-center">Nothing recent to show.</p>
+              ) : (
+                <div className="divide-y divide-ivory-200">
+                  {summary.recentActivity.map((a) => {
+                    const iconClass = 'w-4 h-4'
+                    const icon =
+                      a.type === 'payment' ? <CheckCircle className={`${iconClass} text-emerald-600`} />
+                      : a.type === 'expense' ? <Receipt className={`${iconClass} text-red-600`} />
+                      : a.type === 'invitation' ? <Mail className={`${iconClass} text-accent`} />
+                      : <UserPlus className={`${iconClass} text-navy-600`} />
+                    return (
+                      <div key={a.id} className="py-3 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-page-bg flex items-center justify-center flex-shrink-0">
+                          {icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-small text-brand font-medium truncate">{a.title}</p>
+                          <p className="text-[0.7rem] text-hint truncate">{a.subtitle}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          {a.amount !== null && (
+                            <p className={`font-medium ${a.type === 'expense' ? 'text-red-600' : 'text-brand'}`}>
+                              {a.type === 'expense' ? '−' : ''}{money(Math.abs(a.amount))}
+                            </p>
                           )}
-                          {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
-                            <button
-                              onClick={() => handleAction(member.id, 'deactivate')}
-                              disabled={actionLoading === `${member.id}-deactivate`}
-                              className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-gray-50 transition-all disabled:opacity-50"
-                            >
-                              <UserX className="w-3.5 h-3.5" />
-                              {actionLoading === `${member.id}-deactivate` ? '...' : 'Deactivate'}
-                            </button>
-                          )}
+                          <p className="text-[0.65rem] text-hint flex items-center justify-end gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(a.at).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
-                      <div className="gold-accent-line" />
-                    </div>
-                  </AnimatedSection>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Log Manual Payment Modal */}
-      {showPaymentModal && (
-        <div
-          className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4"
-          onClick={() => !paymentSaving && setShowPaymentModal(false)}
-        >
-          <div
-            className="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gold-100 flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-accent" />
-                </div>
-                <h3 className="font-display text-h4 text-brand">Log Offline Payment</h3>
-              </div>
-              <button onClick={() => !paymentSaving && setShowPaymentModal(false)} className="text-mid hover:text-brand">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-small text-mid mb-6">
-              Record a payment made via check, Zelle, cash, or other. The member will be added with status <strong>Approved</strong> and assigned a membership number automatically.
-            </p>
-
-            <form onSubmit={handleLogPayment} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Full Name *</label>
-                <input name="name" type="text" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-              </div>
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Email *</label>
-                <input name="email" type="email" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-              </div>
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Phone</label>
-                <input name="phone" type="tel" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Business Name</label>
-                <input name="businessName" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-              </div>
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">City</label>
-                <input name="city" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-              </div>
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Industry / Sector</label>
-                <input name="sector" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="e.g. Healthcare" />
-              </div>
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Membership Tier *</label>
-                <select name="membershipTier" required defaultValue="individual" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
-                  <option value="individual">Individual</option>
-                  <option value="corporate">Corporate</option>
-                </select>
-              </div>
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Payment Method *</label>
-                <select name="paymentMethod" required defaultValue="check" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
-                  <option value="check">Check</option>
-                  <option value="zelle">Zelle</option>
-                  <option value="cash">Cash</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Amount Paid ($) *</label>
-                <input name="amountPaid" type="number" min="1" step="1" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="e.g. 395" />
-              </div>
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Payment Date</label>
-                <input name="paymentDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-              </div>
-              <div className="md:col-span-2">
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Reference (check #, Zelle sender, memo)</label>
-                <input name="paymentReference" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="Check #1234 · Combined check · etc." />
-              </div>
-
-              <label className="md:col-span-2 flex items-start gap-3 cursor-pointer select-none bg-page-bg border border-ivory-200 rounded-md p-3 mt-1">
-                <input type="checkbox" name="sendEmail" defaultChecked className="mt-1 w-4 h-4 accent-accent" />
-                <span className="text-small text-charcoal">
-                  Send member the approval / membership number email so they can register at /register
-                </span>
-              </label>
-
-              {paymentError && (
-                <div className="md:col-span-2 text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
-                  {paymentError}
+                    )
+                  })}
                 </div>
               )}
+            </div>
+          </AnimatedSection>
 
-              <div className="md:col-span-2 flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPaymentModal(false)}
-                  disabled={paymentSaving}
-                  className="flex-1 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:border-brand/30 transition-all disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={paymentSaving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:bg-gold-900 transition-all disabled:opacity-50"
-                >
-                  {paymentSaving ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Payment'
-                  )}
-                </button>
-              </div>
-            </form>
+          {/* Small footer */}
+          <div className="mt-8 flex flex-wrap gap-4 items-center justify-center text-[0.65rem] tracking-widest uppercase text-hint font-label">
+            <Link href="/portal" className="hover:text-brand transition-colors">My Portal</Link>
+            <span>·</span>
+            <Link href="/" className="hover:text-brand transition-colors">Public Site</Link>
+            {isAdmin && (
+              <>
+                <span>·</span>
+                <Link href="/admin/videos" className="hover:text-brand transition-colors">
+                  <Video className="w-3 h-3 inline mr-1" />
+                  Videos
+                </Link>
+                <span>·</span>
+                <Link href="/admin/board-members" className="hover:text-brand transition-colors">
+                  <UserPlus className="w-3 h-3 inline mr-1" />
+                  Board
+                </Link>
+              </>
+            )}
           </div>
         </div>
-      )}
+      </section>
     </>
   )
 }
