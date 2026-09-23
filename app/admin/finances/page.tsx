@@ -83,6 +83,23 @@ interface Summary {
     } | null
     totalPayments: number
     orphanCount: number
+    allPayments: Array<{
+      id: string
+      amountCents: number
+      feeCents: number
+      refundedCents: number
+      buyerEmail: string | null
+      buyerName: string | null
+      paidAt: string | number
+      receiptUrl: string | null
+      receiptNumber: string | null
+      cardBrand: string | null
+      last4: string | null
+      matched: boolean
+      matchedMemberName: string | null
+      matchedMembershipNumber: string | null
+      matchedMemberEmail: string | null
+    }>
     orphans: Array<{
       id: string
       amountCents: number
@@ -728,6 +745,117 @@ export default function AdminFinancesPage() {
               </div>
             </div>
           )}
+
+          {/* All Square Payments — one flat table incl. matched + orphans */}
+          {summary.square.allPayments.length > 0 && (() => {
+            const rows = [...summary.square.allPayments].sort((a, b) => {
+              const an = (a.buyerName || a.matchedMemberName || a.buyerEmail || '').toLowerCase()
+              const bn = (b.buyerName || b.matchedMemberName || b.buyerEmail || '').toLowerCase()
+              return an.localeCompare(bn)
+            })
+            const grossTotal = rows.reduce((sum, r) => sum + (r.amountCents - r.refundedCents) / 100, 0)
+            const feeTotal = rows.reduce((sum, r) => sum + r.feeCents / 100, 0)
+            return (
+              <div className="bg-white border border-emerald-200 rounded-xl p-6 mb-8">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    <h3 className="font-label text-label tracking-widest uppercase text-brand">
+                      All Square Payments ({rows.length})
+                    </h3>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Gross · Fees</p>
+                    <p className="font-display text-h4 text-brand">
+                      {money(grossTotal)} <span className="text-amber-700 text-h5">− {money(feeTotal)}</span>
+                    </p>
+                    <p className="text-[0.7rem] text-hint">Net {money(grossTotal - feeTotal)}</p>
+                  </div>
+                </div>
+                <p className="text-small text-mid mb-4">
+                  Every completed Square payment, sorted by name. &ldquo;Matched&rdquo; rows are linked to a site member; &ldquo;Orphan&rdquo; rows aren&rsquo;t.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-small">
+                    <thead>
+                      <tr className="border-b border-ivory-200 text-left">
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Name / Business</th>
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Email</th>
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Amount</th>
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Fee</th>
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Date</th>
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((p) => (
+                        <tr key={p.id} className="border-b border-ivory-200/60 hover:bg-page-bg/50">
+                          <td className="px-3 py-2.5">
+                            <p className="font-medium text-brand">
+                              {p.matchedMemberName || p.buyerName || '(no name)'}
+                              {p.matchedMembershipNumber && (
+                                <span className="ml-2 text-[0.65rem] font-normal text-hint">#{p.matchedMembershipNumber}</span>
+                              )}
+                            </p>
+                            {p.buyerName && p.matchedMemberName && p.buyerName !== p.matchedMemberName && (
+                              <p className="text-[0.65rem] text-hint">Square: {p.buyerName}</p>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <p className="text-[0.7rem] text-charcoal truncate max-w-[14rem]">
+                              {p.matchedMemberEmail || p.buyerEmail || '—'}
+                            </p>
+                            {p.buyerEmail && p.matchedMemberEmail && p.buyerEmail !== p.matchedMemberEmail && (
+                              <p className="text-[0.65rem] text-amber-700 truncate max-w-[14rem]" title="Different email on Square vs site">
+                                Square: {p.buyerEmail}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-medium text-brand">
+                            ${((p.amountCents - p.refundedCents) / 100).toFixed(2)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right text-amber-700">
+                            −${(p.feeCents / 100).toFixed(2)}
+                          </td>
+                          <td className="px-3 py-2.5 text-[0.7rem] text-charcoal">
+                            {new Date(p.paidAt).toLocaleDateString()}
+                            {p.cardBrand && <span className="text-hint"> · {p.cardBrand} ····{p.last4}</span>}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            {p.matched ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.6rem] font-medium">
+                                <CheckCircle className="w-3 h-3" /> Matched
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[0.6rem] font-medium">
+                                <AlertCircle className="w-3 h-3" /> Orphan
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-brand/20 bg-page-bg">
+                        <td colSpan={2} className="px-3 py-3 font-label text-[0.65rem] tracking-widest uppercase text-brand">
+                          Totals ({rows.length} payments)
+                        </td>
+                        <td className="px-3 py-3 text-right font-display text-h5 text-brand">
+                          {money(grossTotal)}
+                        </td>
+                        <td className="px-3 py-3 text-right font-medium text-amber-700">
+                          −{money(feeTotal)}
+                        </td>
+                        <td colSpan={2} className="px-3 py-3 text-[0.7rem] text-mid">
+                          Net after fees: <strong>{money(grossTotal - feeTotal)}</strong>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Duplicate reconciliation — Square orphans ↔ members with no method */}
           {(() => {

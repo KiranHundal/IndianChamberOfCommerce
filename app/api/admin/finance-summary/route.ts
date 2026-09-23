@@ -288,6 +288,28 @@ export async function GET() {
       totalPayments: allSquarePayments.length,
       orphans: squareOrphans,
       orphanCount: squareOrphans.length,
+      allPayments: allSquarePayments
+        .filter((p) => p.status === 'COMPLETED')
+        .map((p) => {
+          const matched = p.matchedMemberId ? allMembers.find((m) => m.id === p.matchedMemberId) : null
+          return {
+            id: p.id,
+            amountCents: p.amountCents,
+            feeCents: p.feeCents,
+            refundedCents: p.refundedCents,
+            buyerEmail: p.buyerEmail,
+            buyerName: p.buyerName,
+            paidAt: p.paidAt,
+            receiptUrl: p.receiptUrl,
+            receiptNumber: p.receiptNumber,
+            cardBrand: p.cardBrand,
+            last4: p.last4,
+            matched: !!matched,
+            matchedMemberName: matched?.name || null,
+            matchedMembershipNumber: matched?.membershipNumber || null,
+            matchedMemberEmail: matched?.email || null,
+          }
+        }),
     },
     expenses: {
       total: Math.round(totalExpenses * 100) / 100,
