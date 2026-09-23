@@ -146,6 +146,26 @@ export default function AdminPage() {
     setActionLoading(null)
   }
 
+  async function handleResendWelcome(member: Member) {
+    setActionLoading(`${member.id}-welcome`)
+    try {
+      const res = await fetch('/api/admin/members/resend-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: member.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Failed to send welcome email.' })
+      } else {
+        setNotice({ type: 'success', text: `Welcome email sent to ${member.email} (#${member.membershipNumber}).` })
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setActionLoading(null)
+  }
+
   async function handleLogPayment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setPaymentSaving(true)
@@ -491,6 +511,21 @@ export default function AdminPage() {
                               </>
                             )
                           })()}
+                          {member.status === 'approved' && member.role !== 'admin' && member.role !== 'moderator' && !!member.membershipNumber && (
+                            <button
+                              onClick={() => handleResendWelcome(member)}
+                              disabled={actionLoading === `${member.id}-welcome`}
+                              title={`Resend welcome email with membership #${member.membershipNumber} and /register link to ${member.email}`}
+                              className="flex items-center gap-1.5 bg-accent text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-gold-900 transition-all disabled:opacity-50"
+                            >
+                              {actionLoading === `${member.id}-welcome` ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Send className="w-3.5 h-3.5" />
+                              )}
+                              {actionLoading === `${member.id}-welcome` ? 'Sending...' : 'Send Invite'}
+                            </button>
+                          )}
                           {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
                             <button
                               onClick={() => handleAction(member.id, 'deactivate')}
