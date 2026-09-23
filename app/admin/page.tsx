@@ -175,71 +175,16 @@ export default function AdminHomePage() {
             </div>
           )}
 
-          {/* Alerts */}
-          {hasAlerts && (
-            <AnimatedSection>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <AlertCircle className="w-4 h-4 text-amber-600" />
-                  <p className="font-label text-[0.65rem] tracking-widest uppercase text-amber-800">Needs your attention</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {summary.alerts.pendingMembers > 0 && (
-                    <Link
-                      href="/admin/members?status=pending"
-                      className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-4 py-3 hover:border-amber-400 transition-all"
-                    >
-                      <div>
-                        <p className="font-display text-h4 text-brand">{summary.alerts.pendingMembers}</p>
-                        <p className="text-[0.7rem] text-mid">Awaiting approval</p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-amber-600" />
-                    </Link>
-                  )}
-                  {summary.alerts.unpaidMembers > 0 && (
-                    <Link
-                      href="/admin/members?status=unpaid"
-                      className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-4 py-3 hover:border-amber-400 transition-all"
-                    >
-                      <div>
-                        <p className="font-display text-h4 text-brand">{summary.alerts.unpaidMembers}</p>
-                        <p className="text-[0.7rem] text-mid">Unpaid signups</p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-amber-600" />
-                    </Link>
-                  )}
-                  {summary.alerts.orphanPayments > 0 && (
-                    <Link
-                      href="/admin/finances"
-                      className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-4 py-3 hover:border-amber-400 transition-all"
-                    >
-                      <div>
-                        <p className="font-display text-h4 text-brand">{summary.alerts.orphanPayments}</p>
-                        <p className="text-[0.7rem] text-mid">Unmatched Square payments</p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-amber-600" />
-                    </Link>
-                  )}
-                  {summary.alerts.unverifiedApproved > 0 && (
-                    <Link
-                      href="/admin/members?status=approved&method=unknown"
-                      className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-4 py-3 hover:border-amber-400 transition-all"
-                    >
-                      <div>
-                        <p className="font-display text-h4 text-brand">{summary.alerts.unverifiedApproved}</p>
-                        <p className="text-[0.7rem] text-mid">Approved w/ no method</p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-amber-600" />
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </AnimatedSection>
-          )}
-
-          {/* KPIs */}
-          <AnimatedSection delay={1}>
+          {/* KPIs — Members first, then finance stack */}
+          <AnimatedSection>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-accent" />
+                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Members</p>
+                </div>
+                <p className="font-display text-h3 text-brand font-light">{summary.kpis.totalMembers}</p>
+              </Link>
               <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
@@ -261,15 +206,70 @@ export default function AdminHomePage() {
                 </div>
                 <p className={`font-display text-h3 font-light ${summary.kpis.netPosition >= 0 ? 'text-white' : 'text-brand'}`}>{money(summary.kpis.netPosition)}</p>
               </Link>
-              <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-accent" />
-                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Members</p>
-                </div>
-                <p className="font-display text-h3 text-brand font-light">{summary.kpis.totalMembers}</p>
-              </Link>
             </div>
           </AnimatedSection>
+
+          {/* Alerts */}
+          {hasAlerts && (
+            <AnimatedSection delay={1}>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                  <p className="font-label text-[0.65rem] tracking-widest uppercase text-red-800">Needs your attention</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {summary.alerts.pendingMembers > 0 && (
+                    <Link
+                      href="/admin/members?status=pending"
+                      className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
+                    >
+                      <div>
+                        <p className="font-display text-h4 text-brand">{summary.alerts.pendingMembers}</p>
+                        <p className="text-[0.7rem] text-mid">Awaiting approval</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-red-600" />
+                    </Link>
+                  )}
+                  {summary.alerts.unpaidMembers > 0 && (
+                    <Link
+                      href="/admin/members?status=unpaid"
+                      className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
+                    >
+                      <div>
+                        <p className="font-display text-h4 text-brand">{summary.alerts.unpaidMembers}</p>
+                        <p className="text-[0.7rem] text-mid">Unpaid signups</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-red-600" />
+                    </Link>
+                  )}
+                  {summary.alerts.orphanPayments > 0 && (
+                    <Link
+                      href="/admin/finances"
+                      className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
+                    >
+                      <div>
+                        <p className="font-display text-h4 text-brand">{summary.alerts.orphanPayments}</p>
+                        <p className="text-[0.7rem] text-mid">Unmatched Square payments</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-red-600" />
+                    </Link>
+                  )}
+                  {summary.alerts.unverifiedApproved > 0 && (
+                    <Link
+                      href="/admin/members?status=approved&method=unknown"
+                      className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
+                    >
+                      <div>
+                        <p className="font-display text-h4 text-brand">{summary.alerts.unverifiedApproved}</p>
+                        <p className="text-[0.7rem] text-mid">Approved w/ no method</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-red-600" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </AnimatedSection>
+          )}
 
           {/* Quick actions */}
           <AnimatedSection delay={2}>
