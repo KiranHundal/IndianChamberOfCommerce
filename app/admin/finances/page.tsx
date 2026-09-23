@@ -159,6 +159,7 @@ export default function AdminFinancesPage() {
   const [memberFilter, setMemberFilter] = useState<string>('all')
   const [methodFilter, setMethodFilter] = useState<string>('all')
   const [syncing, setSyncing] = useState(false)
+  const [squareFilter, setSquareFilter] = useState<'all' | 'matched' | 'orphan'>('all')
 
   const [fetchError, setFetchError] = useState('')
 
@@ -312,20 +313,29 @@ export default function AdminFinancesPage() {
 
           {/* All Square Payments — one flat table incl. matched + orphans */}
           {summary.square.allPayments.length > 0 && (() => {
-            const rows = [...summary.square.allPayments].sort((a, b) => {
-              const an = (a.buyerName || a.matchedMemberName || a.buyerEmail || '').toLowerCase()
-              const bn = (b.buyerName || b.matchedMemberName || b.buyerEmail || '').toLowerCase()
-              return an.localeCompare(bn)
-            })
+            const allPayments = summary.square.allPayments
+            const rows = allPayments
+              .filter((p) => {
+                if (squareFilter === 'matched') return p.matched
+                if (squareFilter === 'orphan') return !p.matched
+                return true
+              })
+              .sort((a, b) => {
+                const an = (a.buyerName || a.matchedMemberName || a.buyerEmail || '').toLowerCase()
+                const bn = (b.buyerName || b.matchedMemberName || b.buyerEmail || '').toLowerCase()
+                return an.localeCompare(bn)
+              })
             const grossTotal = rows.reduce((sum, r) => sum + (r.amountCents - r.refundedCents) / 100, 0)
             const feeTotal = rows.reduce((sum, r) => sum + r.feeCents / 100, 0)
+            const matchedCount = allPayments.filter((p) => p.matched).length
+            const orphanCount = allPayments.length - matchedCount
             return (
               <div className="bg-white border border-emerald-200 rounded-xl p-6 mb-8">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-emerald-600" />
                     <h3 className="font-label text-label tracking-widest uppercase text-brand">
-                      All Square Payments ({rows.length})
+                      Square Payments ({rows.length}{squareFilter !== 'all' && ` of ${allPayments.length}`})
                     </h3>
                   </div>
                   <div className="text-right">
@@ -336,9 +346,43 @@ export default function AdminFinancesPage() {
                     <p className="text-[0.7rem] text-hint">Net {money(grossTotal - feeTotal)}</p>
                   </div>
                 </div>
-                <p className="text-small text-mid mb-4">
-                  Every completed Square payment, sorted by name. &ldquo;Matched&rdquo; rows are linked to a site member; &ldquo;Orphan&rdquo; rows aren&rsquo;t.
-                </p>
+                <div className="mb-4 flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setSquareFilter('all')}
+                    className={`text-[0.65rem] tracking-widest uppercase font-label px-3 py-1.5 rounded-full border transition-all ${
+                      squareFilter === 'all'
+                        ? 'bg-navy-900 border-navy-900 text-white'
+                        : 'bg-white border-ivory-200 text-mid hover:border-brand/30'
+                    }`}
+                  >
+                    All ({allPayments.length})
+                  </button>
+                  <button
+                    onClick={() => setSquareFilter('matched')}
+                    className={`text-[0.65rem] tracking-widest uppercase font-label px-3 py-1.5 rounded-full border transition-all ${
+                      squareFilter === 'matched'
+                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                        : 'bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                    }`}
+                  >
+                    Matched ({matchedCount})
+                  </button>
+                  <button
+                    onClick={() => setSquareFilter('orphan')}
+                    className={`text-[0.65rem] tracking-widest uppercase font-label px-3 py-1.5 rounded-full border transition-all ${
+                      squareFilter === 'orphan'
+                        ? 'bg-amber-600 border-amber-600 text-white'
+                        : 'bg-white border-amber-200 text-amber-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    Orphans ({orphanCount})
+                  </button>
+                </div>
+                {squareFilter === 'orphan' && orphanCount === 0 && (
+                  <p className="text-small text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 mb-4">
+                    ✓ No orphans. Every Square payment is linked to a site member.
+                  </p>
+                )}
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-small">
                     <thead>
