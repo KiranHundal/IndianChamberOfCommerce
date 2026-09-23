@@ -63,11 +63,15 @@ export async function POST() {
       if (matched) matchedCount++
       else unmatchedCount++
 
-      const existing = await db
-        .select({ id: squarePayments.id })
+      const [existing] = await db
+        .select({ id: squarePayments.id, matchedMemberId: squarePayments.matchedMemberId })
         .from(squarePayments)
         .where(eq(squarePayments.id, p.id))
         .limit(1)
+
+      // Preserve any existing manual match — sync should never un-link a
+      // payment that was linked by the Match button.
+      const preservedMatchedMemberId = existing?.matchedMemberId || matched?.id || null
 
       const row = {
         id: p.id,
@@ -85,10 +89,10 @@ export async function POST() {
         note: p.note || null,
         paidAt,
         syncedAt: new Date(),
-        matchedMemberId: matched?.id || null,
+        matchedMemberId: preservedMatchedMemberId,
       }
 
-      if (existing.length > 0) {
+      if (existing) {
         await db.update(squarePayments).set(row).where(eq(squarePayments.id, p.id))
         updatedCount++
       } else {
