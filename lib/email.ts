@@ -314,6 +314,72 @@ export async function sendBoardMemberWelcomeEmail(member: {
   })
 }
 
+const SQUARE_CHECKOUT_LINKS = {
+  individual: 'https://square.link/u/Av93qe4Z',
+  corporate: 'https://square.link/u/9opDARDg',
+} as const
+
+export async function sendMembershipPaymentLinkEmail(member: {
+  name: string
+  email: string
+  membershipTier: string
+}) {
+  const resend = getResend()
+  if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
+
+  const tier = member.membershipTier === 'corporate' ? 'corporate' : 'individual'
+  const tierLabel = tier === 'corporate' ? 'Corporate' : 'Individual'
+  const amount = tier === 'corporate' ? '$395' : '$95'
+  const link = SQUARE_CHECKOUT_LINKS[tier]
+
+  const { fromEmail } = getConfig()
+  return resend.emails.send({
+    from: `CVICC <${fromEmail}>`,
+    to: member.email,
+    subject: `CVICC Membership — Complete Your ${tierLabel} Payment`,
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
+        <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
+          <h1 style="color: #D4A830; font-size: 24px; margin: 0; font-weight: 300; letter-spacing: 2px;">
+            CENTRAL VALLEY INDIAN<br/>CHAMBER OF COMMERCE
+          </h1>
+        </div>
+        <div style="padding: 40px 32px; background: #FAFAF7;">
+          <h2 style="color: #1E3A5F; font-size: 22px; font-weight: 300; margin: 0 0 16px;">
+            Hi ${member.name},
+          </h2>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
+            Thank you for signing up for a <strong>${tierLabel} Membership</strong> with the Central Valley Indian Chamber of Commerce. To finish enrolling, please complete your ${amount} payment using the secure Square link below.
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${link}" style="display: inline-block; background: #D4A830; color: #FFFFFF; text-decoration: none; padding: 16px 40px; border-radius: 4px; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">
+              Pay ${amount} Now
+            </a>
+          </div>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 24px 0 0; font-size: 13px;">
+            Or copy and paste this link into your browser:<br/>
+            <a href="${link}" style="color: #1E3A5F; word-break: break-all;">${link}</a>
+          </p>
+          <div style="background: #FEF9E7; border: 1px solid #F0DCA0; border-radius: 8px; padding: 16px 20px; margin: 32px 0 0;">
+            <p style="color: #92700C; margin: 0; font-size: 13px; line-height: 1.6;">
+              Once your payment is received, your application will move to <strong>Pending Approval</strong>, and you'll get a follow-up email with your membership number.
+            </p>
+          </div>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 24px 0 0; font-size: 13px;">
+            Please use the same email address <strong>${member.email}</strong> at checkout so we can match your payment automatically.
+          </p>
+        </div>
+        <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
+          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+            Central Valley Indian Chamber of Commerce, Inc.<br/>
+            4610 W Jacquelyn Ave, Fresno, CA 93722
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
 export async function sendMembershipInvitationEmail(invite: {
   name?: string | null
   email: string

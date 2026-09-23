@@ -20,6 +20,7 @@ export const members = sqliteTable('members', {
   amountPaid: integer('amount_paid'),
   paymentReference: text('payment_reference'),
   paymentDate: integer('payment_date', { mode: 'timestamp' }),
+  paymentLinkSentAt: integer('payment_link_sent_at', { mode: 'timestamp' }),
 })
 
 export const leaderVideos = sqliteTable('leader_videos', {

@@ -16,6 +16,8 @@ import {
   X,
   Loader2,
   CreditCard,
+  Send,
+  MailCheck,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -41,6 +43,7 @@ interface Member {
   amountPaid: number | null
   paymentReference: string | null
   paymentDate: string | number | null
+  paymentLinkSentAt: string | number | null
 }
 
 const statusBadge: Record<string, { label: string; color: string; bg: string }> = {
@@ -118,6 +121,27 @@ export default function AdminPage() {
       }
     } catch {
       // silently fail
+    }
+    setActionLoading(null)
+  }
+
+  async function handleSendPaymentLink(member: Member) {
+    setActionLoading(`${member.id}-paylink`)
+    try {
+      const res = await fetch('/api/admin/members/send-payment-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: member.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Failed to send payment link.' })
+      } else {
+        setNotice({ type: 'success', text: `Payment link sent to ${member.email}.` })
+        await fetchMembers()
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
     }
     setActionLoading(null)
   }
@@ -366,6 +390,15 @@ export default function AdminPage() {
                                       <span>Due</span>
                                     </span>
                                   )}
+                                  {!hasPaid && member.paymentLinkSentAt && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-[0.6rem] font-label tracking-widest uppercase"
+                                      title={`Payment link emailed ${new Date(member.paymentLinkSentAt).toLocaleString()}`}
+                                    >
+                                      <MailCheck className="w-3 h-3" />
+                                      Link Sent
+                                    </span>
+                                  )}
                                 </>
                               )
                             })()}
@@ -417,11 +450,27 @@ export default function AdminPage() {
                         </div>
 
                         {/* Action buttons */}
-                        <div className="flex gap-2 flex-shrink-0">
+                        <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
                           {member.status === 'pending' && (() => {
                             const unpaid = isUnpaidPending(member)
+                            const linkSent = !!member.paymentLinkSentAt
                             return (
                               <>
+                                {unpaid && (
+                                  <button
+                                    onClick={() => handleSendPaymentLink(member)}
+                                    disabled={actionLoading === `${member.id}-paylink`}
+                                    title={linkSent ? `Resend Square payment link (last sent ${new Date(member.paymentLinkSentAt!).toLocaleDateString()})` : 'Email member the Square payment link'}
+                                    className="flex items-center gap-1.5 bg-navy-900 text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-navy-800 transition-all disabled:opacity-50"
+                                  >
+                                    {actionLoading === `${member.id}-paylink` ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Send className="w-3.5 h-3.5 text-gold-400" />
+                                    )}
+                                    {linkSent ? 'Resend Link' : 'Send Link'}
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleAction(member.id, 'approve')}
                                   disabled={actionLoading === `${member.id}-approve` || unpaid}
