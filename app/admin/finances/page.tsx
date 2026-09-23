@@ -217,9 +217,12 @@ export default function AdminFinancesPage() {
         setNotice({ type: 'error', text: data.error || 'Sync failed.' })
       } else {
         await fetchSummary()
+        const completed = data.completedCount ?? data.paymentCount
+        const skipped = data.nonCompletedCount ?? 0
+        const skippedNote = skipped > 0 ? ` (${skipped} canceled/pending skipped)` : ''
         setNotice({
           type: 'success',
-          text: `Synced ${data.paymentCount} Square payments. ${data.matchedCount} matched to members, ${data.unmatchedCount} orphaned.`,
+          text: `Synced ${completed} completed Square payments${skippedNote}. ${data.matchedCount} matched to members, ${data.unmatchedCount} orphaned.`,
         })
       }
     } catch (err) {

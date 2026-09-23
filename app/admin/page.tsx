@@ -108,9 +108,12 @@ export default function AdminHomePage() {
         setNotice({ type: 'error', text: data.error || 'Sync failed.' })
       } else {
         await fetchSummary()
+        const completed = data.completedCount ?? data.paymentCount
+        const skipped = data.nonCompletedCount ?? 0
+        const skippedNote = skipped > 0 ? ` · ${skipped} canceled/pending skipped` : ''
         setNotice({
           type: 'success',
-          text: `Synced ${data.paymentCount} Square payments · ${data.matchedCount} matched · ${data.unmatchedCount} orphaned.`,
+          text: `Synced ${completed} completed Square payments · ${data.matchedCount} matched · ${data.unmatchedCount} orphaned${skippedNote}.`,
         })
       }
     } catch (err) {

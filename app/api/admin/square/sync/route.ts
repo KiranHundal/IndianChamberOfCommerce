@@ -48,8 +48,10 @@ export async function POST() {
 
     let newCount = 0
     let updatedCount = 0
+    let completedCount = 0
     let matchedCount = 0
     let unmatchedCount = 0
+    let nonCompletedCount = 0
 
     for (const p of payments) {
       const email = await resolvePaymentEmail(p)
@@ -60,8 +62,6 @@ export async function POST() {
       const paidAt = new Date(p.created_at)
 
       const matched = email ? membersByEmail.get(email) : undefined
-      if (matched) matchedCount++
-      else unmatchedCount++
 
       const [existing] = await db
         .select({ id: squarePayments.id, matchedMemberId: squarePayments.matchedMemberId })
@@ -72,6 +72,16 @@ export async function POST() {
       // Preserve any existing manual match — sync should never un-link a
       // payment that was linked by the Match button.
       const preservedMatchedMemberId = existing?.matchedMemberId || matched?.id || null
+
+      // Only tally match/orphan against COMPLETED payments — the finances
+      // table also filters to COMPLETED, so the numbers line up.
+      if (p.status === 'COMPLETED') {
+        completedCount++
+        if (preservedMatchedMemberId) matchedCount++
+        else unmatchedCount++
+      } else {
+        nonCompletedCount++
+      }
 
       const row = {
         id: p.id,
@@ -131,6 +141,8 @@ export async function POST() {
       success: true,
       runId,
       paymentCount: payments.length,
+      completedCount,
+      nonCompletedCount,
       newCount,
       updatedCount,
       matchedCount,
