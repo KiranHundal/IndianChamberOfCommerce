@@ -12,6 +12,7 @@ const MATCHES: Array<{ membershipNumber: string; squareBuyerEmail: string }> = [
   { membershipNumber: '0002', squareBuyerEmail: 'philliptaylorbrown0@gmail.com' },
   { membershipNumber: '0042', squareBuyerEmail: 'harinder.s.sandhu@bofa.com' },
   { membershipNumber: '0005', squareBuyerEmail: 'spsidhu@yahoo.com' },
+  { membershipNumber: '0012', squareBuyerEmail: 'sharnjit_07@yahoo.com' },
 ]
 
 export async function GET(req: NextRequest) {
