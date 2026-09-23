@@ -6,6 +6,9 @@ import { members } from '@/lib/schema'
 import { eq, desc, isNotNull, count } from 'drizzle-orm'
 import { sendMemberApprovedEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getNextMembershipNumber(): Promise<string> {
   const [latest] = await db
     .select({ membershipNumber: members.membershipNumber })

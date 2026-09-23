@@ -6,6 +6,9 @@ import { members, expenses, invitations, squarePayments, squareSync } from '@/li
 import { desc } from 'drizzle-orm'
 import { nameSimilarity } from '@/lib/name-match'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   const session = await getServerSession(authOptions)
   const user = session?.user as Record<string, unknown> | undefined

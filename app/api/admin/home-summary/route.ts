@@ -5,6 +5,9 @@ import { db } from '@/lib/db'
 import { members, expenses, invitations, squarePayments, squareSync } from '@/lib/schema'
 import { desc, isNull } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   const session = await getServerSession(authOptions)
   const user = session?.user as Record<string, unknown> | undefined
