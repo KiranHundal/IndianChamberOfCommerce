@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Plus,
   Send,
+  UserPlus,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -162,6 +163,7 @@ export default function AdminFinancesPage() {
   const [methodFilter, setMethodFilter] = useState<string>('all')
   const [syncing, setSyncing] = useState(false)
   const [squareFilter, setSquareFilter] = useState<'all' | 'matched' | 'orphan'>('all')
+  const [invitingOrphan, setInvitingOrphan] = useState<string | null>(null)
   const [showExpense, setShowExpense] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [modalSaving, setModalSaving] = useState(false)
@@ -206,6 +208,29 @@ export default function AdminFinancesPage() {
       fetchSummary()
     }
   }, [status, session, router, fetchSummary])
+
+  async function handleInviteOrphan(paymentId: string, buyerLabel: string) {
+    setInvitingOrphan(paymentId)
+    setNotice(null)
+    try {
+      const res = await fetch(`/api/admin/square/orphans/${paymentId}/create-member`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Failed to send invite.' })
+      } else {
+        await fetchSummary()
+        const emailNote = data.emailStatus === 'failed' ? ' (email send failed)' : ''
+        const verb = data.linkedExisting ? 'Linked to existing member and re-sent invite to' : 'Created member and sent invite to'
+        setNotice({
+          type: 'success',
+          text: `${verb} ${data.email} · Membership #${data.membershipNumber} (${data.tier})${emailNote}. Payment ${buyerLabel} is no longer orphan.`,
+        })
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setInvitingOrphan(null)
+  }
 
   async function handleSyncSquare() {
     setSyncing(true)
@@ -488,6 +513,7 @@ export default function AdminFinancesPage() {
                         <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Fee</th>
                         <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Date</th>
                         <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Status</th>
+                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -535,6 +561,26 @@ export default function AdminFinancesPage() {
                               </span>
                             )}
                           </td>
+                          <td className="px-3 py-2.5 text-right">
+                            {!p.matched && p.buyerEmail && (
+                              <button
+                                onClick={() => handleInviteOrphan(p.id, p.buyerName || p.buyerEmail || 'this payment')}
+                                disabled={invitingOrphan === p.id}
+                                title={`Create a member for ${p.buyerName || p.buyerEmail} and email them the /register link`}
+                                className="inline-flex items-center gap-1.5 bg-navy-900 text-white text-[0.6rem] font-label tracking-widest uppercase px-2.5 py-1.5 rounded-sm hover:bg-navy-800 disabled:opacity-50"
+                              >
+                                {invitingOrphan === p.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <UserPlus className="w-3 h-3 text-gold-400" />
+                                )}
+                                {invitingOrphan === p.id ? 'Sending' : 'Send Invite'}
+                              </button>
+                            )}
+                            {!p.matched && !p.buyerEmail && (
+                              <span className="text-[0.65rem] text-hint italic">No email on Square</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -549,7 +595,7 @@ export default function AdminFinancesPage() {
                         <td className="px-3 py-3 text-right font-medium text-amber-700">
                           −{money(feeTotal)}
                         </td>
-                        <td colSpan={2} className="px-3 py-3 text-[0.7rem] text-mid">
+                        <td colSpan={3} className="px-3 py-3 text-[0.7rem] text-mid">
                           Net after fees: <strong>{money(grossTotal - feeTotal)}</strong>
                         </td>
                       </tr>
