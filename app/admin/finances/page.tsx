@@ -20,6 +20,7 @@ import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import { useEffectiveRole } from '@/lib/use-effective-role'
 
 interface MemberRow {
   id: string
@@ -170,6 +171,7 @@ export default function AdminFinancesPage() {
   const [modalError, setModalError] = useState('')
 
   const [fetchError, setFetchError] = useState('')
+  const { effectiveRole } = useEffectiveRole()
 
   const fetchSummary = useCallback(async () => {
     setLoading(true)
@@ -327,6 +329,24 @@ export default function AdminFinancesPage() {
     return (
       <div className="min-h-screen bg-page-bg flex items-center justify-center">
         <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
+      </div>
+    )
+  }
+
+  // Preview mode: admin previewing as reviewer sees the "not accessible" shim.
+  if (effectiveRole === 'reviewer') {
+    return (
+      <div className="min-h-screen bg-page-bg flex items-center justify-center px-6">
+        <div className="max-w-md text-center bg-white border border-ivory-200 rounded-xl p-8">
+          <AlertCircle className="w-10 h-10 text-mid mx-auto mb-4" />
+          <h3 className="font-display text-h4 text-brand mb-2">Reviewer can&rsquo;t see Finances</h3>
+          <p className="text-small text-mid mb-4">
+            A Reviewer&rsquo;s account only sees the Members list and the approve/deny actions. No revenue, expenses, or Square details.
+          </p>
+          <Link href="/admin" className="inline-block bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-sm hover:bg-gold-900 transition-all">
+            Back to Admin Home
+          </Link>
+        </div>
       </div>
     )
   }

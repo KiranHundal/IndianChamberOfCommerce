@@ -28,6 +28,7 @@ import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import { useEffectiveRole } from '@/lib/use-effective-role'
 
 interface HomeSummary {
   role: 'admin' | 'moderator' | 'reviewer'
@@ -69,9 +70,14 @@ export default function AdminHomePage() {
   const [syncing, setSyncing] = useState(false)
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const isAdmin = summary?.role === 'admin'
-  const isReviewer = summary?.role === 'reviewer'
-  const canSeeFinances = summary?.role === 'admin' || summary?.role === 'moderator'
+  const { effectiveRole, realRole } = useEffectiveRole()
+  // When the real role isn't admin the effectiveRole matches (preview stays
+  // off for non-admins). When admin is previewing, effectiveRole is what
+  // the previewed role would see.
+  const uiRole = effectiveRole || summary?.role || realRole
+  const isAdmin = uiRole === 'admin'
+  const isReviewer = uiRole === 'reviewer'
+  const canSeeFinances = uiRole === 'admin' || uiRole === 'moderator'
   const canFinanceActions = canSeeFinances
 
   const fetchSummary = useCallback(async () => {

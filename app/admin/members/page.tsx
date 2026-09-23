@@ -23,6 +23,7 @@ import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import { useEffectiveRole } from '@/lib/use-effective-role'
 
 interface Member {
   id: string
@@ -56,10 +57,11 @@ const statusBadge: Record<string, { label: string; color: string; bg: string }> 
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const myRole = (session?.user as Record<string, unknown> | undefined)?.role
-  const isAdmin = myRole === 'admin'
-  const canApproveDeny = myRole === 'admin' || myRole === 'reviewer'
-  const canFinanceActions = myRole === 'admin' || myRole === 'moderator'
+  const { effectiveRole } = useEffectiveRole()
+  const uiRole = effectiveRole || (session?.user as Record<string, unknown> | undefined)?.role
+  const isAdmin = uiRole === 'admin'
+  const canApproveDeny = uiRole === 'admin' || uiRole === 'reviewer'
+  const canFinanceActions = uiRole === 'admin' || uiRole === 'moderator'
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)

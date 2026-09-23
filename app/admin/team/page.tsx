@@ -16,11 +16,13 @@ import {
   Mail,
   Video,
   FileText,
+  Eye,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
 import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
+import { useEffectiveRole } from '@/lib/use-effective-role'
 
 interface TeamMember {
   id: string
@@ -56,6 +58,7 @@ export default function AdminTeamPage() {
   const [manualError, setManualError] = useState('')
 
   const currentEmail = ((session?.user as { email?: string })?.email || '').toLowerCase()
+  const { setPreview, isPreviewing, preview } = useEffectiveRole()
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -400,18 +403,42 @@ export default function AdminTeamPage() {
           {/* Role explainer */}
           <AnimatedSection delay={2}>
             <div className="bg-navy-50 border border-navy-100 rounded-xl p-5 mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <Eye className="w-4 h-4 text-brand" />
+                <p className="font-label text-[0.65rem] tracking-widest uppercase text-brand">Preview a role</p>
+                <p className="text-[0.65rem] text-mid ml-2">
+                  See exactly what each role sees. Preview is client-only — you keep admin permissions server-side, so it&rsquo;s safe to click around.
+                </p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-small text-brand">
-                <div>
+                <div className="bg-white rounded-lg p-4 border border-ivory-200">
                   <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand mb-1"><Shield className="w-3 h-3 inline mr-1 text-gold-400" /> Admin</p>
-                  <p className="text-mid">Full access — approve/deny members, log payments, manage finances, board, videos, reports, and grant access.</p>
+                  <p className="text-mid mb-3">Full access — approve/deny members, log payments, manage finances, board, videos, reports, and grant access.</p>
+                  <p className="text-[0.65rem] text-hint italic">(That&rsquo;s you)</p>
                 </div>
-                <div>
+                <div className="bg-white rounded-lg p-4 border border-ivory-200">
                   <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand mb-1"><Shield className="w-3 h-3 inline mr-1 text-accent" /> Moderator</p>
-                  <p className="text-mid">Finance team — see finances, add expenses, log offline payments, sync Square, send invitations. Cannot approve/deny members.</p>
+                  <p className="text-mid mb-3">Finance team — see finances, add expenses, log offline payments, sync Square, send invitations. Cannot approve/deny members.</p>
+                  <button
+                    onClick={() => setPreview('moderator')}
+                    disabled={isPreviewing && preview === 'moderator'}
+                    className="w-full inline-flex items-center justify-center gap-1.5 bg-navy-900 text-white font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:bg-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Eye className="w-3 h-3 text-gold-400" />
+                    {isPreviewing && preview === 'moderator' ? 'Previewing' : 'Preview as Moderator'}
+                  </button>
                 </div>
-                <div>
+                <div className="bg-white rounded-lg p-4 border border-ivory-200">
                   <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand mb-1"><Shield className="w-3 h-3 inline mr-1 text-emerald-600" /> Reviewer</p>
-                  <p className="text-mid">Member gatekeeper — sees the members list, approves or denies pending signups. No finances, board, or reports.</p>
+                  <p className="text-mid mb-3">Member gatekeeper — sees the members list, approves or denies pending signups. No finances, board, or reports.</p>
+                  <button
+                    onClick={() => setPreview('reviewer')}
+                    disabled={isPreviewing && preview === 'reviewer'}
+                    className="w-full inline-flex items-center justify-center gap-1.5 bg-navy-900 text-white font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:bg-navy-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Eye className="w-3 h-3 text-gold-400" />
+                    {isPreviewing && preview === 'reviewer' ? 'Previewing' : 'Preview as Reviewer'}
+                  </button>
                 </div>
               </div>
             </div>
