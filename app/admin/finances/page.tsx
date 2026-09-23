@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, FormEvent } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -12,6 +12,8 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
+  Plus,
+  Send,
 } from 'lucide-react'
 import SectionLabel from '@/components/ui/SectionLabel'
 import SectionTitle from '@/components/ui/SectionTitle'
@@ -160,6 +162,10 @@ export default function AdminFinancesPage() {
   const [methodFilter, setMethodFilter] = useState<string>('all')
   const [syncing, setSyncing] = useState(false)
   const [squareFilter, setSquareFilter] = useState<'all' | 'matched' | 'orphan'>('all')
+  const [showExpense, setShowExpense] = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
+  const [modalSaving, setModalSaving] = useState(false)
+  const [modalError, setModalError] = useState('')
 
   const [fetchError, setFetchError] = useState('')
 
@@ -192,6 +198,11 @@ export default function AdminFinancesPage() {
         router.push('/portal')
         return
       }
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search)
+        if (params.get('openExpense') === '1') setShowExpense(true)
+        if (params.get('openInvite') === '1') setShowInvite(true)
+      }
       fetchSummary()
     }
   }, [status, session, router, fetchSummary])
@@ -215,6 +226,73 @@ export default function AdminFinancesPage() {
       setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
     }
     setSyncing(false)
+  }
+
+  async function handleExpense(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setModalSaving(true)
+    setModalError('')
+    const fd = new FormData(e.currentTarget)
+    const payload = {
+      category: fd.get('category'),
+      vendor: fd.get('vendor'),
+      description: fd.get('description'),
+      amount: parseInt(String(fd.get('amount')), 10),
+      paymentMethod: fd.get('paymentMethod'),
+      paymentReference: fd.get('paymentReference'),
+      expenseDate: fd.get('expenseDate'),
+    }
+    try {
+      const res = await fetch('/api/admin/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setModalError(data.error || 'Failed to log expense.')
+      } else {
+        setShowExpense(false)
+        await fetchSummary()
+        setNotice({ type: 'success', text: `Expense of $${payload.amount} logged.` })
+      }
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'Network error.')
+    }
+    setModalSaving(false)
+  }
+
+  async function handleInvite(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setModalSaving(true)
+    setModalError('')
+    const fd = new FormData(e.currentTarget)
+    const payload = {
+      email: fd.get('email'),
+      name: fd.get('name'),
+      businessName: fd.get('businessName'),
+      suggestedTier: fd.get('suggestedTier'),
+      personalNote: fd.get('personalNote'),
+      fromName: fd.get('fromName'),
+    }
+    try {
+      const res = await fetch('/api/admin/invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setModalError(data.error || 'Failed to send invitation.')
+      } else {
+        setShowInvite(false)
+        await fetchSummary()
+        setNotice({ type: 'success', text: `Invitation sent to ${payload.email}.` })
+      }
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : 'Network error.')
+    }
+    setModalSaving(false)
   }
 
   if (status === 'loading' || loading) {
@@ -298,6 +376,20 @@ export default function AdminFinancesPage() {
                     Sync from Square
                   </>
                 )}
+              </button>
+              <button
+                onClick={() => { setModalError(''); setShowExpense(true) }}
+                className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5 text-red-600" />
+                Add Expense
+              </button>
+              <button
+                onClick={() => { setModalError(''); setShowInvite(true) }}
+                className="inline-flex items-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:border-accent/40 transition-all"
+              >
+                <Send className="w-3.5 h-3.5 text-accent" />
+                Send Invitation
               </button>
             </div>
           </div>
@@ -748,6 +840,112 @@ export default function AdminFinancesPage() {
         </div>
       </section>
 
+      {/* Expense Modal */}
+      {showExpense && (
+        <div className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4" onClick={() => !modalSaving && setShowExpense(false)}>
+          <div className="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-display text-h4 text-brand">Log Expense</h3>
+              <button onClick={() => !modalSaving && setShowExpense(false)} className="text-mid hover:text-brand"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleExpense} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Category *</label>
+                <select name="category" required defaultValue="" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                  <option value="" disabled>Select</option>
+                  {['Hosting & Tech','Marketing','Events','Office & Supplies','Legal & Professional','Insurance','Travel','Other'].map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Vendor *</label>
+                <input name="vendor" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="e.g. Vercel" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Amount ($) *</label>
+                <input name="amount" type="number" min="1" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Payment Method</label>
+                <select name="paymentMethod" defaultValue="card" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                  <option value="card">Card</option>
+                  <option value="check">Check</option>
+                  <option value="cash">Cash</option>
+                  <option value="transfer">Bank Transfer</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Date</label>
+                <input name="expenseDate" type="date" defaultValue={new Date().toISOString().slice(0,10)} className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Reference</label>
+                <input name="paymentReference" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Description</label>
+                <textarea name="description" rows={2} className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              {modalError && <div className="md:col-span-2 text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">{modalError}</div>}
+              <div className="md:col-span-2 flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowExpense(false)} disabled={modalSaving} className="flex-1 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:border-brand/30 disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={modalSaving} className="flex-1 flex items-center justify-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:bg-gold-900 disabled:opacity-50">
+                  {modalSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving...</> : 'Save Expense'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Modal */}
+      {showInvite && (
+        <div className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4" onClick={() => !modalSaving && setShowInvite(false)}>
+          <div className="bg-white rounded-xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-display text-h4 text-brand">Send Membership Invitation</h3>
+              <button onClick={() => !modalSaving && setShowInvite(false)} className="text-mid hover:text-brand"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleInvite} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Email *</label>
+                <input name="email" type="email" required className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Their Name</label>
+                <input name="name" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Business Name</label>
+                <input name="businessName" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Suggested Tier</label>
+                <select name="suggestedTier" defaultValue="" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                  <option value="">No suggestion</option>
+                  <option value="individual">Individual ($95/yr)</option>
+                  <option value="corporate">Corporate ($395/yr)</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Sign as</label>
+                <input name="fromName" defaultValue="The CVICC Board" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Personal Note</label>
+                <textarea name="personalNote" rows={3} className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="Appears as a highlighted quote in the email." />
+              </div>
+              {modalError && <div className="md:col-span-2 text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">{modalError}</div>}
+              <div className="md:col-span-2 flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowInvite(false)} disabled={modalSaving} className="flex-1 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:border-brand/30 disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={modalSaving} className="flex-1 flex items-center justify-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:bg-gold-900 disabled:opacity-50">
+                  {modalSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Sending...</> : <><Send className="w-3.5 h-3.5" />Send Invitation</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   )
 }
