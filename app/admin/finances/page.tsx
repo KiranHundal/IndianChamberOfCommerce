@@ -740,7 +740,15 @@ export default function AdminFinancesPage() {
             const orphansTotal = orphans.reduce((sum, o) => sum + o.amountCents / 100, 0)
             const noMethodTotal = noMethodMembers.reduce((sum, m) => sum + m.inferredAmount, 0)
 
-            const rowCount = Math.max(orphans.length, noMethodMembers.length)
+            const sortedOrphans = [...orphans].sort((a, b) => {
+              const an = (a.buyerName || a.buyerEmail || '').toLowerCase()
+              const bn = (b.buyerName || b.buyerEmail || '').toLowerCase()
+              return an.localeCompare(bn)
+            })
+            const sortedNoMethod = [...noMethodMembers].sort((a, b) =>
+              a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+            )
+
             const rows: Array<{
               orphan: typeof orphans[number] | null
               member: typeof noMethodMembers[number] | null
@@ -750,10 +758,10 @@ export default function AdminFinancesPage() {
             const usedMemberIds = new Set<string>()
 
             // First, pair each orphan with its suggested match (if any)
-            for (const o of orphans) {
+            for (const o of sortedOrphans) {
               let pair: typeof noMethodMembers[number] | null = null
               if (o.suggestedMatch) {
-                const found = noMethodMembers.find((m) => m.id === o.suggestedMatch!.id)
+                const found = sortedNoMethod.find((m) => m.id === o.suggestedMatch!.id)
                 if (found) {
                   pair = found
                   usedMemberIds.add(found.id)
@@ -762,11 +770,19 @@ export default function AdminFinancesPage() {
               rows.push({ orphan: o, member: pair, isPair: !!pair })
             }
 
-            // Then, list remaining unpaired no-method members
-            for (const m of noMethodMembers) {
+            // Then, list remaining unpaired no-method members (already sorted)
+            for (const m of sortedNoMethod) {
               if (usedMemberIds.has(m.id)) continue
               rows.push({ orphan: null, member: m, isPair: false })
             }
+
+            // Sort the final rows by whichever name they have (orphan first,
+            // then member) so both sides read alphabetically top to bottom.
+            rows.sort((a, b) => {
+              const an = (a.orphan?.buyerName || a.orphan?.buyerEmail || a.member?.name || '').toLowerCase()
+              const bn = (b.orphan?.buyerName || b.orphan?.buyerEmail || b.member?.name || '').toLowerCase()
+              return an.localeCompare(bn)
+            })
 
             return (
               <div className="bg-white border border-amber-200 rounded-xl p-6 mb-8">
@@ -799,7 +815,7 @@ export default function AdminFinancesPage() {
                 </div>
 
                 <p className="text-[0.7rem] text-hint mb-3">
-                  {rowCount} row{rowCount !== 1 ? 's' : ''} · Green rows are auto-suggested matches. Click <strong>Match</strong> to link.
+                  {rows.length} row{rows.length !== 1 ? 's' : ''} · Green rows are auto-suggested matches. Click <strong>Match</strong> to link.
                 </p>
 
                 <div className="overflow-x-auto">
