@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { createClient } from '@libsql/client'
 
 export async function GET(req: Request) {
+  const session = await getServerSession(authOptions)
+  const role = (session?.user as Record<string, unknown> | undefined)?.role
+  const isAdmin = role === 'admin'
+
+  // Legacy fallback: still accept the shared-secret key so old bookmarks work
   const url = new URL(req.url)
-  if (url.searchParams.get('key') !== process.env.NEXTAUTH_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const keyMatches =
+    !!process.env.NEXTAUTH_SECRET && url.searchParams.get('key') === process.env.NEXTAUTH_SECRET
+
+  if (!isAdmin && !keyMatches) {
+    return NextResponse.json({ error: 'Unauthorized. Sign in as admin, then reload this page.' }, { status: 401 })
   }
 
   const client = createClient({
