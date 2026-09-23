@@ -62,12 +62,12 @@ export async function GET() {
 
   const OFFLINE_METHODS = ['check', 'zelle', 'cash', 'other']
 
-  // A member is considered Square-verified if:
-  //   - Their record was linked to a Square payment by the sync, OR
-  //   - Their record says paymentMethod === 'square' (they paid via the join
-  //     flow; their Square payment is in the orphans bucket for now)
+  // "Has Square receipt" is now STRICT — the member must actually appear in
+  // the Square payments table. Records that just have paymentMethod='square'
+  // in our DB but no matching Square payment are treated as unverified, so
+  // they surface as the missing-from-Square rows in the members list.
   const hasSquareReceipt = (m: typeof allMembers[number]) =>
-    squareLinkedMemberIds.has(m.id) || m.paymentMethod === 'square'
+    squareLinkedMemberIds.has(m.id)
 
   // Verified offline revenue: members WITHOUT a Square receipt, WITH an
   // explicit offline payment method (check / Zelle / cash / other).
