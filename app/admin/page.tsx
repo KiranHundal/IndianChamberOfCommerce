@@ -78,7 +78,6 @@ export default function AdminHomePage() {
   const isAdmin = uiRole === 'admin'
   const isReviewer = uiRole === 'reviewer'
   const canSeeFinances = uiRole === 'admin' || uiRole === 'moderator'
-  const canFinanceActions = canSeeFinances
 
   const fetchSummary = useCallback(async () => {
     setLoading(true)
