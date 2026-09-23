@@ -253,14 +253,19 @@ export default function AdminPage() {
     return true
   })
 
-  const unpaidCount = members.filter(isUnpaidPending).length
+  // Counters exclude admin/moderator staff so they line up with the "Members"
+  // KPI on /admin, which is a paying-member count. Staff still show in the
+  // list itself for management.
+  const nonStaff = members.filter((m) => m.role !== 'admin' && m.role !== 'moderator')
+  const staffCount = members.length - nonStaff.length
+  const unpaidCount = nonStaff.filter(isUnpaidPending).length
   const counts = {
-    all: members.length,
-    pending: members.filter((m) => m.status === 'pending').length - unpaidCount,
+    all: nonStaff.length,
+    pending: nonStaff.filter((m) => m.status === 'pending').length - unpaidCount,
     unpaid: unpaidCount,
-    approved: members.filter((m) => m.status === 'approved').length,
-    rejected: members.filter((m) => m.status === 'rejected').length,
-    deactivated: members.filter((m) => m.status === 'deactivated').length,
+    approved: nonStaff.filter((m) => m.status === 'approved').length,
+    rejected: nonStaff.filter((m) => m.status === 'rejected').length,
+    deactivated: nonStaff.filter((m) => m.status === 'deactivated').length,
   }
 
   return (
@@ -324,7 +329,7 @@ export default function AdminPage() {
 
           {/* Stats Row */}
           <AnimatedSection>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-2">
               {(['all', 'pending', 'unpaid', 'approved', 'rejected', 'deactivated'] as const).map((key) => (
                 <button
                   key={key}
@@ -342,6 +347,12 @@ export default function AdminPage() {
                 </button>
               ))}
             </div>
+            {staffCount > 0 && (
+              <p className="text-[0.65rem] text-hint mb-10">
+                Totals exclude {staffCount} admin/moderator {staffCount === 1 ? 'account' : 'accounts'}, listed below for management.
+              </p>
+            )}
+            {staffCount === 0 && <div className="mb-10" />}
           </AnimatedSection>
 
           {/* Search & Refresh */}
