@@ -33,6 +33,7 @@ interface HomeSummary {
   role: 'admin' | 'moderator'
   alerts: {
     pendingMembers: number
+    unpaidMembers: number
     orphanPayments: number
     unverifiedApproved: number
   }
@@ -129,6 +130,7 @@ export default function AdminHomePage() {
   const userName = ((session?.user as { name?: string })?.name || 'Admin').split(' ')[0]
   const hasAlerts =
     summary.alerts.pendingMembers > 0 ||
+    summary.alerts.unpaidMembers > 0 ||
     summary.alerts.orphanPayments > 0 ||
     summary.alerts.unverifiedApproved > 0
 
@@ -178,7 +180,7 @@ export default function AdminHomePage() {
                   <AlertCircle className="w-4 h-4 text-amber-600" />
                   <p className="font-label text-[0.65rem] tracking-widest uppercase text-amber-800">Needs your attention</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {summary.alerts.pendingMembers > 0 && (
                     <Link
                       href="/admin/members?status=pending"
@@ -186,7 +188,19 @@ export default function AdminHomePage() {
                     >
                       <div>
                         <p className="font-display text-h4 text-brand">{summary.alerts.pendingMembers}</p>
-                        <p className="text-[0.7rem] text-mid">Pending members</p>
+                        <p className="text-[0.7rem] text-mid">Awaiting approval</p>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-amber-600" />
+                    </Link>
+                  )}
+                  {summary.alerts.unpaidMembers > 0 && (
+                    <Link
+                      href="/admin/members?status=unpaid"
+                      className="flex items-center justify-between bg-white border border-amber-200 rounded-lg px-4 py-3 hover:border-amber-400 transition-all"
+                    >
+                      <div>
+                        <p className="font-display text-h4 text-brand">{summary.alerts.unpaidMembers}</p>
+                        <p className="text-[0.7rem] text-mid">Unpaid signups</p>
                       </div>
                       <ArrowRight className="w-4 h-4 text-amber-600" />
                     </Link>

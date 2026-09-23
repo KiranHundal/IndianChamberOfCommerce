@@ -97,7 +97,7 @@ export default function AdminPage() {
           setShowPaymentModal(true)
         }
         const s = params.get('status')
-        if (s && ['all', 'pending', 'approved', 'rejected', 'deactivated'].includes(s)) {
+        if (s && ['all', 'pending', 'unpaid', 'approved', 'rejected', 'deactivated'].includes(s)) {
           setFilter(s)
         }
       }
@@ -181,8 +181,21 @@ export default function AdminPage() {
     )
   }
 
+  function isUnpaidPending(m: Member): boolean {
+    if (m.status !== 'pending') return false
+    if (m.role === 'admin' || m.role === 'moderator') return false
+    const paid = (m.amountPaid && m.amountPaid > 0) || !!m.paymentMethod
+    return !paid
+  }
+
   const filteredMembers = members.filter((m) => {
-    if (filter !== 'all' && m.status !== filter) return false
+    if (filter === 'unpaid') {
+      if (!isUnpaidPending(m)) return false
+    } else if (filter === 'pending') {
+      if (m.status !== 'pending' || isUnpaidPending(m)) return false
+    } else if (filter !== 'all' && m.status !== filter) {
+      return false
+    }
     if (search) {
       const q = search.toLowerCase()
       return (
@@ -196,9 +209,11 @@ export default function AdminPage() {
     return true
   })
 
+  const unpaidCount = members.filter(isUnpaidPending).length
   const counts = {
     all: members.length,
-    pending: members.filter((m) => m.status === 'pending').length,
+    pending: members.filter((m) => m.status === 'pending').length - unpaidCount,
+    unpaid: unpaidCount,
     approved: members.filter((m) => m.status === 'approved').length,
     rejected: members.filter((m) => m.status === 'rejected').length,
     deactivated: members.filter((m) => m.status === 'deactivated').length,
@@ -265,8 +280,8 @@ export default function AdminPage() {
 
           {/* Stats Row */}
           <AnimatedSection>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
-              {(['all', 'pending', 'approved', 'rejected', 'deactivated'] as const).map((key) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
+              {(['all', 'pending', 'unpaid', 'approved', 'rejected', 'deactivated'] as const).map((key) => (
                 <button
                   key={key}
                   onClick={() => setFilter(key)}
@@ -278,7 +293,7 @@ export default function AdminPage() {
                 >
                   <p className="font-display text-h3 font-light">{counts[key]}</p>
                   <p className="font-label text-[0.6rem] tracking-widest uppercase mt-1 opacity-60">
-                    {key === 'all' ? 'Total' : key}
+                    {key === 'all' ? 'Total' : key === 'pending' ? 'Awaiting Approval' : key}
                   </p>
                 </button>
               ))}
@@ -403,26 +418,30 @@ export default function AdminPage() {
 
                         {/* Action buttons */}
                         <div className="flex gap-2 flex-shrink-0">
-                          {member.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => handleAction(member.id, 'approve')}
-                                disabled={actionLoading === `${member.id}-approve`}
-                                className="flex items-center gap-1.5 bg-emerald-600 text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-emerald-700 transition-all disabled:opacity-50"
-                              >
-                                <CheckCircle className="w-3.5 h-3.5" />
-                                {actionLoading === `${member.id}-approve` ? '...' : 'Approve'}
-                              </button>
-                              <button
-                                onClick={() => handleAction(member.id, 'reject')}
-                                disabled={actionLoading === `${member.id}-reject`}
-                                className="flex items-center gap-1.5 bg-white border border-red-200 text-red-600 font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-red-50 transition-all disabled:opacity-50"
-                              >
-                                <XCircle className="w-3.5 h-3.5" />
-                                {actionLoading === `${member.id}-reject` ? '...' : 'Reject'}
-                              </button>
-                            </>
-                          )}
+                          {member.status === 'pending' && (() => {
+                            const unpaid = isUnpaidPending(member)
+                            return (
+                              <>
+                                <button
+                                  onClick={() => handleAction(member.id, 'approve')}
+                                  disabled={actionLoading === `${member.id}-approve` || unpaid}
+                                  title={unpaid ? 'Log a payment before approving' : undefined}
+                                  className="flex items-center gap-1.5 bg-emerald-600 text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  {actionLoading === `${member.id}-approve` ? '...' : unpaid ? 'Awaiting Payment' : 'Approve'}
+                                </button>
+                                <button
+                                  onClick={() => handleAction(member.id, 'reject')}
+                                  disabled={actionLoading === `${member.id}-reject`}
+                                  className="flex items-center gap-1.5 bg-white border border-red-200 text-red-600 font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-red-50 transition-all disabled:opacity-50"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  {actionLoading === `${member.id}-reject` ? '...' : 'Reject'}
+                                </button>
+                              </>
+                            )
+                          })()}
                           {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
                             <button
                               onClick={() => handleAction(member.id, 'deactivate')}

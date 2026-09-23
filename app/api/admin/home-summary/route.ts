@@ -61,7 +61,10 @@ export async function GET() {
 
   // Alerts
   const nonStaffMembers = allMembers.filter((m) => m.role !== 'admin' && m.role !== 'moderator')
-  const pendingMembers = nonStaffMembers.filter((m) => m.status === 'pending').length
+  const isUnpaid = (m: typeof allMembers[number]) =>
+    m.status === 'pending' && !((m.amountPaid && m.amountPaid > 0) || m.paymentMethod)
+  const unpaidMembers = nonStaffMembers.filter(isUnpaid).length
+  const pendingMembers = nonStaffMembers.filter((m) => m.status === 'pending' && !isUnpaid(m)).length
   const orphanPayments = allSquarePayments.filter((p) => p.status === 'COMPLETED').length
   const unverifiedApproved = nonStaffMembers.filter(
     (m) => m.status === 'approved' && !hasSquareReceipt(m) && (!m.paymentMethod || !OFFLINE_METHODS.includes(m.paymentMethod))
@@ -131,6 +134,7 @@ export async function GET() {
     role,
     alerts: {
       pendingMembers,
+      unpaidMembers,
       orphanPayments,
       unverifiedApproved,
     },
