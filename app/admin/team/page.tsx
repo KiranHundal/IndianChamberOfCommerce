@@ -81,7 +81,7 @@ export default function AdminTeamPage() {
     }
   }, [status, session, router, fetchData])
 
-  async function handleGrantFromBoard(bm: GrantableBoardMember, role: 'admin' | 'moderator') {
+  async function handleGrantFromBoard(bm: GrantableBoardMember, role: 'admin' | 'moderator' | 'reviewer') {
     setActionId(`grant-${bm.id}`)
     setNotice(null)
     try {
@@ -145,7 +145,7 @@ export default function AdminTeamPage() {
     setManualSaving(false)
   }
 
-  async function handleChangeRole(m: TeamMember, role: 'admin' | 'moderator') {
+  async function handleChangeRole(m: TeamMember, role: 'admin' | 'moderator' | 'reviewer') {
     setActionId(`role-${m.id}`)
     setNotice(null)
     try {
@@ -263,7 +263,9 @@ export default function AdminTeamPage() {
                           <div className="flex items-center gap-3 flex-wrap">
                             <p className="font-display text-h5 text-brand">{m.name}</p>
                             <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.6rem] font-label tracking-widest uppercase ${
-                              m.role === 'admin' ? 'bg-navy-900 text-gold-400' : 'bg-accent/10 text-accent border border-accent/30'
+                              m.role === 'admin' ? 'bg-navy-900 text-gold-400' :
+                              m.role === 'reviewer' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                              'bg-accent/10 text-accent border border-accent/30'
                             }`}>
                               <Shield className="w-3 h-3" />
                               {m.role}
@@ -275,16 +277,7 @@ export default function AdminTeamPage() {
                           <p className="text-small text-mid mt-1">{m.email}</p>
                         </div>
                         <div className="flex gap-2 flex-wrap">
-                          {m.role === 'admin' ? (
-                            <button
-                              onClick={() => handleChangeRole(m, 'moderator')}
-                              disabled={actionId === `role-${m.id}` || isSelf}
-                              title={isSelf ? "You can't demote yourself." : 'Downgrade to Moderator'}
-                              className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:border-accent/40 disabled:opacity-40"
-                            >
-                              {actionId === `role-${m.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Make Moderator'}
-                            </button>
-                          ) : (
+                          {m.role !== 'admin' && (
                             <button
                               onClick={() => handleChangeRole(m, 'admin')}
                               disabled={actionId === `role-${m.id}`}
@@ -292,6 +285,26 @@ export default function AdminTeamPage() {
                               className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:border-accent/40 disabled:opacity-40"
                             >
                               {actionId === `role-${m.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Make Admin'}
+                            </button>
+                          )}
+                          {m.role !== 'moderator' && (
+                            <button
+                              onClick={() => handleChangeRole(m, 'moderator')}
+                              disabled={actionId === `role-${m.id}` || isSelf}
+                              title={isSelf ? "You can't demote yourself." : 'Set to Moderator (finance team)'}
+                              className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:border-accent/40 disabled:opacity-40"
+                            >
+                              {actionId === `role-${m.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Make Moderator'}
+                            </button>
+                          )}
+                          {m.role !== 'reviewer' && (
+                            <button
+                              onClick={() => handleChangeRole(m, 'reviewer')}
+                              disabled={actionId === `role-${m.id}` || isSelf}
+                              title={isSelf ? "You can't demote yourself." : 'Set to Reviewer (approves/denies members only)'}
+                              className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:border-accent/40 disabled:opacity-40"
+                            >
+                              {actionId === `role-${m.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Make Reviewer'}
                             </button>
                           )}
                           <button
@@ -351,6 +364,13 @@ export default function AdminTeamPage() {
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         <button
+                          onClick={() => handleGrantFromBoard(bm, 'reviewer')}
+                          disabled={actionId === `grant-${bm.id}`}
+                          className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:border-accent/40 disabled:opacity-40"
+                        >
+                          {actionId === `grant-${bm.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Grant Reviewer'}
+                        </button>
+                        <button
                           onClick={() => handleGrantFromBoard(bm, 'moderator')}
                           disabled={actionId === `grant-${bm.id}`}
                           className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:border-accent/40 disabled:opacity-40"
@@ -380,14 +400,18 @@ export default function AdminTeamPage() {
           {/* Role explainer */}
           <AnimatedSection delay={2}>
             <div className="bg-navy-50 border border-navy-100 rounded-xl p-5 mb-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-small text-brand">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-small text-brand">
                 <div>
                   <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand mb-1"><Shield className="w-3 h-3 inline mr-1 text-gold-400" /> Admin</p>
-                  <p className="text-mid">Full access: approve members, log payments, manage board, videos, reports, expenses, and grant access.</p>
+                  <p className="text-mid">Full access — approve/deny members, log payments, manage finances, board, videos, reports, and grant access.</p>
                 </div>
                 <div>
                   <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand mb-1"><Shield className="w-3 h-3 inline mr-1 text-accent" /> Moderator</p>
-                  <p className="text-mid">Can view finances and approve pending members. Cannot manage board content, run reports, or grant access.</p>
+                  <p className="text-mid">Finance team — see finances, add expenses, log offline payments, sync Square, send invitations. Cannot approve/deny members.</p>
+                </div>
+                <div>
+                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand mb-1"><Shield className="w-3 h-3 inline mr-1 text-emerald-600" /> Reviewer</p>
+                  <p className="text-mid">Member gatekeeper — sees the members list, approves or denies pending signups. No finances, board, or reports.</p>
                 </div>
               </div>
             </div>
@@ -446,9 +470,10 @@ export default function AdminTeamPage() {
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Role *</label>
-                <select name="role" required defaultValue="moderator" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
-                  <option value="moderator">Moderator</option>
-                  <option value="admin">Admin</option>
+                <select name="role" required defaultValue="reviewer" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                  <option value="reviewer">Reviewer (approve/deny members only)</option>
+                  <option value="moderator">Moderator (finance team)</option>
+                  <option value="admin">Admin (full access)</option>
                 </select>
               </div>
               {manualError && (

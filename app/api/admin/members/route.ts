@@ -24,7 +24,7 @@ async function getNextMembershipNumber(): Promise<string> {
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   const role = (session?.user as Record<string, unknown> | undefined)?.role
-  if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
+  if (!session?.user || (role !== 'admin' && role !== 'moderator' && role !== 'reviewer')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
   const role = (session?.user as Record<string, unknown> | undefined)?.role
+  // Log Offline Payment stays admin+moderator — reviewers only approve/deny.
   if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -146,7 +147,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions)
   const role = (session?.user as Record<string, unknown> | undefined)?.role
-  if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
+  if (!session?.user || (role !== 'admin' && role !== 'moderator' && role !== 'reviewer')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -154,6 +155,12 @@ export async function PATCH(req: Request) {
 
   if (!memberId || !action) {
     return NextResponse.json({ error: 'Missing memberId or action' }, { status: 400 })
+  }
+
+  // Approve / reject: admin and reviewer only. Moderators (finance team)
+  // cannot approve or deny — that stays with the reviewer / admin.
+  if ((action === 'approve' || action === 'reject') && role !== 'admin' && role !== 'reviewer') {
+    return NextResponse.json({ error: 'Only admins or the reviewer can approve or deny members.' }, { status: 403 })
   }
 
   if (action === 'approve') {

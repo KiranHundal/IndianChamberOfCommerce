@@ -56,7 +56,10 @@ const statusBadge: Record<string, { label: string; color: string; bg: string }> 
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const isAdmin = (session?.user as Record<string, unknown> | undefined)?.role === 'admin'
+  const myRole = (session?.user as Record<string, unknown> | undefined)?.role
+  const isAdmin = myRole === 'admin'
+  const canApproveDeny = myRole === 'admin' || myRole === 'reviewer'
+  const canFinanceActions = myRole === 'admin' || myRole === 'moderator'
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -88,7 +91,7 @@ export default function AdminPage() {
     }
     if (status === 'authenticated') {
       const user = session?.user as Record<string, unknown>
-      if (user?.role !== 'admin' && user?.role !== 'moderator') {
+      if (user?.role !== 'admin' && user?.role !== 'moderator' && user?.role !== 'reviewer') {
         router.push('/portal')
         return
       }
@@ -300,16 +303,18 @@ export default function AdminPage() {
             >
               ← Back to Admin
             </Link>
-            <button
-              onClick={() => {
-                setPaymentError('')
-                setShowPaymentModal(true)
-              }}
-              className="inline-flex items-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:bg-gold-900 transition-all"
-            >
-              <DollarSign className="w-3.5 h-3.5" />
-              Log Offline Payment
-            </button>
+            {canFinanceActions && (
+              <button
+                onClick={() => {
+                  setPaymentError('')
+                  setShowPaymentModal(true)
+                }}
+                className="inline-flex items-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:bg-gold-900 transition-all"
+              >
+                <DollarSign className="w-3.5 h-3.5" />
+                Log Offline Payment
+              </button>
+            )}
           </div>
 
           {notice && (
@@ -487,7 +492,7 @@ export default function AdminPage() {
                             const linkSent = !!member.paymentLinkSentAt
                             return (
                               <>
-                                {unpaid && (
+                                {unpaid && canFinanceActions && (
                                   <button
                                     onClick={() => handleSendPaymentLink(member)}
                                     disabled={actionLoading === `${member.id}-paylink`}
@@ -502,27 +507,31 @@ export default function AdminPage() {
                                     {linkSent ? 'Resend Link' : 'Send Link'}
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => handleAction(member.id, 'approve')}
-                                  disabled={actionLoading === `${member.id}-approve` || unpaid}
-                                  title={unpaid ? 'Log a payment before approving' : undefined}
-                                  className="flex items-center gap-1.5 bg-emerald-600 text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  {actionLoading === `${member.id}-approve` ? '...' : unpaid ? 'Awaiting Payment' : 'Approve'}
-                                </button>
-                                <button
-                                  onClick={() => handleAction(member.id, 'reject')}
-                                  disabled={actionLoading === `${member.id}-reject`}
-                                  className="flex items-center gap-1.5 bg-white border border-red-200 text-red-600 font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-red-50 transition-all disabled:opacity-50"
-                                >
-                                  <XCircle className="w-3.5 h-3.5" />
-                                  {actionLoading === `${member.id}-reject` ? '...' : 'Reject'}
-                                </button>
+                                {canApproveDeny && (
+                                  <>
+                                    <button
+                                      onClick={() => handleAction(member.id, 'approve')}
+                                      disabled={actionLoading === `${member.id}-approve` || unpaid}
+                                      title={unpaid ? 'Log a payment before approving' : undefined}
+                                      className="flex items-center gap-1.5 bg-emerald-600 text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+                                    >
+                                      <CheckCircle className="w-3.5 h-3.5" />
+                                      {actionLoading === `${member.id}-approve` ? '...' : unpaid ? 'Awaiting Payment' : 'Approve'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleAction(member.id, 'reject')}
+                                      disabled={actionLoading === `${member.id}-reject`}
+                                      className="flex items-center gap-1.5 bg-white border border-red-200 text-red-600 font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-red-50 transition-all disabled:opacity-50"
+                                    >
+                                      <XCircle className="w-3.5 h-3.5" />
+                                      {actionLoading === `${member.id}-reject` ? '...' : 'Reject'}
+                                    </button>
+                                  </>
+                                )}
                               </>
                             )
                           })()}
-                          {member.status === 'approved' && member.role !== 'admin' && member.role !== 'moderator' && !!member.membershipNumber && (
+                          {canFinanceActions && member.status === 'approved' && member.role !== 'admin' && member.role !== 'moderator' && member.role !== 'reviewer' && !!member.membershipNumber && (
                             <button
                               onClick={() => handleResendWelcome(member)}
                               disabled={actionLoading === `${member.id}-welcome`}

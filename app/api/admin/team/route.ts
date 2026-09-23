@@ -18,7 +18,7 @@ export async function GET() {
   const teamRows = await db
     .select()
     .from(members)
-    .where(or(eq(members.role, 'admin'), eq(members.role, 'moderator')))
+    .where(or(eq(members.role, 'admin'), eq(members.role, 'moderator'), eq(members.role, 'reviewer')))
 
   const boardRows = await db.select().from(boardMembers).where(isNotNull(boardMembers.email))
 

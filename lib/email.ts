@@ -317,17 +317,19 @@ export async function sendBoardMemberWelcomeEmail(member: {
 export async function sendTeamAccessEmail(invite: {
   name: string
   email: string
-  role: 'admin' | 'moderator'
+  role: 'admin' | 'moderator' | 'reviewer'
   invitedBy?: string | null
 }) {
   const resend = getResend()
   if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
 
   const { fromEmail, siteUrl } = getConfig()
-  const roleLabel = invite.role === 'admin' ? 'Admin' : 'Moderator'
+  const roleLabel = invite.role === 'admin' ? 'Admin' : invite.role === 'reviewer' ? 'Reviewer' : 'Moderator'
   const canDo = invite.role === 'admin'
     ? 'You have full access: approve members, log payments, add expenses, sync Square, send invitations, manage the board, run reports, and grant access to others.'
-    : 'You can approve pending members, log offline payments, sync Square, add expenses, and send membership invitations. Board content, videos, reports and team management stay with admins.'
+    : invite.role === 'reviewer'
+      ? 'You can see the members list and approve or deny pending membership applications. That is the extent of your access — no finances, board content, or reports.'
+      : 'You can add expenses, log offline payments, sync Square, and send membership invitations. Approve/deny of pending members stays with the reviewer and admins.'
   const senderLine = invite.invitedBy ? ` (invited by ${invite.invitedBy})` : ''
 
   return resend.emails.send({

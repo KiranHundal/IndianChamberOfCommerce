@@ -30,7 +30,7 @@ import Divider from '@/components/ui/Divider'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 
 interface HomeSummary {
-  role: 'admin' | 'moderator'
+  role: 'admin' | 'moderator' | 'reviewer'
   alerts: {
     pendingMembers: number
     unpaidMembers: number
@@ -70,6 +70,9 @@ export default function AdminHomePage() {
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const isAdmin = summary?.role === 'admin'
+  const isReviewer = summary?.role === 'reviewer'
+  const canSeeFinances = summary?.role === 'admin' || summary?.role === 'moderator'
+  const canFinanceActions = canSeeFinances
 
   const fetchSummary = useCallback(async () => {
     setLoading(true)
@@ -90,7 +93,7 @@ export default function AdminHomePage() {
     }
     if (status === 'authenticated') {
       const user = session?.user as Record<string, unknown>
-      if (user?.role !== 'admin' && user?.role !== 'moderator') {
+      if (user?.role !== 'admin' && user?.role !== 'moderator' && user?.role !== 'reviewer') {
         router.push('/portal')
         return
       }
@@ -175,9 +178,9 @@ export default function AdminHomePage() {
             </div>
           )}
 
-          {/* KPIs — Members first, then finance stack */}
+          {/* KPIs — Members first; finance tiles hidden for the review-only role */}
           <AnimatedSection>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className={`grid ${isReviewer ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4'} gap-4 mb-6`}>
               <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="w-4 h-4 text-accent" />
@@ -185,27 +188,31 @@ export default function AdminHomePage() {
                 </div>
                 <p className="font-display text-h3 text-brand font-light">{summary.kpis.totalMembers}</p>
               </Link>
-              <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Revenue YTD</p>
-                </div>
-                <p className="font-display text-h3 text-brand font-light">{money(summary.kpis.revenueYtd)}</p>
-              </Link>
-              <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <Receipt className="w-4 h-4 text-red-600" />
-                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Expenses YTD</p>
-                </div>
-                <p className="font-display text-h3 text-brand font-light">{money(summary.kpis.expensesYtd)}</p>
-              </Link>
-              <Link href="/admin/finances" className={`${summary.kpis.netPosition >= 0 ? 'bg-navy-900 text-white' : 'bg-red-50 border border-red-200'} rounded-xl p-5 hover:opacity-95 transition-all`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Wallet className={`w-4 h-4 ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-600'}`} />
-                  <p className={`font-label text-[0.6rem] tracking-widest uppercase ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-700'}`}>Net Position</p>
-                </div>
-                <p className={`font-display text-h3 font-light ${summary.kpis.netPosition >= 0 ? 'text-white' : 'text-brand'}`}>{money(summary.kpis.netPosition)}</p>
-              </Link>
+              {canSeeFinances && (
+                <>
+                  <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-600" />
+                      <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Revenue YTD</p>
+                    </div>
+                    <p className="font-display text-h3 text-brand font-light">{money(summary.kpis.revenueYtd)}</p>
+                  </Link>
+                  <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Receipt className="w-4 h-4 text-red-600" />
+                      <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Expenses YTD</p>
+                    </div>
+                    <p className="font-display text-h3 text-brand font-light">{money(summary.kpis.expensesYtd)}</p>
+                  </Link>
+                  <Link href="/admin/finances" className={`${summary.kpis.netPosition >= 0 ? 'bg-navy-900 text-white' : 'bg-red-50 border border-red-200'} rounded-xl p-5 hover:opacity-95 transition-all`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wallet className={`w-4 h-4 ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-600'}`} />
+                      <p className={`font-label text-[0.6rem] tracking-widest uppercase ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-700'}`}>Net Position</p>
+                    </div>
+                    <p className={`font-display text-h3 font-light ${summary.kpis.netPosition >= 0 ? 'text-white' : 'text-brand'}`}>{money(summary.kpis.netPosition)}</p>
+                  </Link>
+                </>
+              )}
             </div>
           </AnimatedSection>
 
@@ -242,7 +249,7 @@ export default function AdminHomePage() {
                       <ArrowRight className="w-4 h-4 text-red-600" />
                     </Link>
                   )}
-                  {summary.alerts.orphanPayments > 0 && (
+                  {!isReviewer && summary.alerts.orphanPayments > 0 && (
                     <Link
                       href="/admin/finances"
                       className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
@@ -254,7 +261,7 @@ export default function AdminHomePage() {
                       <ArrowRight className="w-4 h-4 text-red-600" />
                     </Link>
                   )}
-                  {summary.alerts.unverifiedApproved > 0 && (
+                  {!isReviewer && summary.alerts.unverifiedApproved > 0 && (
                     <Link
                       href="/admin/members?status=approved&method=unknown"
                       className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
@@ -271,57 +278,59 @@ export default function AdminHomePage() {
             </AnimatedSection>
           )}
 
-          {/* Quick actions */}
-          <AnimatedSection delay={2}>
-            <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-6">
-              <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <button
-                  onClick={handleSyncSquare}
-                  disabled={syncing}
-                  className="flex items-center justify-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-navy-800 transition-all disabled:opacity-50"
-                >
-                  {syncing ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 text-gold-400" />
-                      Sync Square
-                    </>
-                  )}
-                </button>
-                <Link
-                  href="/admin/members?openLogPayment=1"
-                  className="flex items-center justify-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-gold-900 transition-all"
-                >
-                  <DollarSign className="w-3.5 h-3.5" />
-                  Log Payment
-                </Link>
-                <Link
-                  href="/admin/finances?openExpense=1"
-                  className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5 text-red-600" />
-                  Add Expense
-                </Link>
-                <Link
-                  href="/admin/finances?openInvite=1"
-                  className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
-                >
-                  <Send className="w-3.5 h-3.5 text-accent" />
-                  Send Invitation
-                </Link>
+          {/* Quick actions — hidden for the review-only role */}
+          {!isReviewer && (
+            <AnimatedSection delay={2}>
+              <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-6">
+                <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <button
+                    onClick={handleSyncSquare}
+                    disabled={syncing}
+                    className="flex items-center justify-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-navy-800 transition-all disabled:opacity-50"
+                  >
+                    {syncing ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 text-gold-400" />
+                        Sync Square
+                      </>
+                    )}
+                  </button>
+                  <Link
+                    href="/admin/members?openLogPayment=1"
+                    className="flex items-center justify-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-gold-900 transition-all"
+                  >
+                    <DollarSign className="w-3.5 h-3.5" />
+                    Log Payment
+                  </Link>
+                  <Link
+                    href="/admin/finances?openExpense=1"
+                    className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-red-600" />
+                    Add Expense
+                  </Link>
+                  <Link
+                    href="/admin/finances?openInvite=1"
+                    className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
+                  >
+                    <Send className="w-3.5 h-3.5 text-accent" />
+                    Send Invitation
+                  </Link>
+                </div>
+                {summary.lastSync?.finishedAt && (
+                  <p className="text-[0.7rem] text-hint mt-3">
+                    Last Square sync: {new Date(summary.lastSync.finishedAt).toLocaleString()} · {summary.lastSync.status}
+                  </p>
+                )}
               </div>
-              {summary.lastSync?.finishedAt && (
-                <p className="text-[0.7rem] text-hint mt-3">
-                  Last Square sync: {new Date(summary.lastSync.finishedAt).toLocaleString()} · {summary.lastSync.status}
-                </p>
-              )}
-            </div>
-          </AnimatedSection>
+            </AnimatedSection>
+          )}
 
           {/* Navigation cards */}
           <AnimatedSection delay={3}>
@@ -329,13 +338,17 @@ export default function AdminHomePage() {
               <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
                 <Users className="w-6 h-6 text-accent mb-3" />
                 <p className="font-display text-h5 text-brand">Members</p>
-                <p className="text-[0.7rem] text-mid mt-1">Approve, review, log offline payments</p>
+                <p className="text-[0.7rem] text-mid mt-1">
+                  {isReviewer ? 'Approve or deny pending members' : 'Approve, review, log offline payments'}
+                </p>
               </Link>
-              <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                <DollarSign className="w-6 h-6 text-accent mb-3" />
-                <p className="font-display text-h5 text-brand">Finances</p>
-                <p className="text-[0.7rem] text-mid mt-1">Square + offline payments, expenses</p>
-              </Link>
+              {canSeeFinances && (
+                <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
+                  <DollarSign className="w-6 h-6 text-accent mb-3" />
+                  <p className="font-display text-h5 text-brand">Finances</p>
+                  <p className="text-[0.7rem] text-mid mt-1">Square + offline payments, expenses</p>
+                </Link>
+              )}
               {isAdmin && (
                 <Link href="/admin/team" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
                   <Settings className="w-6 h-6 text-accent mb-3" />

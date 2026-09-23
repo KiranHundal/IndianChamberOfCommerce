@@ -18,8 +18,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { memberId: 
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { role } = await req.json()
-  if (role !== 'admin' && role !== 'moderator') {
-    return NextResponse.json({ error: 'role must be "admin" or "moderator"' }, { status: 400 })
+  if (role !== 'admin' && role !== 'moderator' && role !== 'reviewer') {
+    return NextResponse.json({ error: 'role must be "admin", "moderator", or "reviewer"' }, { status: 400 })
   }
 
   const [target] = await db.select().from(members).where(eq(members.id, params.memberId)).limit(1)

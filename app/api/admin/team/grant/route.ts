@@ -14,8 +14,8 @@ export async function POST(req: Request) {
   }
 
   const { boardMemberId, email: rawEmail, name: rawName, role } = await req.json()
-  if (!role || (role !== 'admin' && role !== 'moderator')) {
-    return NextResponse.json({ error: 'role must be "admin" or "moderator"' }, { status: 400 })
+  if (!role || (role !== 'admin' && role !== 'moderator' && role !== 'reviewer')) {
+    return NextResponse.json({ error: 'role must be "admin", "moderator", or "reviewer"' }, { status: 400 })
   }
 
   let email = rawEmail?.toString().toLowerCase().trim() || ''
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   const invitedBy = sessionUser.name || sessionUser.email || null
 
   let emailStatus: 'sent' | 'failed' = 'sent'
-  async function trySendAccessEmail(displayName: string, addr: string, roleToSend: 'admin' | 'moderator') {
+  async function trySendAccessEmail(displayName: string, addr: string, roleToSend: 'admin' | 'moderator' | 'reviewer') {
     try {
       await sendTeamAccessEmail({ name: displayName, email: addr, role: roleToSend, invitedBy })
     } catch (err) {
