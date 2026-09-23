@@ -196,7 +196,7 @@ export default function AdminFinancesPage() {
     }
     if (status === 'authenticated') {
       const user = session?.user as Record<string, unknown>
-      if (user?.role !== 'admin') {
+      if (user?.role !== 'admin' && user?.role !== 'moderator') {
         router.push('/portal')
         return
       }

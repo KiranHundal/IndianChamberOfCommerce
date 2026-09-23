@@ -15,26 +15,29 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { membershipNumber, password } = body
+    const { membershipNumber, email, password } = body
+    const identifier = (membershipNumber ?? email ?? '').toString().trim()
 
-    if (!membershipNumber || !password) {
-      return NextResponse.json({ error: 'Membership number and password are required.' }, { status: 400 })
+    if (!identifier || !password) {
+      return NextResponse.json({ error: 'Membership number or email and a password are required.' }, { status: 400 })
     }
 
     if (password.length < 8) {
       return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 })
     }
 
-    const paddedNumber = String(membershipNumber).padStart(4, '0')
+    const looksLikeEmail = identifier.includes('@')
 
-    const [member] = await db
-      .select()
-      .from(members)
-      .where(eq(members.membershipNumber, paddedNumber))
-      .limit(1)
+    const [member] = looksLikeEmail
+      ? await db.select().from(members).where(eq(members.email, identifier.toLowerCase())).limit(1)
+      : await db
+          .select()
+          .from(members)
+          .where(eq(members.membershipNumber, String(identifier).padStart(4, '0')))
+          .limit(1)
 
     if (!member) {
-      return NextResponse.json({ error: 'Invalid membership number.' }, { status: 400 })
+      return NextResponse.json({ error: looksLikeEmail ? 'No account found for that email.' : 'Invalid membership number.' }, { status: 400 })
     }
 
     if (member.status !== 'approved') {

@@ -314,6 +314,68 @@ export async function sendBoardMemberWelcomeEmail(member: {
   })
 }
 
+export async function sendTeamAccessEmail(invite: {
+  name: string
+  email: string
+  role: 'admin' | 'moderator'
+  invitedBy?: string | null
+}) {
+  const resend = getResend()
+  if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
+
+  const { fromEmail, siteUrl } = getConfig()
+  const roleLabel = invite.role === 'admin' ? 'Admin' : 'Moderator'
+  const canDo = invite.role === 'admin'
+    ? 'You have full access: approve members, log payments, add expenses, sync Square, send invitations, manage the board, run reports, and grant access to others.'
+    : 'You can approve pending members, log offline payments, sync Square, add expenses, and send membership invitations. Board content, videos, reports and team management stay with admins.'
+  const senderLine = invite.invitedBy ? ` (invited by ${invite.invitedBy})` : ''
+
+  return resend.emails.send({
+    from: `CVICC <${fromEmail}>`,
+    to: invite.email,
+    subject: `Your CVICC ${roleLabel} Access`,
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
+        <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
+          <h1 style="color: #D4A830; font-size: 24px; margin: 0; font-weight: 300; letter-spacing: 2px;">
+            CENTRAL VALLEY INDIAN<br/>CHAMBER OF COMMERCE
+          </h1>
+        </div>
+        <div style="padding: 40px 32px; background: #FAFAF7;">
+          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">Team Access${senderLine}</p>
+          <h2 style="color: #1E3A5F; font-size: 22px; font-weight: 300; margin: 0 0 16px;">
+            Hi ${invite.name},
+          </h2>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
+            You now have <strong>${roleLabel}</strong> access to the CVICC admin dashboard. ${canDo}
+          </p>
+          <div style="background: #FFFFFF; border: 1px solid #EDE6D3; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
+            <p style="color: #1E3A5F; margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;">To set your password</p>
+            <ol style="color: #5A6A7A; margin: 0 0 12px 18px; padding: 0; line-height: 1.7; font-size: 14px;">
+              <li>Go to <a href="${siteUrl}/register" style="color: #1E3A5F;">${siteUrl}/register</a></li>
+              <li>Enter <strong>${invite.email}</strong> in the Membership Number / Email field</li>
+              <li>Choose a password (8+ characters) and confirm it</li>
+              <li>Sign in at <a href="${siteUrl}/login" style="color: #1E3A5F;">${siteUrl}/login</a></li>
+            </ol>
+            <div style="text-align: center; margin-top: 12px;">
+              <a href="${siteUrl}/register" style="display: inline-block; background: #D4A830; color: #FFFFFF; text-decoration: none; padding: 12px 28px; border-radius: 4px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">Set My Password</a>
+            </div>
+          </div>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 24px 0 0; font-size: 13px;">
+            Once signed in, you'll land on <a href="${siteUrl}/admin" style="color: #1E3A5F;">${siteUrl}/admin</a>. Any questions, just reply to this email.
+          </p>
+        </div>
+        <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
+          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+            Central Valley Indian Chamber of Commerce, Inc.<br/>
+            4610 W Jacquelyn Ave, Fresno, CA 93722
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
 const SQUARE_CHECKOUT_LINKS = {
   individual: 'https://square.link/u/Av93qe4Z',
   corporate: 'https://square.link/u/9opDARDg',

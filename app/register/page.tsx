@@ -31,7 +31,7 @@ export default function RegisterPage() {
     setError('')
 
     const form = e.currentTarget
-    const membershipNumber = (form.elements.namedItem('membershipNumber') as HTMLInputElement).value.trim()
+    const identifier = (form.elements.namedItem('identifier') as HTMLInputElement).value.trim()
     const password = (form.elements.namedItem('password') as HTMLInputElement).value
     const confirmPassword = (form.elements.namedItem('confirmPassword') as HTMLInputElement).value
 
@@ -41,17 +41,21 @@ export default function RegisterPage() {
       return
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
       setLoading(false)
       return
     }
+
+    const payload = identifier.includes('@')
+      ? { email: identifier, password }
+      : { membershipNumber: identifier, password }
 
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ membershipNumber, password }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
@@ -150,7 +154,7 @@ export default function RegisterPage() {
           </AnimatedSection>
           <AnimatedSection delay={3}>
             <p className="text-body text-white/55 mt-4">
-              Enter your membership number from your approval email to set up your account.
+              Enter your membership number (from your approval email) or your email address to set up your account.
             </p>
           </AnimatedSection>
         </div>
@@ -162,17 +166,17 @@ export default function RegisterPage() {
             <div className="bg-white border border-ivory-200 rounded-xl p-8 shadow-card">
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label htmlFor="membershipNumber" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                    Membership Number *
+                  <label htmlFor="identifier" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Membership Number or Email *
                   </label>
                   <input
-                    id="membershipNumber"
-                    name="membershipNumber"
+                    id="identifier"
+                    name="identifier"
                     type="text"
                     required
-                    className={inputClass + ' text-center text-h3 font-display tracking-widest'}
-                    placeholder="0001"
-                    maxLength={4}
+                    autoComplete="username"
+                    className={inputClass}
+                    placeholder="0001  or  you@example.com"
                   />
                 </div>
 
@@ -180,7 +184,7 @@ export default function RegisterPage() {
                   <label htmlFor="password" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
                     Password *
                   </label>
-                  <input id="password" name="password" type="password" required className={inputClass} placeholder="Min 6 characters" />
+                  <input id="password" name="password" type="password" required className={inputClass} placeholder="Min 8 characters" />
                 </div>
 
                 <div>

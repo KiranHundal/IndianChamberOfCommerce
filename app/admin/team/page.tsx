@@ -95,9 +95,12 @@ export default function AdminTeamPage() {
         setNotice({ type: 'error', text: body.error || 'Failed to grant access.' })
       } else {
         await fetchData()
+        const emailNote = body.emailStatus === 'failed'
+          ? ' (access email FAILED to send — send them the /register link manually)'
+          : ' · access email sent'
         setNotice({
           type: 'success',
-          text: `${bm.name} now has ${role} access. They can log in at /login with ${bm.email}.`,
+          text: `${bm.name} now has ${role} access${emailNote}. They set their password at /register using ${bm.email}.`,
         })
       }
     } catch (err) {
@@ -128,9 +131,12 @@ export default function AdminTeamPage() {
       } else {
         setShowManual(false)
         await fetchData()
+        const emailNote = body.emailStatus === 'failed'
+          ? ' (access email FAILED to send — send them the /register link manually)'
+          : ' · access email sent'
         setNotice({
           type: 'success',
-          text: `${payload.name} now has ${payload.role} access. They can log in at /login with ${payload.email}.`,
+          text: `${payload.name} now has ${payload.role} access${emailNote}. They set their password at /register using ${payload.email}.`,
         })
       }
     } catch (err) {

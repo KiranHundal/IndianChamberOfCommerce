@@ -12,7 +12,7 @@ export const revalidate = 0
 export async function GET() {
   const session = await getServerSession(authOptions)
   const user = session?.user as Record<string, unknown> | undefined
-  if (!user || user.role !== 'admin') {
+  if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

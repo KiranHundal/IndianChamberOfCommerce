@@ -9,7 +9,7 @@ import { sendMembershipInvitationEmail } from '@/lib/email'
 async function requireAdmin() {
   const session = await getServerSession(authOptions)
   const user = session?.user as Record<string, unknown> | undefined
-  if (!user || user.role !== 'admin') return null
+  if (!user || (user.role !== 'admin' && user.role !== 'moderator')) return null
   return session
 }
 

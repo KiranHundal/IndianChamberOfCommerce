@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { members, boardMembers } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { sendTeamAccessEmail } from '@/lib/email'
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
@@ -39,6 +40,19 @@ export async function POST(req: Request) {
 
   const [existing] = await db.select().from(members).where(eq(members.email, email)).limit(1)
 
+  const sessionUser = (session?.user || {}) as { name?: string; email?: string }
+  const invitedBy = sessionUser.name || sessionUser.email || null
+
+  let emailStatus: 'sent' | 'failed' = 'sent'
+  async function trySendAccessEmail(displayName: string, addr: string, roleToSend: 'admin' | 'moderator') {
+    try {
+      await sendTeamAccessEmail({ name: displayName, email: addr, role: roleToSend, invitedBy })
+    } catch (err) {
+      console.error('sendTeamAccessEmail failed for', addr, err)
+      emailStatus = 'failed'
+    }
+  }
+
   if (existing) {
     if (existing.role === role) {
       return NextResponse.json({ error: `${existing.name} already has ${role} access.` }, { status: 400 })
@@ -47,12 +61,14 @@ export async function POST(req: Request) {
       .update(members)
       .set({ role, status: 'approved', approvedAt: existing.approvedAt || new Date() })
       .where(eq(members.id, existing.id))
+    await trySendAccessEmail(existing.name, email, role)
     return NextResponse.json({
       success: true,
       memberId: existing.id,
       email,
       name: existing.name,
       role,
+      emailStatus,
       updatedExisting: true,
     })
   }
@@ -79,6 +95,7 @@ export async function POST(req: Request) {
     paymentReference: null,
     paymentDate: null,
   })
+  await trySendAccessEmail(name, email, role)
 
   return NextResponse.json({
     success: true,
@@ -86,6 +103,7 @@ export async function POST(req: Request) {
     email,
     name,
     role,
+    emailStatus,
     updatedExisting: false,
   })
 }

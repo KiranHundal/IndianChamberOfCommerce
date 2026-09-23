@@ -276,25 +276,23 @@ export default function AdminHomePage() {
             <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-6">
               <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Quick Actions</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {isAdmin && (
-                  <button
-                    onClick={handleSyncSquare}
-                    disabled={syncing}
-                    className="flex items-center justify-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-navy-800 transition-all disabled:opacity-50"
-                  >
-                    {syncing ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 text-gold-400" />
-                        Sync Square
-                      </>
-                    )}
-                  </button>
-                )}
+                <button
+                  onClick={handleSyncSquare}
+                  disabled={syncing}
+                  className="flex items-center justify-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-navy-800 transition-all disabled:opacity-50"
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 text-gold-400" />
+                      Sync Square
+                    </>
+                  )}
+                </button>
                 <Link
                   href="/admin/members?openLogPayment=1"
                   className="flex items-center justify-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-gold-900 transition-all"
@@ -302,24 +300,20 @@ export default function AdminHomePage() {
                   <DollarSign className="w-3.5 h-3.5" />
                   Log Payment
                 </Link>
-                {isAdmin && (
-                  <Link
-                    href="/admin/finances?openExpense=1"
-                    className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-red-600" />
-                    Add Expense
-                  </Link>
-                )}
-                {isAdmin && (
-                  <Link
-                    href="/admin/finances?openInvite=1"
-                    className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
-                  >
-                    <Send className="w-3.5 h-3.5 text-accent" />
-                    Send Invitation
-                  </Link>
-                )}
+                <Link
+                  href="/admin/finances?openExpense=1"
+                  className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5 text-red-600" />
+                  Add Expense
+                </Link>
+                <Link
+                  href="/admin/finances?openInvite=1"
+                  className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
+                >
+                  <Send className="w-3.5 h-3.5 text-accent" />
+                  Send Invitation
+                </Link>
               </div>
               {summary.lastSync?.finishedAt && (
                 <p className="text-[0.7rem] text-hint mt-3">
