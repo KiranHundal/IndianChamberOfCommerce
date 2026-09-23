@@ -54,21 +54,28 @@ export async function GET() {
     return m.membershipTier === 'corporate' ? 395 : 95
   }
 
-  // Non-Square revenue from members (check, Zelle, cash, other)
+  // Members that ARE linked to a Square payment — their money is already in
+  // squareGross (below), so we mustn't double-count their inferred amount.
+  const squareLinkedMemberIds = new Set(
+    allSquarePayments.map((p) => p.matchedMemberId).filter((id): id is string => Boolean(id))
+  )
+
+  // Non-Square revenue: members WITHOUT a linked Square payment. This is money
+  // that came in outside of Square (checks, Zelle, cash) plus estimates for
+  // members whose payment method we haven't recorded yet.
   const nonSquareRevenue = allMembers.reduce((sum, m) => {
     if (m.role === 'admin' || m.role === 'moderator') return sum
-    const method = m.paymentMethod || 'square'
-    if (method === 'square') return sum
-    const amount = inferredAmount(m)
-    return sum + amount
+    if (squareLinkedMemberIds.has(m.id)) return sum
+    return sum + inferredAmount(m)
   }, 0)
 
   const revenueByMethod = allMembers.reduce<Record<string, number>>((acc, m) => {
     if (m.role === 'admin' || m.role === 'moderator') return acc
-    const method = m.paymentMethod || 'square'
-    if (method === 'square') return acc // Square is added separately from squarePayments
+    if (squareLinkedMemberIds.has(m.id)) return acc // Square counted separately
     const amount = inferredAmount(m)
     if (amount === 0) return acc
+    const method = m.paymentMethod || 'unknown'
+    if (method === 'square') return acc
     acc[method] = (acc[method] || 0) + amount
     return acc
   }, {})
@@ -218,6 +225,7 @@ export async function GET() {
         inferredAmount: amt,
         isEstimated: !isStaff && (!m.amountPaid || m.amountPaid <= 0) && amt > 0,
         isStaff,
+        hasSquareReceipt: squareLinkedMemberIds.has(m.id),
         paymentReference: m.paymentReference,
         paymentDate: m.paymentDate,
         createdAt: m.createdAt,
@@ -245,6 +253,10 @@ export async function GET() {
       estimatedSquareFees,
       squareFeesAreReal,
       net: netRevenue,
+      nonSquare: Math.round(nonSquareRevenue * 100) / 100,
+      nonSquareMemberCount: allMembers.filter(
+        (m) => m.role !== 'admin' && m.role !== 'moderator' && !squareLinkedMemberIds.has(m.id) && inferredAmount(m) > 0
+      ).length,
     },
     square: {
       lastSync: lastSyncRow || null,

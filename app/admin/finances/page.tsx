@@ -41,6 +41,7 @@ interface MemberRow {
   inferredAmount: number
   isEstimated: boolean
   isStaff: boolean
+  hasSquareReceipt: boolean
   paymentReference: string | null
   paymentDate: string | number | null
   createdAt: string | number
@@ -62,6 +63,8 @@ interface Summary {
     estimatedSquareFees: number
     squareFeesAreReal: boolean
     net: number
+    nonSquare: number
+    nonSquareMemberCount: number
   }
   square: {
     lastSync: {
@@ -473,13 +476,53 @@ export default function AdminFinancesPage() {
             </div>
           </div>
 
+          {/* Revenue breakdown — Square vs Offline */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-white border border-navy-100 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">
+                  With Square Receipts
+                </p>
+              </div>
+              <p className="font-display text-h3 text-brand font-light">{money(summary.revenue.squareGross)}</p>
+              <p className="text-[0.7rem] text-hint mt-1">
+                {summary.revenue.squareTransactionCount} Square payments · matches Square Dashboard
+              </p>
+            </div>
+            <div className="bg-white border border-amber-200 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-amber-600" />
+                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70">
+                  Without Square Receipts
+                </p>
+              </div>
+              <p className="font-display text-h3 text-brand font-light">{money(summary.revenue.nonSquare)}</p>
+              <p className="text-[0.7rem] text-hint mt-1">
+                {summary.revenue.nonSquareMemberCount} members · offline payments + estimates
+              </p>
+            </div>
+          </div>
+
           {/* Revenue waterfall */}
           <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-8">
             <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Revenue Waterfall</h3>
             <div className="space-y-2 text-small">
               <div className="flex justify-between items-center py-2 border-b border-ivory-200">
-                <span className="text-charcoal">Gross Revenue Collected</span>
-                <span className="font-medium text-emerald-700">{money(summary.revenue.tracked)}</span>
+                <span className="text-charcoal">
+                  ✓ With Square Receipts <span className="text-hint">({summary.revenue.squareTransactionCount} payments)</span>
+                </span>
+                <span className="font-medium text-emerald-700">{money(summary.revenue.squareGross)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-ivory-200">
+                <span className="text-charcoal">
+                  ⚠ Without Square Receipts <span className="text-hint">({summary.revenue.nonSquareMemberCount} members)</span>
+                </span>
+                <span className="font-medium text-amber-700">{money(summary.revenue.nonSquare)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b-2 border-ivory-200">
+                <span className="text-brand font-bold">Gross Revenue Collected</span>
+                <span className="font-medium text-brand">{money(summary.revenue.tracked)}</span>
               </div>
               {summary.revenue.estimatedSquareFees > 0 && (
                 <div className="flex justify-between items-center py-2 border-b border-ivory-200">
@@ -698,7 +741,9 @@ export default function AdminFinancesPage() {
                   className="border border-ivory-200 rounded-md px-3 py-1.5 text-small focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
                   <option value="all">All payment methods</option>
-                  <option value="square">Website (Square)</option>
+                  <option value="has_square_receipt">Has Square receipt ✓</option>
+                  <option value="no_square_receipt">No Square receipt ✗</option>
+                  <option value="square">Method: Square</option>
                   <option value="offline">Offline (Check / Zelle / Cash / Other)</option>
                   <option value="check">Check only</option>
                   <option value="zelle">Zelle only</option>
@@ -714,7 +759,11 @@ export default function AdminFinancesPage() {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (methodFilter !== 'all') {
                   const method = (m.paymentMethod || '').toLowerCase()
-                  if (methodFilter === 'unknown') {
+                  if (methodFilter === 'has_square_receipt') {
+                    if (!m.hasSquareReceipt) return false
+                  } else if (methodFilter === 'no_square_receipt') {
+                    if (m.hasSquareReceipt) return false
+                  } else if (methodFilter === 'unknown') {
                     if (method !== '') return false
                   } else if (methodFilter === 'offline') {
                     if (!['check', 'zelle', 'cash', 'other'].includes(method)) return false
@@ -761,7 +810,11 @@ export default function AdminFinancesPage() {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (methodFilter !== 'all') {
                   const method = (m.paymentMethod || '').toLowerCase()
-                  if (methodFilter === 'unknown') {
+                  if (methodFilter === 'has_square_receipt') {
+                    if (!m.hasSquareReceipt) return false
+                  } else if (methodFilter === 'no_square_receipt') {
+                    if (m.hasSquareReceipt) return false
+                  } else if (methodFilter === 'unknown') {
                     if (method !== '') return false
                   } else if (methodFilter === 'offline') {
                     if (!['check', 'zelle', 'cash', 'other'].includes(method)) return false
