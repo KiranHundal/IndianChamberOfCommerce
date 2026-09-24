@@ -454,6 +454,7 @@ export async function sendMembershipInvitationEmail(invite: {
   fromDesignation?: string | null
   fromEmail?: string | null
   fromReplyTo?: string | null
+  textOnly?: boolean | null
 }) {
   const resend = getResend()
   if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
@@ -504,6 +505,25 @@ export async function sendMembershipInvitationEmail(invite: {
     '',
     `— To unsubscribe from future CVICC emails, reply with "unsubscribe" or visit ${siteUrl}/contact.`,
   ].filter(Boolean).join('\n')
+
+  // Text-only mode: skip the HTML body entirely. Gmail's Promotions
+  // classifier almost never fires on text/plain-only mail because the
+  // signal it uses (HTML template chrome) isn't there. Recommended for
+  // invitations to bank execs or anyone we want in Primary rather than
+  // Promotions.
+  if (invite.textOnly) {
+    return resend.emails.send({
+      from: `${invite.fromName || 'CVICC'} <${fromEmail}>`,
+      to: invite.email,
+      replyTo: invite.fromReplyTo?.trim() || fromEmail,
+      subject,
+      text: plainText,
+      headers: {
+        'List-Unsubscribe': `<${siteUrl}/contact>, <mailto:${invite.fromReplyTo?.trim() || fromEmail}?subject=Unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    })
+  }
 
   return resend.emails.send({
     from: `${invite.fromName || 'CVICC'} <${fromEmail}>`,

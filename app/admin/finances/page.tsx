@@ -328,6 +328,7 @@ export default function AdminFinancesPage() {
       fromDesignation: fd.get('fromDesignation'),
       fromEmail: fd.get('fromEmail'),
       fromReplyTo: fd.get('fromReplyTo'),
+      textOnly: fd.get('textOnly') === 'on',
     }
     try {
       const res = await fetch('/api/admin/invitations', {
@@ -1099,6 +1100,18 @@ export default function AdminFinancesPage() {
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Personal Note</label>
                 <textarea name="personalNote" rows={3} className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="Appears as a highlighted quote in the email." />
               </div>
+              <label className="md:col-span-2 flex items-start gap-3 cursor-pointer select-none bg-gold-50 border border-gold-100 rounded-md p-3 mt-1">
+                <input type="checkbox" name="textOnly" defaultChecked className="mt-0.5 w-4 h-4 accent-accent" />
+                <span className="text-small text-charcoal">
+                  <strong>Send as plain text (highest inbox rate)</strong>
+                  <br />
+                  <span className="text-mid text-[0.75rem]">
+                    Skips all HTML formatting. Gmail almost never puts text-only mail in Promotions —
+                    the recipient sees your message in Primary. Uncheck if you want the styled HTML
+                    version instead.
+                  </span>
+                </span>
+              </label>
               {modalError && <div className="md:col-span-2 text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">{modalError}</div>}
               <div className="md:col-span-2 flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowInvite(false)} disabled={modalSaving} className="flex-1 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:border-brand/30 disabled:opacity-50">Cancel</button>
