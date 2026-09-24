@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import {
   Users, TrendingUp, Receipt, Wallet, AlertCircle, ArrowRight, Send, Plus,
-  RefreshCw, Loader2, DollarSign, UserPlus, Award,
+  RefreshCw, Loader2, DollarSign, UserPlus, Award, CreditCard,
 } from 'lucide-react'
 import { useEffectiveRole } from '@/lib/use-effective-role'
 import AdminShell from '@/components/admin/AdminShell'
@@ -261,7 +261,7 @@ export default function AdminHomePage() {
                 <p className={`text-2xl font-medium ${stats.kpis.net >= 0 ? 'text-white' : 'text-brand'}`}>{money(stats.kpis.net)}</p>
               </div>
               <div className="bg-white border border-ivory-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1"><DollarSign className="w-3.5 h-3.5 text-brand" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Payments</p></div>
+                <div className="flex items-center gap-2 mb-1"><CreditCard className="w-3.5 h-3.5 text-brand" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Transactions</p></div>
                 <p className="text-2xl font-medium text-brand">{stats.kpis.payments}</p>
               </div>
             </>
