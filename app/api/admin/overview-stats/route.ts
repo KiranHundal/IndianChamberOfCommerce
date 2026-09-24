@@ -269,9 +269,17 @@ export async function GET(req: Request) {
   const totalRevenue = revenueTrend.reduce((s, r) => s + r.revenue, 0)
   const totalNewMembers = newMembersTrend.reduce((s, r) => s + r.count, 0)
   const totalPayments = revenueTrend.reduce((s, r) => s + r.payments, 0)
-  const totalExpenses = allExpensesLive
+  const loggedExpenseTotal = allExpensesLive
     .filter((e) => inRange(e.expenseDate))
     .reduce((s, e) => s + e.amount, 0)
+  // Square processing fees are synthetic — they don't live in the expenses
+  // table, they're the sum of feeCents on COMPLETED Square payments in the
+  // range. The Expenses page shows them as a "Payment Processing (Square)"
+  // row, so Overview has to include them too or the two pages disagree.
+  const squareFeeTotal = allPayments
+    .filter((p) => p.status === 'COMPLETED' && p.paidAt && inRange(p.paidAt))
+    .reduce((s, p) => s + p.feeCents, 0) / 100
+  const totalExpenses = Math.round((loggedExpenseTotal + squareFeeTotal) * 100) / 100
 
   return NextResponse.json({
     period,
