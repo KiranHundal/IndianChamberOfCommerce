@@ -9,7 +9,7 @@ import {
   CartesianGrid, Legend, LineChart, Line,
 } from 'recharts'
 import {
-  Users, TrendingUp, Receipt, Wallet, AlertCircle, ArrowRight, Send, Plus,
+  Users, TrendingUp, Receipt, Wallet, Send, Plus,
   RefreshCw, Loader2, DollarSign, UserPlus, Award, CreditCard,
 } from 'lucide-react'
 import { useEffectiveRole } from '@/lib/use-effective-role'
@@ -137,29 +137,9 @@ export default function AdminHomePage() {
   }
 
   const userName = ((session?.user as { name?: string })?.name || 'Admin').split(' ')[0]
-  const hasAlerts =
-    summary.alerts.pendingMembers > 0 ||
-    summary.alerts.unpaidMembers > 0 ||
-    summary.alerts.orphanPayments > 0 ||
-    summary.alerts.unverifiedApproved > 0
 
   const headerActions = !isReviewer ? (
     <>
-      {/* Period picker */}
-      <div className="inline-flex items-center gap-0.5 bg-white border border-ivory-200 rounded p-0.5">
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            onClick={() => setPeriod(p.key)}
-            className={`text-xs font-medium px-2 py-1 rounded transition-all ${
-              period === p.key ? 'bg-navy-900 text-white' : 'text-mid hover:text-brand'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
       <button
         type="button"
         onClick={handleSyncSquare}
@@ -204,69 +184,56 @@ export default function AdminHomePage() {
         </div>
       )}
 
-      {/* Alerts strip — same as before, always visible when there are alerts */}
-      {hasAlerts && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-3.5 h-3.5 text-red-600" />
-            <p className="text-[0.65rem] font-medium uppercase tracking-wide text-red-800">Needs your attention</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {summary.alerts.pendingMembers > 0 && (
-              <Link href="/admin/members?status=pending" className="flex items-center justify-between bg-white border border-red-200 rounded px-3 py-2 hover:border-red-400">
-                <div><p className="text-lg font-medium text-brand leading-tight">{summary.alerts.pendingMembers}</p><p className="text-xs text-mid">Awaiting approval</p></div>
-                <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+      {/* KPI tiles for the selected period — each links to the relevant tab */}
+      {stats && (
+        <div className={`grid ${isReviewer ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5'} gap-3 mb-4`}>
+          <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-lg p-4 hover:border-accent/40 hover:shadow-hover transition-all">
+            <div className="flex items-center gap-2 mb-1"><Users className="w-3.5 h-3.5 text-accent" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">New Members</p></div>
+            <p className="text-2xl font-medium text-brand">{stats.kpis.newMembers}</p>
+          </Link>
+          {canSeeFinances && (
+            <>
+              <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-lg p-4 hover:border-accent/40 hover:shadow-hover transition-all">
+                <div className="flex items-center gap-2 mb-1"><TrendingUp className="w-3.5 h-3.5 text-emerald-600" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Revenue</p></div>
+                <p className="text-2xl font-medium text-brand">{money(stats.kpis.revenue)}</p>
               </Link>
-            )}
-            {summary.alerts.unpaidMembers > 0 && (
-              <Link href="/admin/members?status=unpaid" className="flex items-center justify-between bg-white border border-red-200 rounded px-3 py-2 hover:border-red-400">
-                <div><p className="text-lg font-medium text-brand leading-tight">{summary.alerts.unpaidMembers}</p><p className="text-xs text-mid">Unpaid signups</p></div>
-                <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+              <Link href="/admin/expenses" className="bg-white border border-ivory-200 rounded-lg p-4 hover:border-accent/40 hover:shadow-hover transition-all">
+                <div className="flex items-center gap-2 mb-1"><Receipt className="w-3.5 h-3.5 text-red-600" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Expenses</p></div>
+                <p className="text-2xl font-medium text-brand">{money(stats.kpis.expenses)}</p>
               </Link>
-            )}
-            {!isReviewer && summary.alerts.orphanPayments > 0 && (
-              <Link href="/admin/finances" className="flex items-center justify-between bg-white border border-red-200 rounded px-3 py-2 hover:border-red-400">
-                <div><p className="text-lg font-medium text-brand leading-tight">{summary.alerts.orphanPayments}</p><p className="text-xs text-mid">Orphan Square payments</p></div>
-                <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+              <Link href="/admin/finances" className={`rounded-lg p-4 hover:opacity-95 transition-all ${stats.kpis.net >= 0 ? 'bg-navy-900 text-white' : 'bg-red-50 border border-red-200'}`}>
+                <div className="flex items-center gap-2 mb-1"><Wallet className={`w-3.5 h-3.5 ${stats.kpis.net >= 0 ? 'text-gold-400' : 'text-red-600'}`} /><p className={`text-[0.65rem] font-medium uppercase tracking-wide ${stats.kpis.net >= 0 ? 'text-gold-400' : 'text-red-700'}`}>Net</p></div>
+                <p className={`text-2xl font-medium ${stats.kpis.net >= 0 ? 'text-white' : 'text-brand'}`}>{money(stats.kpis.net)}</p>
               </Link>
-            )}
-            {!isReviewer && summary.alerts.unverifiedApproved > 0 && (
-              <Link href="/admin/members?status=approved&method=unknown" className="flex items-center justify-between bg-white border border-red-200 rounded px-3 py-2 hover:border-red-400">
-                <div><p className="text-lg font-medium text-brand leading-tight">{summary.alerts.unverifiedApproved}</p><p className="text-xs text-mid">Approved · no method</p></div>
-                <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+              <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-lg p-4 hover:border-accent/40 hover:shadow-hover transition-all">
+                <div className="flex items-center gap-2 mb-1"><CreditCard className="w-3.5 h-3.5 text-brand" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Transactions</p></div>
+                <p className="text-2xl font-medium text-brand">{stats.kpis.payments}</p>
               </Link>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* KPI tiles for the selected period */}
-      {stats && (
-        <div className={`grid ${isReviewer ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5'} gap-3 mb-5`}>
-          <div className="bg-white border border-ivory-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-1"><Users className="w-3.5 h-3.5 text-accent" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">New Members</p></div>
-            <p className="text-2xl font-medium text-brand">{stats.kpis.newMembers}</p>
+      {/* Period pill — controls every chart below and the KPI values above */}
+      {stats && !isReviewer && (
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <p className="text-xs text-hint">
+            Showing {PERIODS.find((p) => p.key === period)?.label.toLowerCase() || period} — click a KPI to open the tab.
+          </p>
+          <div className="inline-flex items-center gap-0.5 bg-white border border-ivory-200 rounded p-0.5">
+            {PERIODS.map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setPeriod(p.key)}
+                className={`text-xs font-medium px-2.5 py-1 rounded transition-all ${
+                  period === p.key ? 'bg-navy-900 text-white' : 'text-mid hover:text-brand'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
-          {canSeeFinances && (
-            <>
-              <div className="bg-white border border-ivory-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1"><TrendingUp className="w-3.5 h-3.5 text-emerald-600" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Revenue</p></div>
-                <p className="text-2xl font-medium text-brand">{money(stats.kpis.revenue)}</p>
-              </div>
-              <div className="bg-white border border-ivory-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1"><Receipt className="w-3.5 h-3.5 text-red-600" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Expenses</p></div>
-                <p className="text-2xl font-medium text-brand">{money(stats.kpis.expenses)}</p>
-              </div>
-              <div className={`rounded-lg p-4 ${stats.kpis.net >= 0 ? 'bg-navy-900 text-white' : 'bg-red-50 border border-red-200'}`}>
-                <div className="flex items-center gap-2 mb-1"><Wallet className={`w-3.5 h-3.5 ${stats.kpis.net >= 0 ? 'text-gold-400' : 'text-red-600'}`} /><p className={`text-[0.65rem] font-medium uppercase tracking-wide ${stats.kpis.net >= 0 ? 'text-gold-400' : 'text-red-700'}`}>Net</p></div>
-                <p className={`text-2xl font-medium ${stats.kpis.net >= 0 ? 'text-white' : 'text-brand'}`}>{money(stats.kpis.net)}</p>
-              </div>
-              <div className="bg-white border border-ivory-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-1"><CreditCard className="w-3.5 h-3.5 text-brand" /><p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Transactions</p></div>
-                <p className="text-2xl font-medium text-brand">{stats.kpis.payments}</p>
-              </div>
-            </>
-          )}
         </div>
       )}
 
