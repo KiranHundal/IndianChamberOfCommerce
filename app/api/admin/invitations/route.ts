@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { email, name, businessName, suggestedTier, personalNote, fromName, fromDesignation, fromEmail, fromReplyTo, textOnly } = body
+    const { email, name, businessName, suggestedTier, personalNote, fromName, fromDesignation, fromEmail, fromReplyTo, textOnly, subjectOverride, bodyOverride } = body
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 })
@@ -68,6 +68,8 @@ export async function POST(req: NextRequest) {
         fromEmail: fromEmail || null,
         fromReplyTo: fromReplyTo || null,
         textOnly: !!textOnly,
+        subjectOverride: subjectOverride || null,
+        bodyOverride: bodyOverride || null,
       })
       // Resend returns { data, error } on the response body. A 2xx HTTP can
       // still carry a delivery error inside (unverified domain, bad address,

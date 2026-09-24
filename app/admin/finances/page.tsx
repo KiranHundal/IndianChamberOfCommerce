@@ -171,6 +171,59 @@ export default function AdminFinancesPage() {
   const [modalSaving, setModalSaving] = useState(false)
   const [modalError, setModalError] = useState('')
 
+  // Editable preview of the personal-note invitation text. Regenerated on
+  // form-field change if the user hasn't touched the textareas yet; once
+  // they edit, we leave their edits alone.
+  const [previewSubject, setPreviewSubject] = useState('')
+  const [previewBody, setPreviewBody] = useState('')
+  const [previewTouched, setPreviewTouched] = useState(false)
+
+  function buildPreview(vals: {
+    name?: string
+    businessName?: string
+    personalNote?: string
+    fromName?: string
+    fromDesignation?: string
+  }) {
+    const firstName = vals.name?.split(' ')[0]?.trim()
+    const greeting = firstName ? `Hi ${firstName},` : 'Hi there,'
+    const senderName = (vals.fromName || 'Kiran Hundal').trim()
+    const senderFirst = senderName.split(' ')[0]
+    const subject = `Quick note from ${senderFirst}`
+    const businessLine = vals.businessName?.trim()
+      ? `I thought of ${vals.businessName.trim()} and wanted to reach out.`
+      : `I thought of you and wanted to reach out.`
+    const body = [
+      greeting,
+      '',
+      `Hope you're doing well. I'm on the board of the Central Valley Indian Chamber of Commerce, and we've been building a group of Indian-American business owners and professionals across the valley — finance, healthcare, real estate, hospitality, and a lot in between.`,
+      businessLine,
+      vals.personalNote?.trim() ? `\n${vals.personalNote.trim()}\n` : '',
+      `Would you have 15 minutes for a coffee or a quick call so I can give you a real sense of what we do? No pressure either way — just wanted to say hello.`,
+      '',
+      `Warmly,`,
+      senderName,
+      (vals.fromDesignation || '').trim(),
+      'Central Valley Indian Chamber of Commerce',
+    ].filter(Boolean).join('\n')
+    return { subject, body }
+  }
+
+  function regeneratePreviewFromForm(form: HTMLFormElement | null) {
+    if (!form) return
+    const fd = new FormData(form)
+    const { subject, body } = buildPreview({
+      name: fd.get('name') as string,
+      businessName: fd.get('businessName') as string,
+      personalNote: fd.get('personalNote') as string,
+      fromName: fd.get('fromName') as string,
+      fromDesignation: fd.get('fromDesignation') as string,
+    })
+    setPreviewSubject(subject)
+    setPreviewBody(body)
+    setPreviewTouched(false)
+  }
+
   const [fetchError, setFetchError] = useState('')
   const { effectiveRole } = useEffectiveRole()
 
@@ -329,6 +382,8 @@ export default function AdminFinancesPage() {
       fromEmail: fd.get('fromEmail'),
       fromReplyTo: fd.get('fromReplyTo'),
       textOnly: fd.get('textOnly') === 'on',
+      subjectOverride: previewSubject,
+      bodyOverride: previewBody,
     }
     try {
       const res = await fetch('/api/admin/invitations', {
@@ -423,7 +478,15 @@ export default function AdminFinancesPage() {
       </button>
       <button
         type="button"
-        onClick={() => { setModalError(''); setShowInvite(true) }}
+        onClick={() => {
+          setModalError('')
+          // Seed the preview so the textareas aren't empty on open.
+          const { subject, body } = buildPreview({ fromName: 'Kiran Hundal', fromDesignation: 'Treasurer & Chief Financial Officer' })
+          setPreviewSubject(subject)
+          setPreviewBody(body)
+          setPreviewTouched(false)
+          setShowInvite(true)
+        }}
         className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
       >
         <Send className="w-3.5 h-3.5 text-accent" />
@@ -1039,11 +1102,19 @@ export default function AdminFinancesPage() {
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Their Name</label>
-                <input name="name" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <input
+                  name="name"
+                  onChange={(e) => { if (!previewTouched) regeneratePreviewFromForm(e.currentTarget.form) }}
+                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Business Name</label>
-                <input name="businessName" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <input
+                  name="businessName"
+                  onChange={(e) => { if (!previewTouched) regeneratePreviewFromForm(e.currentTarget.form) }}
+                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Suggested Tier</label>
@@ -1055,11 +1126,23 @@ export default function AdminFinancesPage() {
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Sign As (Name)</label>
-                <input name="fromName" defaultValue="Kiran Hundal" placeholder="e.g. Kiran Hundal" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <input
+                  name="fromName"
+                  defaultValue="Kiran Hundal"
+                  placeholder="e.g. Kiran Hundal"
+                  onChange={(e) => { if (!previewTouched) regeneratePreviewFromForm(e.currentTarget.form) }}
+                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Your Designation</label>
-                <input name="fromDesignation" defaultValue="Treasurer & Chief Financial Officer" placeholder="e.g. Treasurer & CFO" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <input
+                  name="fromDesignation"
+                  defaultValue="Treasurer & Chief Financial Officer"
+                  placeholder="e.g. Treasurer & CFO"
+                  onChange={(e) => { if (!previewTouched) regeneratePreviewFromForm(e.currentTarget.form) }}
+                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Send From</label>
@@ -1098,7 +1181,51 @@ export default function AdminFinancesPage() {
               </div>
               <div className="md:col-span-2">
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Personal Note</label>
-                <textarea name="personalNote" rows={3} className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="Appears as a highlighted quote in the email." />
+                <textarea
+                  name="personalNote"
+                  rows={2}
+                  onChange={(e) => {
+                    // If the user hasn't manually edited the preview yet,
+                    // keep it in sync with the note field.
+                    if (!previewTouched) regeneratePreviewFromForm(e.currentTarget.form)
+                  }}
+                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  placeholder="Optional — e.g. 'We met at the Fresno Chamber event last week'"
+                />
+              </div>
+
+              {/* Preview & edit the actual email body */}
+              <div className="md:col-span-2 bg-page-bg border border-ivory-200 rounded-md p-4 mt-1">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-label text-[0.65rem] tracking-widest uppercase text-brand">Email preview — edit anything</p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const form = (e.currentTarget as HTMLButtonElement).closest('form')
+                      regeneratePreviewFromForm(form)
+                    }}
+                    className="text-[0.65rem] font-medium text-accent hover:text-gold-900 uppercase tracking-widest"
+                  >
+                    ⟳ Regenerate from fields
+                  </button>
+                </div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-mid block mb-1">Subject</label>
+                <input
+                  type="text"
+                  value={previewSubject}
+                  onChange={(e) => { setPreviewSubject(e.target.value); setPreviewTouched(true) }}
+                  className="w-full border border-ivory-200 rounded px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30 mb-3 bg-white"
+                />
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-mid block mb-1">Body</label>
+                <textarea
+                  value={previewBody}
+                  onChange={(e) => { setPreviewBody(e.target.value); setPreviewTouched(true) }}
+                  rows={14}
+                  className="w-full border border-ivory-200 rounded px-3 py-2 text-body font-mono text-[0.85rem] leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
+                />
+                <p className="text-[0.65rem] text-hint mt-2">
+                  What you type here is exactly what the recipient sees. Regenerate resets it to the auto-filled version.
+                </p>
               </div>
               <label className="md:col-span-2 flex items-start gap-3 cursor-pointer select-none bg-gold-50 border border-gold-100 rounded-md p-3 mt-1">
                 <input type="checkbox" name="textOnly" defaultChecked className="mt-0.5 w-4 h-4 accent-accent" />
