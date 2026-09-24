@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   CartesianGrid, Legend, LineChart, Line,
 } from 'recharts'
 import {
@@ -27,6 +27,7 @@ interface TierSlice { name: string; value: number; color: string }
 interface Stats {
   period: Period
   kpis: { revenue: number; newMembers: number; payments: number; expenses: number; net: number }
+  prior: { newMembers: number | null; revenue: number | null }
   tierBreakdown: TierSlice[]
   statusBreakdown: TierSlice[]
   revenueTrend: RevenueBucket[]
@@ -272,61 +273,10 @@ export default function AdminHomePage() {
       {/* Charts grid */}
       {stats && !isReviewer && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
-          {/* Membership by Tier */}
-          <ChartCard title="Membership by Tier" total={stats.tierBreakdown.reduce((s, x) => s + x.value, 0)}>
-            {stats.tierBreakdown.reduce((s, x) => s + x.value, 0) === 0 ? (
-              <EmptyChart />
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={stats.tierBreakdown}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={85}
-                      paddingAngle={2}
-                    >
-                      {stats.tierBreakdown.map((slice, i) => (
-                        <Cell key={i} fill={slice.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v: unknown) => [`${Number(v)} members`, ''] as [string, string]} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <LegendList items={stats.tierBreakdown} />
-              </>
-            )}
-          </ChartCard>
-
-          {/* Member Status */}
-          <ChartCard title="Member Status" total={stats.statusBreakdown.reduce((s, x) => s + x.value, 0)}>
-            {stats.statusBreakdown.reduce((s, x) => s + x.value, 0) === 0 ? (
-              <EmptyChart />
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={stats.statusBreakdown}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={85}
-                      paddingAngle={2}
-                    >
-                      {stats.statusBreakdown.map((slice, i) => (
-                        <Cell key={i} fill={slice.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v: unknown) => [`${Number(v)} members`, ''] as [string, string]} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <LegendList items={stats.statusBreakdown} />
-              </>
-            )}
-          </ChartCard>
+          {/* Combined Members card — tier split + status chips + delta */}
+          <div className="bg-white border border-ivory-200 rounded-lg p-5 lg:col-span-2">
+            <MembersCompactCard stats={stats} router={router} />
+          </div>
 
           {/* Revenue trend */}
           {canSeeFinances && (
@@ -475,30 +425,113 @@ function ChartCard({ title, total, children, className = '' }: {
   )
 }
 
-function LegendList({ items }: { items: Array<{ name: string; value: number; color: string }> }) {
-  const total = items.reduce((s, i) => s + i.value, 0)
-  return (
-    <div className="mt-3 space-y-1.5">
-      {items.map((item) => (
-        <div key={item.name} className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: item.color }} />
-            <span className="text-charcoal">{item.name}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-hint">{total > 0 ? Math.round((item.value / total) * 100) : 0}%</span>
-            <span className="text-brand font-medium tabular-nums">{item.value}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function EmptyChart() {
   return (
     <div className="h-[220px] flex items-center justify-center text-hint text-sm">
       No data in this period yet.
+    </div>
+  )
+}
+
+type Router = ReturnType<typeof import('next/navigation').useRouter>
+
+function MembersCompactCard({ stats, router }: { stats: Stats; router: Router }) {
+  const tierTotal = stats.tierBreakdown.reduce((s, x) => s + x.value, 0)
+  const individual = stats.tierBreakdown.find((s) => s.name === 'Individual')?.value ?? 0
+  const corporate = stats.tierBreakdown.find((s) => s.name === 'Corporate')?.value ?? 0
+  const statusTotal = stats.statusBreakdown.reduce((s, x) => s + x.value, 0)
+
+  const priorNew = stats.prior?.newMembers
+  const currentNew = stats.kpis.newMembers
+  const delta = priorNew !== null && priorNew !== undefined ? currentNew - priorNew : null
+  const deltaPct = priorNew && priorNew > 0 ? Math.round(((currentNew - priorNew) / priorNew) * 100) : null
+
+  return (
+    <div>
+      {/* Header row: title + prior comparison */}
+      <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+        <div>
+          <h3 className="text-sm font-medium text-brand">Members</h3>
+          <p className="text-[0.7rem] text-hint">Tier split among approved payers · status across everyone</p>
+        </div>
+        {delta !== null && (
+          <div className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded ${
+            delta > 0 ? 'bg-emerald-50 text-emerald-700' : delta < 0 ? 'bg-red-50 text-red-700' : 'bg-page-bg text-hint'
+          }`}>
+            {delta > 0 ? '↑' : delta < 0 ? '↓' : '·'} {delta > 0 ? '+' : ''}{delta} new{deltaPct !== null ? ` (${deltaPct > 0 ? '+' : ''}${deltaPct}%)` : ''} vs prior period
+          </div>
+        )}
+      </div>
+
+      {/* Big number + tier stacked bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5 items-center">
+        <div>
+          <p className="text-4xl font-medium text-brand leading-none">{tierTotal}</p>
+          <p className="text-xs text-mid mt-1">Paying members</p>
+        </div>
+        <div className="sm:col-span-2">
+          {tierTotal === 0 ? (
+            <p className="text-xs text-hint italic">No paying members in this period.</p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-1.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => router.push('/admin/members?status=approved')}
+                  className="inline-flex items-center gap-1.5 text-brand hover:text-accent"
+                >
+                  <span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#D4A830' }} />
+                  <span className="font-medium">{individual}</span> Individual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push('/admin/members?status=approved')}
+                  className="inline-flex items-center gap-1.5 text-brand hover:text-accent"
+                >
+                  <span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#1E3A5F' }} />
+                  <span className="font-medium">{corporate}</span> Corporate
+                </button>
+              </div>
+              <div className="h-3 rounded-full bg-page-bg overflow-hidden flex">
+                <div className="h-full" style={{ background: '#D4A830', width: `${(individual / tierTotal) * 100}%` }} title={`${individual} Individual`} />
+                <div className="h-full" style={{ background: '#1E3A5F', width: `${(corporate / tierTotal) * 100}%` }} title={`${corporate} Corporate`} />
+              </div>
+              <p className="text-[0.65rem] text-hint mt-1">
+                {tierTotal > 0 ? `${Math.round((individual / tierTotal) * 100)}% Individual · ${Math.round((corporate / tierTotal) * 100)}% Corporate` : ''}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Status chips — one row, clickable filters */}
+      <div className="pt-4 border-t border-ivory-200">
+        <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-2">
+          Status <span className="text-hint">· {statusTotal} total · click to filter</span>
+        </p>
+        {stats.statusBreakdown.length === 0 ? (
+          <p className="text-xs text-hint italic">No members yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {stats.statusBreakdown.map((s) => {
+              const filterKey = s.name.toLowerCase() // approved / pending / unpaid / rejected / deactivated
+              return (
+                <button
+                  key={s.name}
+                  type="button"
+                  onClick={() => router.push(`/admin/members?status=${filterKey}`)}
+                  className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 hover:border-accent/40 rounded px-2.5 py-1 text-xs transition-all"
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+                  <span className="font-medium text-brand">{s.value}</span>
+                  <span className="text-mid">{s.name}</span>
+                  <span className="text-hint">· {statusTotal > 0 ? Math.round((s.value / statusTotal) * 100) : 0}%</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

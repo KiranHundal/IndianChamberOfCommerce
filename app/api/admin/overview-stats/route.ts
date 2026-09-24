@@ -31,6 +31,25 @@ function periodStart(period: Period): Date | null {
   }
 }
 
+// Previous period of the same length ending just before periodStart.
+// "This month" (last 30d) → "Prior month" (30d before that). "YTD" →
+// full previous calendar year. "All time" → no comparison window.
+function priorPeriodRange(period: Period): { start: Date; end: Date } | null {
+  const now = new Date()
+  const curStart = periodStart(period)
+  if (!curStart || period === 'all') return null
+  if (period === 'ytd') {
+    const start = new Date(now.getFullYear() - 1, 0, 1)
+    const end = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate(), 23, 59, 59)
+    return { start, end }
+  }
+  const lengthMs = now.getTime() - curStart.getTime()
+  const end = new Date(curStart.getTime() - 1)
+  const start = new Date(end.getTime() - lengthMs)
+  start.setHours(0, 0, 0, 0)
+  return { start, end }
+}
+
 function monthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
@@ -281,6 +300,31 @@ export async function GET(req: Request) {
     .reduce((s, p) => s + p.feeCents, 0) / 100
   const totalExpenses = Math.round((loggedExpenseTotal + squareFeeTotal) * 100) / 100
 
+  // ---------- Prior period comparison for delta ----------
+  // Same period length ending just before the current one, so we can render
+  // "+3 vs last month" style deltas next to KPIs.
+  const prior = priorPeriodRange(period)
+  const priorNewMembers = prior
+    ? nonStaff.filter((m) => {
+        if (m.status !== 'approved') return false
+        const ref = m.paymentDate || m.approvedAt || m.createdAt
+        if (!ref) return false
+        const t = new Date(ref).getTime()
+        return t >= prior.start.getTime() && t <= prior.end.getTime()
+      }).length
+    : null
+  const priorRevenue = prior
+    ? Math.round(
+        (allPayments
+          .filter((p) => p.status === 'COMPLETED' && p.paidAt)
+          .reduce((s, p) => {
+            const t = new Date(p.paidAt).getTime()
+            if (t < prior.start.getTime() || t > prior.end.getTime()) return s
+            return s + (p.amountCents - p.refundedCents) / 100
+          }, 0)) * 100
+      ) / 100
+    : null
+
   return NextResponse.json({
     period,
     rangeStart: start ? start.toISOString() : null,
@@ -291,6 +335,10 @@ export async function GET(req: Request) {
       payments: totalPayments,
       expenses: totalExpenses,
       net: Math.round((totalRevenue - totalExpenses) * 100) / 100,
+    },
+    prior: {
+      newMembers: priorNewMembers,
+      revenue: priorRevenue,
     },
     tierBreakdown,
     statusBreakdown,
