@@ -28,15 +28,10 @@ export const metadata: Metadata = {
     "Meet the Board of Directors of the Central Valley Indian Chamber of Commerce — the leaders guiding our mission.",
 };
 
-const HEADSHOT_MAP: Record<string, string> = {
-  "Sonia Heer": "/headshots/sonia1.png",
-  "Dr. Surdeep Singh": "/headshots/surdeep1.png",
-  "Rajinder Kumar": "/headshots/RajK.jpeg",
-  "Kiran Hundal": "/headshots/KiranH.jpg",
-  "Roken Bhatt": "/headshots/Roken1.png",
-  "Manreet Sandhu": "/headshots/manreet-sandhu.jpg",
-  "Akash Singal": "/headshots/Akash1.png",
-};
+// Headshot URLs live in lib/leader-headshots.ts so /admin/board-members and
+// /admin/team can render the same photos when a board_members row has no
+// photoUrl of its own. See headshotFor() there for the normalization rules.
+import { headshotFor } from "@/lib/leader-headshots";
 
 const PLACEHOLDER_MEMBERS = new Set(["Manreet Sandhu"]);
 
@@ -87,8 +82,8 @@ async function getDbBoardMembers(): Promise<DisplayBoardMember[]> {
       key: `db-${r.id}`,
       name: r.name,
       role: r.role,
-      photoUrl: r.photoUrl || "/headshots/placeholder.jpg",
-      isPlaceholder: !r.photoUrl,
+      photoUrl: r.photoUrl || headshotFor(r.name) || "/headshots/placeholder.jpg",
+      isPlaceholder: !r.photoUrl && !headshotFor(r.name),
       displayOrder: r.displayOrder,
     }))
   } catch {
@@ -104,7 +99,7 @@ export default async function LeadershipPage() {
     key: leader._id,
     name: leader.name,
     role: leader.role,
-    photoUrl: HEADSHOT_MAP[leader.name] || "/headshots/placeholder.jpg",
+    photoUrl: headshotFor(leader.name) || "/headshots/placeholder.jpg",
     isPlaceholder: PLACEHOLDER_MEMBERS.has(leader.name),
     displayOrder: i,
   }));
@@ -164,7 +159,7 @@ export default async function LeadershipPage() {
                   <div className="card-image relative w-full md:w-80 lg:w-96 h-96 md:h-auto md:min-h-[28rem] flex-shrink-0 overflow-hidden">
                     <Image
                       src={
-                        HEADSHOT_MAP[leader.name] ||
+                        headshotFor(leader.name) ||
                         "/headshots/placeholder.jpg"
                       }
                       alt={leader.name}
@@ -230,7 +225,7 @@ export default async function LeadershipPage() {
                   <div className="card-image relative w-48 flex-shrink-0 overflow-hidden">
                     <Image
                       src={
-                        HEADSHOT_MAP[leader.name] ||
+                        headshotFor(leader.name) ||
                         "/headshots/placeholder.jpg"
                       }
                       alt={leader.name}

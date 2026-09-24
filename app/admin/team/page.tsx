@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import AdminShell from '@/components/admin/AdminShell'
+import { headshotFor } from '@/lib/leader-headshots'
 
 interface TeamMember {
   id: string
@@ -230,8 +231,16 @@ export default function AdminTeamPage() {
                 <div className="divide-y divide-ivory-200">
                   {data.team.map((m) => {
                     const isSelf = !!currentEmail && m.email.toLowerCase() === currentEmail
+                    const photoSrc = headshotFor(m.name)
                     return (
                       <div key={m.id} className="py-4 flex items-center gap-4 flex-wrap">
+                        {photoSrc ? (
+                          <Image src={photoSrc} alt={m.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" unoptimized />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-page-bg flex items-center justify-center flex-shrink-0">
+                            <Shield className="w-4 h-4 text-hint" />
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 flex-wrap">
                             <p className="font-display text-h5 text-brand">{m.name}</p>
@@ -320,11 +329,13 @@ export default function AdminTeamPage() {
                 </p>
               ) : (
                 <div className="divide-y divide-ivory-200">
-                  {data.grantable.map((bm) => (
+                  {data.grantable.map((bm) => {
+                    const photoSrc = bm.photoUrl || headshotFor(bm.name)
+                    return (
                     <div key={bm.id} className="py-4 flex items-center gap-4 flex-wrap">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {bm.photoUrl ? (
-                          <Image src={bm.photoUrl} alt={bm.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        {photoSrc ? (
+                          <Image src={photoSrc} alt={bm.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover flex-shrink-0" unoptimized />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-page-bg flex items-center justify-center flex-shrink-0">
                             <Users className="w-4 h-4 text-hint" />
@@ -364,7 +375,8 @@ export default function AdminTeamPage() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>

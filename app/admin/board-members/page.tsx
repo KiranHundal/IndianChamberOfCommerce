@@ -17,6 +17,7 @@ import {
   MailCheck,
 } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'
+import { headshotFor } from '@/lib/leader-headshots'
 
 interface BoardMemberRow {
   id: string
@@ -352,11 +353,16 @@ export default function AdminBoardMembersPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {rows.map((row) => (
+              {rows.map((row) => {
+                // Manual upload wins; otherwise fall back to the same headshot
+                // map the public /about/leadership page uses so seeded rows
+                // don't render with a placeholder icon.
+                const photoSrc = row.photoUrl || headshotFor(row.name)
+                return (
                 <div key={row.id} className="bg-white border border-ivory-200 rounded-xl p-5 flex items-center gap-4">
                   <div className="relative w-16 h-16 rounded-full overflow-hidden bg-page-bg border border-ivory-200 flex-shrink-0 flex items-center justify-center">
-                    {row.photoUrl ? (
-                      <Image src={row.photoUrl} alt={row.name} fill className="object-cover" unoptimized />
+                    {photoSrc ? (
+                      <Image src={photoSrc} alt={row.name} fill className="object-cover" unoptimized />
                     ) : (
                       <User className="w-6 h-6 text-hint" />
                     )}
@@ -417,7 +423,8 @@ export default function AdminBoardMembersPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
