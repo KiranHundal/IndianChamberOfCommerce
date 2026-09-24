@@ -325,6 +325,9 @@ export default function AdminFinancesPage() {
       suggestedTier: fd.get('suggestedTier'),
       personalNote: fd.get('personalNote'),
       fromName: fd.get('fromName'),
+      fromDesignation: fd.get('fromDesignation'),
+      fromEmail: fd.get('fromEmail'),
+      fromReplyTo: fd.get('fromReplyTo'),
     }
     try {
       const res = await fetch('/api/admin/invitations', {
@@ -1050,8 +1053,22 @@ export default function AdminFinancesPage() {
                 </select>
               </div>
               <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Sign as</label>
-                <input name="fromName" defaultValue="The CVICC Board" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Sign As (Name)</label>
+                <input name="fromName" defaultValue="Kiran Hundal" placeholder="e.g. Kiran Hundal" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Your Designation</label>
+                <input name="fromDesignation" defaultValue="Treasurer & Chief Financial Officer" placeholder="e.g. Treasurer & CFO" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Send From (Email)</label>
+                <input name="fromEmail" type="email" placeholder="info@indianchamberofcommerce.org" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <p className="text-[0.65rem] text-hint mt-1">Blank = default. Must be on a domain verified in Resend.</p>
+              </div>
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Reply-To (Optional)</label>
+                <input name="fromReplyTo" type="email" placeholder="your.email@gmail.com" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <p className="text-[0.65rem] text-hint mt-1">Where replies land. Blank = same as Send From.</p>
               </div>
               <div className="md:col-span-2">
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Personal Note</label>

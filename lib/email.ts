@@ -451,11 +451,16 @@ export async function sendMembershipInvitationEmail(invite: {
   suggestedTier?: string | null
   personalNote?: string | null
   fromName?: string | null
+  fromDesignation?: string | null
+  fromEmail?: string | null
+  fromReplyTo?: string | null
 }) {
   const resend = getResend()
   if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
 
-  const { fromEmail, siteUrl } = getConfig()
+  const cfg = getConfig()
+  const fromEmail = invite.fromEmail?.trim() || cfg.fromEmail
+  const siteUrl = cfg.siteUrl
   const greeting = invite.name ? `Dear ${invite.name},` : 'Hello,'
   const tierLine = invite.suggestedTier === 'corporate'
     ? 'For your organization, we recommend our <strong>Corporate Membership</strong> ($395/year, founding rate — regularly $495).'
@@ -472,8 +477,9 @@ export async function sendMembershipInvitationEmail(invite: {
     : ''
 
   return resend.emails.send({
-    from: `CVICC <${fromEmail}>`,
+    from: `${invite.fromName || 'CVICC'} <${fromEmail}>`,
     to: invite.email,
+    replyTo: invite.fromReplyTo?.trim() || fromEmail,
     subject: 'A Personal Invitation to Join CVICC',
     html: `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
@@ -510,7 +516,7 @@ export async function sendMembershipInvitationEmail(invite: {
           </p>
           <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0;">
             Warm regards,<br/>
-            <strong style="color: #1E3A5F;">${invite.fromName || 'The CVICC Board'}</strong><br/>
+            <strong style="color: #1E3A5F;">${invite.fromName || 'The CVICC Board'}</strong>${invite.fromDesignation ? `<br/><span style="font-size: 13px; color: #5A6A7A;">${invite.fromDesignation}</span>` : ''}<br/>
             <span style="font-size: 13px;">Central Valley Indian Chamber of Commerce</span>
           </p>
         </div>
