@@ -1227,15 +1227,15 @@ export default function AdminFinancesPage() {
                   What you type here is exactly what the recipient sees. Regenerate resets it to the auto-filled version.
                 </p>
               </div>
-              <label className="md:col-span-2 flex items-start gap-3 cursor-pointer select-none bg-gold-50 border border-gold-100 rounded-md p-3 mt-1">
-                <input type="checkbox" name="textOnly" defaultChecked className="mt-0.5 w-4 h-4 accent-accent" />
+              <label className="md:col-span-2 flex items-start gap-3 cursor-pointer select-none bg-white border border-ivory-200 rounded-md p-3 mt-1">
+                <input type="checkbox" name="textOnly" className="mt-0.5 w-4 h-4 accent-accent" />
                 <span className="text-small text-charcoal">
-                  <strong>Send as plain text (highest inbox rate)</strong>
+                  <strong>Send as plain text only</strong>
                   <br />
                   <span className="text-mid text-[0.75rem]">
-                    Skips all HTML formatting. Gmail almost never puts text-only mail in Promotions —
-                    the recipient sees your message in Primary. Uncheck if you want the styled HTML
-                    version instead.
+                    Skips the branded HTML template. Use for 1:1 exec outreach where a plain note
+                    reads more personally. Leave unchecked to send the styled invitation with the
+                    CVICC banner and Join button.
                   </span>
                 </span>
               </label>
