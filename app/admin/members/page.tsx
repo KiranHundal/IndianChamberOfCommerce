@@ -14,7 +14,6 @@ import {
   DollarSign,
   X,
   Loader2,
-  CreditCard,
   Send,
   MailCheck,
 } from 'lucide-react'
@@ -386,180 +385,206 @@ export default function AdminPage() {
             </p>
           )}
 
-          {/* Members List */}
+          {/* Members Table */}
           {filteredMembers.length === 0 ? (
-            <AnimatedSection>
-              <div className="bg-white border border-ivory-200 rounded-xl p-12 text-center">
-                <Users className="w-10 h-10 text-hint mx-auto mb-4" />
-                <p className="text-body text-mid">No members found.</p>
-              </div>
-            </AnimatedSection>
+            <div className="bg-white border border-ivory-200 rounded-lg p-12 text-center">
+              <Users className="w-10 h-10 text-hint mx-auto mb-4" />
+              <p className="text-sm text-mid">No members found.</p>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {filteredMembers.map((member, i) => {
-                const badge = statusBadge[member.status] || statusBadge.pending
-                return (
-                  <AnimatedSection key={member.id} delay={i < 10 ? i : 0}>
-                    <div className="leadership-card bg-white border border-ivory-200 rounded-xl p-6 relative">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <h3 className="font-display text-h4 text-brand">{member.name}</h3>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[0.6rem] font-label tracking-widest uppercase ${badge.bg} ${badge.color}`}>
+            <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-page-bg">
+                    <tr className="text-left border-b border-ivory-200">
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Member</th>
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Contact</th>
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Business</th>
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Tier</th>
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Status</th>
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid text-right">Payment</th>
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Joined</th>
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMembers.map((member) => {
+                      const badge = statusBadge[member.status] || statusBadge.pending
+                      const isStaff = member.role === 'admin' || member.role === 'moderator' || member.role === 'reviewer'
+                      const unpaid = isUnpaidPending(member)
+                      const linkSent = !!member.paymentLinkSentAt
+                      const explicit = !!(member.amountPaid && member.amountPaid > 0)
+                      const isApproved = member.status === 'approved'
+                      const paymentAmount = explicit
+                        ? member.amountPaid!
+                        : member.membershipTier === 'corporate' ? 395 : 95
+                      const paymentMethod = member.paymentMethod || (isApproved && !isStaff ? 'square' : null)
+                      const showPayment = !isStaff && (explicit || isApproved)
+                      return (
+                        <tr key={member.id} className="border-b border-ivory-200/60 hover:bg-page-bg/40 align-top">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-brand truncate max-w-[12rem]">{member.name}</p>
+                              {member.role === 'admin' && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-navy-900 text-gold-400 text-[0.55rem] font-medium uppercase tracking-wide">
+                                  <Shield className="w-2.5 h-2.5" /> Admin
+                                </span>
+                              )}
+                              {member.role === 'moderator' && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/10 border border-accent/30 text-accent text-[0.55rem] font-medium uppercase tracking-wide">
+                                  <Shield className="w-2.5 h-2.5" /> Mod
+                                </span>
+                              )}
+                              {member.role === 'reviewer' && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.55rem] font-medium uppercase tracking-wide">
+                                  <Shield className="w-2.5 h-2.5" /> Reviewer
+                                </span>
+                              )}
+                            </div>
+                            {member.membershipNumber && (
+                              <p className="text-[0.65rem] text-hint mt-0.5">#{member.membershipNumber}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs">
+                            <p className="text-charcoal truncate max-w-[14rem]">{member.email}</p>
+                            {member.phone && <p className="text-hint mt-0.5">{member.phone}</p>}
+                          </td>
+                          <td className="px-4 py-3 text-xs">
+                            {member.businessName ? (
+                              <p className="text-charcoal truncate max-w-[12rem]">{member.businessName}</p>
+                            ) : (
+                              <p className="text-hint italic">—</p>
+                            )}
+                            <p className="text-hint mt-0.5">
+                              {[member.city, member.sector].filter(Boolean).join(' · ') || ''}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2 py-0.5 rounded border text-[0.65rem] font-medium capitalize ${
+                              member.membershipTier === 'corporate'
+                                ? 'bg-navy-50 border-navy-100 text-brand'
+                                : 'bg-ivory-100 border-ivory-200 text-mid'
+                            }`}>
+                              {member.membershipTier}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[0.65rem] font-medium ${badge.bg} ${badge.color}`}>
                               {badge.label}
                             </span>
-                            {(() => {
-                              if (member.status !== 'pending') return null
-                              if (member.role === 'admin' || member.role === 'moderator') return null
-                              const hasPaid = (member.amountPaid && member.amountPaid > 0) || !!member.paymentMethod
-                              return (
-                                <>
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-ivory-200 bg-ivory-100 text-mid text-[0.6rem] font-label tracking-widest uppercase capitalize">
-                                    {member.membershipTier}
-                                  </span>
-                                  {!hasPaid && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-navy-100 bg-navy-50 text-brand text-[0.6rem] font-label tracking-widest uppercase">
-                                      <span className="font-semibold">${member.membershipTier === 'corporate' ? '395' : '95'}</span>
-                                      <span>Due</span>
-                                    </span>
-                                  )}
-                                  {!hasPaid && member.paymentLinkSentAt && (
-                                    <span
-                                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 text-[0.6rem] font-label tracking-widest uppercase"
-                                      title={`Payment link emailed ${new Date(member.paymentLinkSentAt).toLocaleString()}`}
-                                    >
-                                      <MailCheck className="w-3 h-3" />
-                                      Link Sent
-                                    </span>
-                                  )}
-                                </>
-                              )
-                            })()}
-                            {member.role === 'admin' && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-navy-900 text-gold-400 text-[0.6rem] font-label tracking-widest uppercase">
-                                <Shield className="w-3 h-3" />
-                                Admin
-                              </span>
+                            {unpaid && (
+                              <p className="text-[0.6rem] text-navy-600 font-medium mt-0.5">
+                                ${member.membershipTier === 'corporate' ? '395' : '95'} due
+                              </p>
                             )}
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-small text-mid">
-                            <span>{member.email}</span>
-                            {member.phone && <span>{member.phone}</span>}
-                            {member.businessName && <span>{member.businessName}</span>}
-                            {member.city && <span>{member.city}</span>}
-                            {member.sector && <span>{member.sector}</span>}
-                          </div>
-                          <div className="mt-1 text-[0.7rem] text-hint">
-                            {member.membershipNumber && (
-                              <span className="font-medium text-brand">#{member.membershipNumber}</span>
+                            {unpaid && linkSent && (
+                              <p
+                                className="text-[0.6rem] text-emerald-700 flex items-center gap-1 mt-0.5"
+                                title={`Payment link sent ${new Date(member.paymentLinkSentAt!).toLocaleString()}`}
+                              >
+                                <MailCheck className="w-2.5 h-2.5" /> Link sent
+                              </p>
                             )}
-                            {member.membershipNumber && <> &middot; </>}
-                            <span className="capitalize">{member.membershipTier}</span> membership
-                            {member.createdAt && (
-                              <> &middot; Joined {new Date(member.createdAt).toLocaleDateString()}</>
-                            )}
-                          </div>
-                          {(() => {
-                            const isStaff = member.role === 'admin' || member.role === 'moderator'
-                            if (isStaff) return null
-                            const explicit = member.amountPaid && member.amountPaid > 0
-                            const isApproved = member.status === 'approved'
-                            if (!explicit && !isApproved) return null
-                            const amount = explicit
-                              ? member.amountPaid!
-                              : member.membershipTier === 'corporate' ? 395 : 95
-                            const method = member.paymentMethod || 'square'
-                            return (
-                              <div className="mt-2 inline-flex items-center gap-1.5 text-[0.65rem] px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-brand">
-                                <CreditCard className="w-3 h-3" />
-                                <span className="font-semibold">${amount}</span>
-                                <span>· </span>
-                                <span className="capitalize">{method}</span>
-                                {!explicit && <span className="text-hint">· est.</span>}
-                                {member.paymentReference && <> · {member.paymentReference}</>}
-                              </div>
-                            )
-                          })()}
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
-                          {member.status === 'pending' && (() => {
-                            const unpaid = isUnpaidPending(member)
-                            const linkSent = !!member.paymentLinkSentAt
-                            return (
+                          </td>
+                          <td className="px-4 py-3 text-right text-xs">
+                            {showPayment ? (
                               <>
-                                {unpaid && canFinanceActions && (
-                                  <button
-                                    onClick={() => handleSendPaymentLink(member)}
-                                    disabled={actionLoading === `${member.id}-paylink`}
-                                    title={linkSent ? `Resend Square payment link (last sent ${new Date(member.paymentLinkSentAt!).toLocaleDateString()})` : 'Email member the Square payment link'}
-                                    className="flex items-center gap-1.5 bg-navy-900 text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-navy-800 transition-all disabled:opacity-50"
-                                  >
-                                    {actionLoading === `${member.id}-paylink` ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                      <Send className="w-3.5 h-3.5 text-gold-400" />
-                                    )}
-                                    {linkSent ? 'Resend Link' : 'Send Link'}
-                                  </button>
-                                )}
-                                {canApproveDeny && (
-                                  <>
-                                    <button
-                                      onClick={() => handleAction(member.id, 'approve')}
-                                      disabled={actionLoading === `${member.id}-approve` || unpaid}
-                                      title={unpaid ? 'Log a payment before approving' : undefined}
-                                      className="flex items-center gap-1.5 bg-emerald-600 text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-emerald-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
-                                    >
-                                      <CheckCircle className="w-3.5 h-3.5" />
-                                      {actionLoading === `${member.id}-approve` ? '...' : unpaid ? 'Awaiting Payment' : 'Approve'}
-                                    </button>
-                                    <button
-                                      onClick={() => handleAction(member.id, 'reject')}
-                                      disabled={actionLoading === `${member.id}-reject`}
-                                      className="flex items-center gap-1.5 bg-white border border-red-200 text-red-600 font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-red-50 transition-all disabled:opacity-50"
-                                    >
-                                      <XCircle className="w-3.5 h-3.5" />
-                                      {actionLoading === `${member.id}-reject` ? '...' : 'Reject'}
-                                    </button>
-                                  </>
+                                <p className="text-brand font-medium">${paymentAmount}</p>
+                                <p className="text-hint">
+                                  <span className="capitalize">{paymentMethod}</span>
+                                  {!explicit && ' · est.'}
+                                </p>
+                                {member.paymentReference && (
+                                  <p className="text-hint text-[0.6rem] truncate max-w-[8rem]" title={member.paymentReference}>
+                                    {member.paymentReference}
+                                  </p>
                                 )}
                               </>
-                            )
-                          })()}
-                          {canFinanceActions && member.status === 'approved' && member.role !== 'admin' && member.role !== 'moderator' && member.role !== 'reviewer' && !!member.membershipNumber && (
-                            <button
-                              onClick={() => handleResendWelcome(member)}
-                              disabled={actionLoading === `${member.id}-welcome`}
-                              title={`Resend welcome email with membership #${member.membershipNumber} and /register link to ${member.email}`}
-                              className="flex items-center gap-1.5 bg-accent text-white font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-gold-900 transition-all disabled:opacity-50"
-                            >
-                              {actionLoading === `${member.id}-welcome` ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Send className="w-3.5 h-3.5" />
+                            ) : (
+                              <p className="text-hint italic">—</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-hint whitespace-nowrap">
+                            {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="inline-flex gap-1 flex-wrap justify-end">
+                              {member.status === 'pending' && unpaid && canFinanceActions && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendPaymentLink(member)}
+                                  disabled={actionLoading === `${member.id}-paylink`}
+                                  title={linkSent ? `Resend Square payment link (last sent ${new Date(member.paymentLinkSentAt!).toLocaleDateString()})` : 'Email member the Square payment link'}
+                                  className="inline-flex items-center gap-1 bg-navy-900 text-white text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-navy-800 disabled:opacity-50"
+                                >
+                                  {actionLoading === `${member.id}-paylink` ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Send className="w-3 h-3 text-gold-400" />
+                                  )}
+                                  {linkSent ? 'Resend' : 'Send Link'}
+                                </button>
                               )}
-                              {actionLoading === `${member.id}-welcome` ? 'Sending...' : 'Send Invite'}
-                            </button>
-                          )}
-                          {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
-                            <button
-                              onClick={() => handleAction(member.id, 'deactivate')}
-                              disabled={actionLoading === `${member.id}-deactivate`}
-                              className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 font-label text-[0.6rem] tracking-widest uppercase px-4 py-2 rounded-sm hover:bg-gray-50 transition-all disabled:opacity-50"
-                            >
-                              <UserX className="w-3.5 h-3.5" />
-                              {actionLoading === `${member.id}-deactivate` ? '...' : 'Deactivate'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="gold-accent-line" />
-                    </div>
-                  </AnimatedSection>
-                )
-              })}
+                              {member.status === 'pending' && canApproveDeny && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAction(member.id, 'approve')}
+                                    disabled={actionLoading === `${member.id}-approve` || unpaid}
+                                    title={unpaid ? 'Log a payment before approving' : 'Approve this member'}
+                                    className="inline-flex items-center gap-1 bg-emerald-600 text-white text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    <CheckCircle className="w-3 h-3" />
+                                    {unpaid ? 'Awaiting' : 'Approve'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAction(member.id, 'reject')}
+                                    disabled={actionLoading === `${member.id}-reject`}
+                                    title="Reject this member"
+                                    className="inline-flex items-center gap-1 bg-white border border-red-200 text-red-600 text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-red-50 disabled:opacity-50"
+                                  >
+                                    <XCircle className="w-3 h-3" />
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                              {canFinanceActions && member.status === 'approved' && !isStaff && !!member.membershipNumber && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleResendWelcome(member)}
+                                  disabled={actionLoading === `${member.id}-welcome`}
+                                  title={`Resend welcome email w/ #${member.membershipNumber} to ${member.email}`}
+                                  className="inline-flex items-center gap-1 bg-accent text-white text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-gold-900 disabled:opacity-50"
+                                >
+                                  {actionLoading === `${member.id}-welcome` ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Send className="w-3 h-3" />
+                                  )}
+                                  Invite
+                                </button>
+                              )}
+                              {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAction(member.id, 'deactivate')}
+                                  disabled={actionLoading === `${member.id}-deactivate`}
+                                  title="Deactivate this member"
+                                  className="inline-flex items-center gap-1 bg-white border border-gray-200 text-gray-600 text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                  <UserX className="w-3 h-3" />
+                                  Deactivate
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
