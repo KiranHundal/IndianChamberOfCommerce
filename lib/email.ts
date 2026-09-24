@@ -468,14 +468,6 @@ export async function sendMembershipInvitationEmail(invite: {
       ? 'We recommend our <strong>Individual Membership</strong> ($95/year, founding rate — regularly $195).'
       : 'We offer <strong>Individual Membership</strong> ($95/year) and <strong>Corporate Membership</strong> ($395/year) — both at founding-member pricing.'
 
-  const businessLine = invite.businessName
-    ? `<p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">We&rsquo;d be honored to have <strong>${invite.businessName}</strong> represented in our chamber.</p>`
-    : ''
-
-  const noteBlock = invite.personalNote
-    ? `<div style="background: #FFFFFF; border-left: 3px solid #D4A830; padding: 14px 18px; margin: 20px 0; color: #5A6A7A; font-style: italic; line-height: 1.7;">${invite.personalNote}</div>`
-    : ''
-
   // Plain-text alternative + List-Unsubscribe header. Gmail specifically
   // weights both heavily — the presence of a text/plain body signals "real
   // person mail," and a working unsubscribe drops a "why is this bulk?"
