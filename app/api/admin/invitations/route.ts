@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const tier = ['individual', 'corporate'].includes(suggestedTier) ? suggestedTier : null
 
     try {
-      await sendMembershipInvitationEmail({
+      const result = await sendMembershipInvitationEmail({
         email: email.toLowerCase(),
         name: name || null,
         businessName: businessName || null,
@@ -46,9 +46,24 @@ export async function POST(req: NextRequest) {
         personalNote: personalNote || null,
         fromName: fromName || null,
       })
+      // Resend returns { data, error } on the response body. A 2xx HTTP can
+      // still carry a delivery error inside (unverified domain, bad address,
+      // rate limit) — surface that so admins actually see what went wrong.
+      if (result && typeof result === 'object' && 'error' in result && result.error) {
+        console.error('Resend delivery error:', result.error)
+        const err = result.error as { name?: string; message?: string; statusCode?: number }
+        return NextResponse.json(
+          {
+            error: `Email provider rejected the send: ${err.message || err.name || 'unknown'}. Common cause: the FROM domain isn't verified in Resend, or the free tier only allows delivery to the account owner's address.`,
+            resend: err,
+          },
+          { status: 502 }
+        )
+      }
     } catch (e) {
-      console.error('Invitation email error:', e)
-      return NextResponse.json({ error: 'Failed to send invitation email.' }, { status: 500 })
+      console.error('Invitation email throw:', e)
+      const msg = e instanceof Error ? e.message : 'Unknown error'
+      return NextResponse.json({ error: `Failed to send invitation email: ${msg}` }, { status: 500 })
     }
 
     const id = crypto.randomUUID()
