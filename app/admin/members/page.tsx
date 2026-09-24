@@ -234,7 +234,7 @@ export default function AdminPage() {
 
   function isUnpaidPending(m: Member): boolean {
     if (m.status !== 'pending') return false
-    if (m.role === 'admin' || m.role === 'moderator') return false
+    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return false
     const paid = (m.amountPaid && m.amountPaid > 0) || !!m.paymentMethod
     return !paid
   }

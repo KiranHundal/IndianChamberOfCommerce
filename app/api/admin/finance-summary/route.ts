@@ -54,7 +54,7 @@ export async function GET() {
   // Admin and moderator accounts are staff, not paying members — they never
   // count toward revenue even if they have an amountPaid on record.
   function inferredAmount(m: typeof allMembers[number]): number {
-    if (m.role === 'admin' || m.role === 'moderator') return 0
+    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
     return m.membershipTier === 'corporate' ? 395 : 95
@@ -78,7 +78,7 @@ export async function GET() {
   // Verified offline revenue: members WITHOUT a Square receipt, WITH an
   // explicit offline payment method (check / Zelle / cash / other).
   const verifiedOfflineRevenue = allMembers.reduce((sum, m) => {
-    if (m.role === 'admin' || m.role === 'moderator') return sum
+    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return sum
     if (hasSquareReceipt(m)) return sum
     if (!m.paymentMethod || !OFFLINE_METHODS.includes(m.paymentMethod)) return sum
     return sum + inferredAmount(m)
@@ -89,7 +89,7 @@ export async function GET() {
   // with an email that doesn't match Square's record. Kept out of the grand
   // total until you reconcile them.
   const unverifiedMembers = allMembers.filter((m) => {
-    if (m.role === 'admin' || m.role === 'moderator') return false
+    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return false
     if (hasSquareReceipt(m)) return false
     if (m.paymentMethod && OFFLINE_METHODS.includes(m.paymentMethod)) return false
     return inferredAmount(m) > 0
@@ -97,7 +97,7 @@ export async function GET() {
   const unverifiedRevenue = unverifiedMembers.reduce((sum, m) => sum + inferredAmount(m), 0)
 
   const revenueByMethod = allMembers.reduce<Record<string, number>>((acc, m) => {
-    if (m.role === 'admin' || m.role === 'moderator') return acc
+    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return acc
     if (hasSquareReceipt(m)) return acc // Square counted separately
     const method = m.paymentMethod
     if (!method || !OFFLINE_METHODS.includes(method)) return acc
@@ -126,7 +126,7 @@ export async function GET() {
     const SQUARE_FEE_RATE = 0.029
     const SQUARE_FEE_FIXED = 0.30
     const squareTransactions = allMembers.filter((m) => {
-      if (m.role === 'admin' || m.role === 'moderator') return false
+      if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return false
       const amount = inferredAmount(m)
       if (amount <= 0) return false
       const method = m.paymentMethod || 'square'

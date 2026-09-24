@@ -37,7 +37,7 @@ export async function GET() {
     squareLinkedMemberIds.has(m.id) || m.paymentMethod === 'square'
 
   function inferredAmount(m: typeof allMembers[number]): number {
-    if (m.role === 'admin' || m.role === 'moderator') return 0
+    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
     return m.membershipTier === 'corporate' ? 395 : 95
@@ -50,7 +50,7 @@ export async function GET() {
   const squareFees = squareFeesCents / 100
 
   const verifiedOffline = allMembers.reduce((sum, m) => {
-    if (m.role === 'admin' || m.role === 'moderator') return sum
+    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return sum
     if (hasSquareReceipt(m)) return sum
     if (!m.paymentMethod || !OFFLINE_METHODS.includes(m.paymentMethod)) return sum
     return sum + inferredAmount(m)
