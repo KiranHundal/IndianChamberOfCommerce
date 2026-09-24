@@ -487,18 +487,16 @@ export default function AdminPage() {
           ) : (
             <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
+                <table className="min-w-full text-sm [&_th]:!px-2 [&_td]:px-2">
                   <thead className="bg-page-bg">
                     <tr className="text-left border-b border-ivory-200">
                       <SortableTh label="Member" sortKey="name" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
-                      <SortableTh label="Contact" sortKey="email" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <SortableTh label="Business" sortKey="business" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <SortableTh label="Tier" sortKey="tier" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <SortableTh label="Status" sortKey="status" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <SortableTh label="Payment" sortKey="payment" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} align="right" />
-                      <SortableTh label="Joined" sortKey="joined" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid text-right">Actions</th>
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Referred By</th>
+                      <th className="py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid text-right">Actions</th>
+                      <th className="py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Referred By</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -516,40 +514,38 @@ export default function AdminPage() {
                       const showPayment = !isStaff && (explicit || isApproved)
                       return (
                         <tr key={member.id} className="border-b border-ivory-200/60 hover:bg-page-bg/40 align-top">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium text-brand truncate max-w-[12rem]">{member.name}</p>
+                          <td className="py-2 text-xs">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-medium text-brand truncate max-w-[10rem] text-sm" title={member.name}>{member.name}</p>
                               {member.role === 'admin' && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-navy-900 text-gold-400 text-[0.55rem] font-medium uppercase tracking-wide">
-                                  <Shield className="w-2.5 h-2.5" /> Admin
+                                <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-navy-900 text-gold-400 text-[0.55rem] font-medium uppercase tracking-wide">
+                                  <Shield className="w-2.5 h-2.5" /> A
                                 </span>
                               )}
                               {member.role === 'moderator' && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent/10 border border-accent/30 text-accent text-[0.55rem] font-medium uppercase tracking-wide">
-                                  <Shield className="w-2.5 h-2.5" /> Mod
+                                <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-accent/10 border border-accent/30 text-accent text-[0.55rem] font-medium uppercase tracking-wide">
+                                  <Shield className="w-2.5 h-2.5" /> M
                                 </span>
                               )}
                               {member.role === 'reviewer' && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.55rem] font-medium uppercase tracking-wide">
-                                  <Shield className="w-2.5 h-2.5" /> Reviewer
+                                <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.55rem] font-medium uppercase tracking-wide">
+                                  <Shield className="w-2.5 h-2.5" /> R
                                 </span>
                               )}
                             </div>
-                            {member.membershipNumber && (
-                              <p className="text-[0.65rem] text-hint mt-0.5">#{member.membershipNumber}</p>
-                            )}
+                            <p className="text-hint text-[0.65rem] truncate max-w-[12rem]" title={member.email}>{member.email}</p>
+                            <div className="text-[0.6rem] text-hint mt-0.5 flex gap-1.5">
+                              {member.membershipNumber && <span>#{member.membershipNumber}</span>}
+                              {member.phone && <span>· {member.phone}</span>}
+                            </div>
                           </td>
-                          <td className="px-4 py-3 text-xs">
-                            <p className="text-charcoal truncate max-w-[14rem]">{member.email}</p>
-                            {member.phone && <p className="text-hint mt-0.5">{member.phone}</p>}
-                          </td>
-                          <td className="px-4 py-3 text-xs">
+                          <td className="py-2 text-xs">
                             {member.businessName ? (
-                              <p className="text-charcoal truncate max-w-[12rem]">{member.businessName}</p>
+                              <p className="text-charcoal truncate max-w-[10rem]" title={member.businessName}>{member.businessName}</p>
                             ) : (
                               <p className="text-hint italic">—</p>
                             )}
-                            <p className="text-hint mt-0.5">
+                            <p className="text-hint text-[0.65rem] mt-0.5 truncate max-w-[10rem]">
                               {[member.city, member.sector].filter(Boolean).join(' · ') || ''}
                             </p>
                           </td>
@@ -586,28 +582,25 @@ export default function AdminPage() {
                               </p>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right text-xs">
+                          <td className="py-2 text-right text-xs">
                             {showPayment ? (
                               <>
                                 <p className="text-brand font-medium">${paymentAmount}</p>
-                                <p className="text-hint">
+                                <p className="text-hint text-[0.65rem]">
                                   <span className="capitalize">{paymentMethod}</span>
                                   {!explicit && ' · est.'}
                                 </p>
-                                {member.paymentReference && (
-                                  <p className="text-hint text-[0.6rem] truncate max-w-[8rem]" title={member.paymentReference}>
-                                    {member.paymentReference}
-                                  </p>
-                                )}
                               </>
                             ) : (
                               <p className="text-hint italic">—</p>
                             )}
+                            {member.createdAt && (
+                              <p className="text-hint text-[0.6rem] mt-0.5 whitespace-nowrap">
+                                {new Date(member.createdAt).toLocaleDateString()}
+                              </p>
+                            )}
                           </td>
-                          <td className="px-4 py-3 text-xs text-hint whitespace-nowrap">
-                            {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="py-2 text-right">
                             <div className="inline-flex gap-1 flex-wrap justify-end">
                               {member.status === 'pending' && unpaid && canFinanceActions && (
                                 <button
@@ -615,14 +608,13 @@ export default function AdminPage() {
                                   onClick={() => handleSendPaymentLink(member)}
                                   disabled={actionLoading === `${member.id}-paylink`}
                                   title={linkSent ? `Resend Square payment link (last sent ${new Date(member.paymentLinkSentAt!).toLocaleDateString()})` : 'Email member the Square payment link'}
-                                  className="inline-flex items-center gap-1 bg-navy-900 text-white text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-navy-800 disabled:opacity-50"
+                                  className="inline-flex items-center bg-navy-900 text-white p-1 rounded hover:bg-navy-800 disabled:opacity-50"
                                 >
                                   {actionLoading === `${member.id}-paylink` ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                   ) : (
-                                    <Send className="w-3 h-3 text-gold-400" />
+                                    <Send className="w-3.5 h-3.5 text-gold-400" />
                                   )}
-                                  {linkSent ? 'Resend' : 'Send Link'}
                                 </button>
                               )}
                               {member.status === 'pending' && canApproveDeny && (
@@ -632,20 +624,18 @@ export default function AdminPage() {
                                     onClick={() => handleAction(member.id, 'approve')}
                                     disabled={actionLoading === `${member.id}-approve` || unpaid}
                                     title={unpaid ? 'Log a payment before approving' : 'Approve this member'}
-                                    className="inline-flex items-center gap-1 bg-emerald-600 text-white text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center bg-emerald-600 text-white p-1 rounded hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
-                                    <CheckCircle className="w-3 h-3" />
-                                    {unpaid ? 'Awaiting' : 'Approve'}
+                                    <CheckCircle className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleAction(member.id, 'reject')}
                                     disabled={actionLoading === `${member.id}-reject`}
                                     title="Reject this member"
-                                    className="inline-flex items-center gap-1 bg-white border border-red-200 text-red-600 text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-red-50 disabled:opacity-50"
+                                    className="inline-flex items-center bg-white border border-red-200 text-red-600 p-1 rounded hover:bg-red-50 disabled:opacity-50"
                                   >
-                                    <XCircle className="w-3 h-3" />
-                                    Reject
+                                    <XCircle className="w-3.5 h-3.5" />
                                   </button>
                                 </>
                               )}
@@ -655,14 +645,13 @@ export default function AdminPage() {
                                   onClick={() => handleResendWelcome(member)}
                                   disabled={actionLoading === `${member.id}-welcome`}
                                   title={`Resend welcome email w/ #${member.membershipNumber} to ${member.email}`}
-                                  className="inline-flex items-center gap-1 bg-accent text-white text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-gold-900 disabled:opacity-50"
+                                  className="inline-flex items-center bg-accent text-white p-1 rounded hover:bg-gold-900 disabled:opacity-50"
                                 >
                                   {actionLoading === `${member.id}-welcome` ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                   ) : (
-                                    <Send className="w-3 h-3" />
+                                    <Send className="w-3.5 h-3.5" />
                                   )}
-                                  Invite
                                 </button>
                               )}
                               {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
@@ -671,10 +660,9 @@ export default function AdminPage() {
                                   onClick={() => handleAction(member.id, 'deactivate')}
                                   disabled={actionLoading === `${member.id}-deactivate`}
                                   title="Deactivate this member"
-                                  className="inline-flex items-center gap-1 bg-white border border-gray-200 text-gray-600 text-[0.6rem] font-medium px-2 py-1 rounded hover:bg-gray-50 disabled:opacity-50"
+                                  className="inline-flex items-center bg-white border border-gray-200 text-gray-600 p-1 rounded hover:bg-gray-50 disabled:opacity-50"
                                 >
-                                  <UserX className="w-3 h-3" />
-                                  Deactivate
+                                  <UserX className="w-3.5 h-3.5" />
                                 </button>
                               )}
                             </div>
@@ -683,7 +671,7 @@ export default function AdminPage() {
                             {isStaff ? (
                               <span className="text-hint italic text-xs">—</span>
                             ) : member.referredBy ? (
-                              <p className="text-xs text-charcoal truncate max-w-[10rem]" title={boardIdToName.get(member.referredBy) || member.referredBy}>
+                              <p className="text-[0.7rem] text-charcoal truncate max-w-[8rem]" title={boardIdToName.get(member.referredBy) || member.referredBy}>
                                 {boardIdToName.get(member.referredBy) || 'Unknown'}
                               </p>
                             ) : (
@@ -693,10 +681,10 @@ export default function AdminPage() {
                                 onChange={(e) => {
                                   if (e.target.value) handleSetReferrer(member, e.target.value)
                                 }}
-                                className="bg-white border border-ivory-200 rounded px-1.5 py-1 text-xs max-w-[10rem] focus:outline-none focus:ring-1 focus:ring-brand/30"
+                                className="bg-white border border-ivory-200 rounded px-1 py-0.5 text-[0.7rem] w-full max-w-[8rem] focus:outline-none focus:ring-1 focus:ring-brand/30"
                                 title="Set who referred this member"
                               >
-                                <option value="">— Set referrer —</option>
+                                <option value="">Set…</option>
                                 {boardOptions.map((b) => (
                                   <option key={b.id} value={b.id}>{b.name}</option>
                                 ))}
