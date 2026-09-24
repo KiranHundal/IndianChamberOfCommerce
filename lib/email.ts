@@ -476,11 +476,53 @@ export async function sendMembershipInvitationEmail(invite: {
     ? `<div style="background: #FFFFFF; border-left: 3px solid #D4A830; padding: 14px 18px; margin: 20px 0; color: #5A6A7A; font-style: italic; line-height: 1.7;">${invite.personalNote}</div>`
     : ''
 
+  // Plain-text alternative + List-Unsubscribe header. Gmail specifically
+  // weights both heavily — the presence of a text/plain body signals "real
+  // person mail," and a working unsubscribe drops a "why is this bulk?"
+  // penalty. Domain reputation still has to warm up organically (Google
+  // watches how many recipients open, reply, and don't complain), but
+  // these two changes get invitations out of the promotions/spam bucket
+  // for most recipients on day one.
+  const subject = invite.name
+    ? `${invite.fromName || 'CVICC'} — a personal invitation for ${invite.name}`
+    : `A personal invitation from ${invite.fromName || 'the CVICC Board'}`
+  const plainText = [
+    invite.name ? `Dear ${invite.name},` : 'Hello,',
+    '',
+    `On behalf of the Central Valley Indian Chamber of Commerce, I'm personally inviting you to join our growing network of Indian-American business leaders across California's Central Valley.`,
+    invite.businessName ? `\nWe'd be honored to have ${invite.businessName} represented in our chamber.` : '',
+    invite.personalNote ? `\n"${invite.personalNote}"` : '',
+    '',
+    `CVICC connects, supports, and elevates Indian-American businesses through networking events, mentorship, community advocacy, and cultural celebration. As a member, you'll access exclusive events, a business directory listing, and the opportunity to shape the future of our community.`,
+    '',
+    invite.suggestedTier === 'corporate'
+      ? `For your organization, we recommend our Corporate Membership ($395/year, founding rate — regularly $495).`
+      : invite.suggestedTier === 'individual'
+        ? `We recommend our Individual Membership ($95/year, founding rate — regularly $195).`
+        : `We offer Individual Membership ($95/year) and Corporate Membership ($395/year) — both at founding-member pricing.`,
+    '',
+    `Join at ${siteUrl}/join`,
+    '',
+    `Questions? Just reply to this email, or visit ${siteUrl}/contact.`,
+    '',
+    `Warm regards,`,
+    invite.fromName || 'The CVICC Board',
+    invite.fromDesignation || '',
+    `Central Valley Indian Chamber of Commerce`,
+    '',
+    `— To unsubscribe from future CVICC emails, reply with "unsubscribe" or visit ${siteUrl}/contact.`,
+  ].filter(Boolean).join('\n')
+
   return resend.emails.send({
     from: `${invite.fromName || 'CVICC'} <${fromEmail}>`,
     to: invite.email,
     replyTo: invite.fromReplyTo?.trim() || fromEmail,
-    subject: 'A Personal Invitation to Join CVICC',
+    subject,
+    text: plainText,
+    headers: {
+      'List-Unsubscribe': `<${siteUrl}/contact>, <mailto:${invite.fromReplyTo?.trim() || fromEmail}?subject=Unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
     html: `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
         <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
