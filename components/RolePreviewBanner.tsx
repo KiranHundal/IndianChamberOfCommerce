@@ -18,8 +18,12 @@ export default function RolePreviewBanner() {
   const activeIsModerator = effectiveRole === 'moderator'
   const activeIsReviewer = effectiveRole === 'reviewer'
 
+  // z-[300] beats AnnouncementBar (z-[250]) so the pills are actually clickable
+  // instead of being covered by the announcement bar's <Link href="/join">
+  // that spans its full width. type="button" on every button so a stray form
+  // ancestor can never turn the click into a submit.
   return (
-    <div className="sticky top-0 z-40 bg-navy-900 border-b border-navy-800">
+    <div className="sticky top-0 z-[300] bg-navy-900 border-b border-navy-800">
       <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-1.5 text-gold-400">
           <Eye className="w-3.5 h-3.5" />
@@ -27,6 +31,7 @@ export default function RolePreviewBanner() {
         </div>
         <div className="flex gap-1.5 flex-wrap flex-1">
           <button
+            type="button"
             onClick={exitPreview}
             className={`inline-flex items-center gap-1.5 text-[0.6rem] tracking-widest uppercase font-label px-3 py-1.5 rounded transition-all ${
               activeIsAdmin
@@ -38,6 +43,7 @@ export default function RolePreviewBanner() {
             Admin
           </button>
           <button
+            type="button"
             onClick={() => setPreview('moderator')}
             className={`inline-flex items-center gap-1.5 text-[0.6rem] tracking-widest uppercase font-label px-3 py-1.5 rounded transition-all ${
               activeIsModerator
@@ -49,6 +55,7 @@ export default function RolePreviewBanner() {
             Moderator
           </button>
           <button
+            type="button"
             onClick={() => setPreview('reviewer')}
             className={`inline-flex items-center gap-1.5 text-[0.6rem] tracking-widest uppercase font-label px-3 py-1.5 rounded transition-all ${
               activeIsReviewer
