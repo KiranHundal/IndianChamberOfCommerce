@@ -40,6 +40,9 @@ export const expenses = sqliteTable('expenses', {
   expenseDate: integer('expense_date', { mode: 'timestamp' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   createdBy: text('created_by'),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
+  deletionReason: text('deletion_reason'),
 })
 
 export const squarePayments = sqliteTable('square_payments', {

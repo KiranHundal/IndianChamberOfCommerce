@@ -112,6 +112,25 @@ export async function GET(req: Request) {
     results.push(`expenses table error: ${msg}`)
   }
 
+  const expenseColumns = [
+    { name: 'deleted_at', type: 'INTEGER' },
+    { name: 'deleted_by', type: 'TEXT' },
+    { name: 'deletion_reason', type: 'TEXT' },
+  ]
+  for (const col of expenseColumns) {
+    try {
+      await client.execute(`ALTER TABLE expenses ADD COLUMN ${col.name} ${col.type}`)
+      results.push(`Added expenses.${col.name}`)
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg.includes('duplicate column')) {
+        results.push(`expenses.${col.name} already exists`)
+      } else {
+        results.push(`expenses.${col.name} error: ${msg}`)
+      }
+    }
+  }
+
   try {
     await client.execute(`
       CREATE TABLE IF NOT EXISTS invitations (

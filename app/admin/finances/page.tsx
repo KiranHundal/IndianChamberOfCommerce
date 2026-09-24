@@ -131,6 +131,7 @@ interface Summary {
       paymentMethod: string | null
       paymentReference: string | null
       expenseDate: string | number
+      createdBy: string | null
       isSynthetic?: boolean
     }>
   }
@@ -168,6 +169,9 @@ export default function AdminFinancesPage() {
   const [squareFilter, setSquareFilter] = useState<'all' | 'matched' | 'orphan'>('all')
   const [invitingOrphan, setInvitingOrphan] = useState<string | null>(null)
   const [deletingExpense, setDeletingExpense] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [deleteError, setDeleteError] = useState('')
   const [showExpense, setShowExpense] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [modalSaving, setModalSaving] = useState(false)
@@ -214,21 +218,40 @@ export default function AdminFinancesPage() {
     }
   }, [status, session, router, fetchSummary])
 
-  async function handleDeleteExpense(id: string, label: string) {
-    if (!confirm(`Delete this expense (${label})? This cannot be undone.`)) return
-    setDeletingExpense(id)
-    setNotice(null)
+  function openDeleteExpense(id: string, label: string) {
+    setDeleteTarget({ id, label })
+    setDeleteReason('')
+    setDeleteError('')
+  }
+
+  async function submitDeleteExpense(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!deleteTarget) return
+    const reason = deleteReason.trim()
+    if (reason.length < 3) {
+      setDeleteError('Please write a reason (at least 3 characters). This becomes part of the audit trail.')
+      return
+    }
+    setDeletingExpense(deleteTarget.id)
+    setDeleteError('')
     try {
-      const res = await fetch(`/api/admin/expenses/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/expenses/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setNotice({ type: 'error', text: body.error || 'Failed to delete expense.' })
+        setDeleteError(body.error || 'Failed to delete expense.')
       } else {
+        const label = deleteTarget.label
+        setDeleteTarget(null)
+        setDeleteReason('')
         await fetchSummary()
-        setNotice({ type: 'success', text: `Expense deleted (${label}).` })
+        setNotice({ type: 'success', text: `Expense deleted (${label}). Reason recorded.` })
       }
     } catch (err) {
-      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+      setDeleteError(err instanceof Error ? err.message : 'Network error.')
     }
     setDeletingExpense(null)
   }
@@ -682,6 +705,7 @@ export default function AdminFinancesPage() {
                       <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Vendor</th>
                       <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Description</th>
                       <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Method / Ref</th>
+                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Logged By</th>
                       <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Amount</th>
                       <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Action</th>
                     </tr>
@@ -707,6 +731,9 @@ export default function AdminFinancesPage() {
                           {e.paymentMethod || '—'}
                           {e.paymentReference && <span className="block truncate">Ref: {e.paymentReference}</span>}
                         </td>
+                        <td className="px-3 py-2.5 text-[0.65rem] text-mid truncate max-w-[12rem]">
+                          {e.createdBy || <span className="text-hint italic">unknown</span>}
+                        </td>
                         <td className="px-3 py-2.5 text-right font-medium text-red-700 whitespace-nowrap">
                           −{money(e.amount)}
                         </td>
@@ -715,9 +742,10 @@ export default function AdminFinancesPage() {
                             <span className="text-[0.6rem] text-hint italic">auto</span>
                           ) : (
                             <button
-                              onClick={() => handleDeleteExpense(e.id, `${e.vendor} · ${money(e.amount)}`)}
+                              type="button"
+                              onClick={() => openDeleteExpense(e.id, `${e.vendor} · ${money(e.amount)}`)}
                               disabled={deletingExpense === e.id}
-                              title="Delete this expense"
+                              title="Delete this expense (requires a reason)"
                               className="inline-flex items-center gap-1 text-[0.6rem] text-red-600 hover:text-red-800 font-label tracking-widest uppercase disabled:opacity-40"
                             >
                               {deletingExpense === e.id ? (
@@ -734,7 +762,7 @@ export default function AdminFinancesPage() {
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-brand/20 bg-page-bg">
-                      <td colSpan={5} className="px-3 py-3 font-label text-[0.65rem] tracking-widest uppercase text-brand">
+                      <td colSpan={6} className="px-3 py-3 font-label text-[0.65rem] tracking-widest uppercase text-brand">
                         Total ({summary.expenses.recent.length} {summary.expenses.recent.length === 1 ? 'entry' : 'entries'})
                       </td>
                       <td className="px-3 py-3 text-right font-display text-h5 text-red-700">
@@ -1045,6 +1073,77 @@ export default function AdminFinancesPage() {
 
         </div>
       </section>
+
+      {/* Delete Expense — reason is mandatory, kept for audit */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4"
+          onClick={() => deletingExpense !== deleteTarget.id && setDeleteTarget(null)}
+        >
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
+                  <Trash2 className="w-4 h-4 text-red-600" />
+                </div>
+                <h3 className="font-display text-h4 text-brand">Delete expense</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => deletingExpense !== deleteTarget.id && setDeleteTarget(null)}
+                className="text-mid hover:text-brand"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-small text-mid mb-4">
+              You&rsquo;re deleting <strong className="text-brand">{deleteTarget.label}</strong>. Please explain why — this is stored on the record for audit.
+            </p>
+            <form onSubmit={submitDeleteExpense} className="space-y-4">
+              <div>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">
+                  Reason for deletion *
+                </label>
+                <textarea
+                  autoFocus
+                  required
+                  rows={3}
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  maxLength={500}
+                  placeholder="e.g. Duplicate entry, wrong category, entered as $200 instead of $2,000, refunded by vendor..."
+                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30"
+                />
+                <p className="text-[0.65rem] text-hint mt-1">{deleteReason.length}/500 characters — minimum 3</p>
+              </div>
+              {deleteError && (
+                <div className="text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">{deleteError}</div>
+              )}
+              <div className="flex gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={deletingExpense === deleteTarget.id}
+                  className="flex-1 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:border-brand/30 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deletingExpense === deleteTarget.id || deleteReason.trim().length < 3}
+                  className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deletingExpense === deleteTarget.id ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Deleting...</>
+                  ) : (
+                    <><Trash2 className="w-3.5 h-3.5" />Delete Expense</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Expense Modal */}
       {showExpense && (

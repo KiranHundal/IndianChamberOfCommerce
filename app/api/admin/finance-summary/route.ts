@@ -17,11 +17,14 @@ export async function GET() {
   }
 
   const allMembers = await db.select().from(members).catch(() => [])
-  const allExpenses = await db
+  const allExpenseRows = await db
     .select()
     .from(expenses)
     .orderBy(desc(expenses.expenseDate))
     .catch(() => [] as (typeof expenses.$inferSelect)[])
+  // Soft-deleted expenses are hidden from the finance view — they still
+  // live in the DB for audit but they don't count toward totals.
+  const allExpenses = allExpenseRows.filter((e) => !e.deletedAt)
   const allInvitations = await db
     .select()
     .from(invitations)
@@ -211,6 +214,7 @@ export async function GET() {
     paymentMethod: string | null
     paymentReference: string | null
     expenseDate: string | number | Date
+    createdBy: string | null
     isSynthetic?: boolean
   }> = []
 
@@ -224,10 +228,21 @@ export async function GET() {
       paymentMethod: 'auto-deducted',
       paymentReference: null,
       expenseDate: new Date(),
+      createdBy: 'system',
       isSynthetic: true,
     })
   }
-  recentExpenses.push(...allExpenses.slice(0, 10))
+  recentExpenses.push(...allExpenses.slice(0, 50).map((e) => ({
+    id: e.id,
+    category: e.category,
+    vendor: e.vendor,
+    description: e.description,
+    amount: e.amount,
+    paymentMethod: e.paymentMethod,
+    paymentReference: e.paymentReference,
+    expenseDate: e.expenseDate,
+    createdBy: e.createdBy,
+  })))
 
   const invitationsSent = allInvitations.length
   const invitedEmails = new Set(allInvitations.map((i) => i.email.toLowerCase()))
