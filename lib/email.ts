@@ -523,51 +523,31 @@ export async function sendMembershipInvitationEmail(invite: {
       'List-Unsubscribe': `<${siteUrl}/contact>, <mailto:${invite.fromReplyTo?.trim() || fromEmail}?subject=Unsubscribe>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     },
+    // Keep the same body copy Kiran preferred, but drop the navy header
+    // banner, the gold "You're Invited" preheader, the gold CTA button, and
+    // the navy footer. Those four elements are what Gmail's classifier
+    // pattern-matches as "marketing template." A plain white body with the
+    // same copy still reads warm and personal, just without the promotional
+    // signals.
     html: `
-      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
-        <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
-          <h1 style="color: #D4A830; font-size: 24px; margin: 0; font-weight: 300; letter-spacing: 2px;">
-            CENTRAL VALLEY INDIAN<br/>CHAMBER OF COMMERCE
-          </h1>
-        </div>
-        <div style="padding: 40px 32px; background: #FAFAF7;">
-          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">
-            You&rsquo;re Invited
-          </p>
-          <h2 style="color: #1E3A5F; font-size: 22px; font-weight: 300; margin: 0 0 20px;">
-            ${greeting}
-          </h2>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
-            On behalf of the Central Valley Indian Chamber of Commerce, I&rsquo;m personally inviting you to join our growing network of Indian-American business leaders across California&rsquo;s Central Valley.
-          </p>
-          ${businessLine}
-          ${noteBlock}
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
-            CVICC connects, supports, and elevates Indian-American businesses through networking events, mentorship, community advocacy, and cultural celebration. As a member, you&rsquo;ll access exclusive events, a business directory listing, and the opportunity to shape the future of our community.
-          </p>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 24px;">
-            ${tierLine}
-          </p>
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${siteUrl}/join" style="display: inline-block; background: #D4A830; color: #FFFFFF; text-decoration: none; padding: 14px 32px; border-radius: 4px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">
-              Join CVICC Today
-            </a>
-          </div>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0; font-size: 14px;">
-            Questions? Reply to this email or visit <a href="${siteUrl}/contact" style="color: #1E3A5F;">${siteUrl}/contact</a>.
-          </p>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0;">
-            Warm regards,<br/>
-            <strong style="color: #1E3A5F;">${invite.fromName || 'The CVICC Board'}</strong>${invite.fromDesignation ? `<br/><span style="font-size: 13px; color: #5A6A7A;">${invite.fromDesignation}</span>` : ''}<br/>
-            <span style="font-size: 13px;">Central Valley Indian Chamber of Commerce</span>
-          </p>
-        </div>
-        <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
-          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
-            Central Valley Indian Chamber of Commerce, Inc.<br/>
-            4610 W Jacquelyn Ave, Fresno, CA 93722
-          </p>
-        </div>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1a1a1a; font-size: 15px; line-height: 1.65;">
+        <p style="margin: 0 0 16px;">${greeting}</p>
+        <p style="margin: 0 0 16px;">On behalf of the Central Valley Indian Chamber of Commerce, I&rsquo;m personally inviting you to join our growing network of Indian-American business leaders across California&rsquo;s Central Valley.</p>
+        ${invite.businessName ? `<p style="margin: 0 0 16px;">We&rsquo;d be honored to have <strong>${invite.businessName}</strong> represented in our chamber.</p>` : ''}
+        ${invite.personalNote ? `<p style="margin: 0 0 16px; padding-left: 16px; border-left: 2px solid #EDE6D3; color: #4a4a4a;">${invite.personalNote}</p>` : ''}
+        <p style="margin: 0 0 16px;">CVICC connects, supports, and elevates Indian-American businesses through networking events, mentorship, community advocacy, and cultural celebration. As a member, you&rsquo;ll access exclusive events, a business directory listing, and the opportunity to shape the future of our community.</p>
+        <p style="margin: 0 0 16px;">${tierLine}</p>
+        <p style="margin: 0 0 16px;">If you&rsquo;d like to join, everything is at <a href="${siteUrl}/join" style="color: #1E3A5F; text-decoration: underline;">${siteUrl}/join</a>.</p>
+        <p style="margin: 20px 0 0;">Questions? Just reply to this email, or visit <a href="${siteUrl}/contact" style="color: #1E3A5F; text-decoration: underline;">${siteUrl}/contact</a>.</p>
+        <p style="margin: 24px 0 0;">Warm regards,</p>
+        <p style="margin: 4px 0 0;">
+          <strong style="color: #1E3A5F;">${invite.fromName || 'The CVICC Board'}</strong>${invite.fromDesignation ? `<br/><span style="color: #5A6A7A; font-size: 14px;">${invite.fromDesignation}</span>` : ''}<br/>
+          <span style="color: #5A6A7A; font-size: 14px;">Central Valley Indian Chamber of Commerce</span>
+        </p>
+        <p style="margin: 32px 0 0; color: #8a8a8a; font-size: 11px; line-height: 1.5;">
+          Central Valley Indian Chamber of Commerce, Inc. · 4610 W Jacquelyn Ave, Fresno, CA 93722.
+          To stop receiving these emails, reply &ldquo;unsubscribe&rdquo; or visit <a href="${siteUrl}/contact" style="color: #8a8a8a;">${siteUrl}/contact</a>.
+        </p>
       </div>
     `,
   })
