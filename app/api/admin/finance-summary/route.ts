@@ -263,7 +263,7 @@ export async function GET() {
 
   const memberList = allMembers
     .map((m) => {
-      const isStaff = m.role === 'admin' || m.role === 'moderator'
+      const isStaff = m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer'
       const amt = inferredAmount(m)
       return {
         id: m.id,

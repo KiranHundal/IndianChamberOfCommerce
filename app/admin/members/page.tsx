@@ -530,13 +530,19 @@ export default function AdminPage() {
                             </p>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex px-2 py-0.5 rounded border text-[0.65rem] font-medium capitalize ${
-                              member.membershipTier === 'corporate'
-                                ? 'bg-navy-50 border-navy-100 text-brand'
-                                : 'bg-ivory-100 border-ivory-200 text-mid'
-                            }`}>
-                              {member.membershipTier}
-                            </span>
+                            {isStaff ? (
+                              <span className="inline-flex px-2 py-0.5 rounded border text-[0.65rem] font-medium bg-navy-50 border-navy-100 text-brand">
+                                Staff
+                              </span>
+                            ) : (
+                              <span className={`inline-flex px-2 py-0.5 rounded border text-[0.65rem] font-medium capitalize ${
+                                member.membershipTier === 'corporate'
+                                  ? 'bg-navy-50 border-navy-100 text-brand'
+                                  : 'bg-ivory-100 border-ivory-200 text-mid'
+                              }`}>
+                                {member.membershipTier}
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[0.65rem] font-medium ${badge.bg} ${badge.color}`}>

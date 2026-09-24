@@ -836,11 +836,17 @@ export default function AdminFinancesPage() {
                                 <p className="text-[0.65rem] text-hint truncate max-w-xs">{m.email}</p>
                               </td>
                               <td className="px-3 py-2.5">
-                                <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${
-                                  m.membershipTier === 'corporate' ? 'bg-navy-50 border-navy-100 text-brand' : 'bg-ivory-100 border-ivory-200 text-mid'
-                                }`}>
-                                  {m.membershipTier}
-                                </span>
+                                {m.isStaff ? (
+                                  <span className="inline-flex px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-[0.6rem] capitalize font-medium text-brand">
+                                    Staff
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${
+                                    m.membershipTier === 'corporate' ? 'bg-navy-50 border-navy-100 text-brand' : 'bg-ivory-100 border-ivory-200 text-mid'
+                                  }`}>
+                                    {m.membershipTier}
+                                  </span>
+                                )}
                               </td>
                               <td className="px-3 py-2.5">
                                 <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${badge}`}>
@@ -849,9 +855,7 @@ export default function AdminFinancesPage() {
                               </td>
                               <td className="px-3 py-2.5 text-right">
                                 {m.isStaff ? (
-                                  <span className="inline-flex px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-[0.6rem] font-medium text-brand">
-                                    Staff
-                                  </span>
+                                  <span className="text-hint text-[0.7rem] italic">—</span>
                                 ) : (
                                   <p className="font-medium text-brand">
                                     {money(m.inferredAmount)}
@@ -860,7 +864,9 @@ export default function AdminFinancesPage() {
                                 )}
                               </td>
                               <td className="px-3 py-2.5">
-                                {m.paymentMethod ? (
+                                {m.isStaff ? (
+                                  <span className="text-hint text-[0.7rem] italic">n/a</span>
+                                ) : m.paymentMethod ? (
                                   <span className="capitalize text-charcoal">{m.paymentMethod}</span>
                                 ) : (
                                   <span className="text-hint text-[0.7rem]">—</span>
@@ -917,15 +923,21 @@ export default function AdminFinancesPage() {
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-1.5 items-center">
-                            <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${
-                              m.membershipTier === 'corporate' ? 'bg-navy-50 border-navy-100 text-brand' : 'bg-ivory-100 border-ivory-200 text-mid'
-                            }`}>
-                              {m.membershipTier}
-                            </span>
+                            {m.isStaff ? (
+                              <span className="inline-flex px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-[0.6rem] capitalize font-medium text-brand">
+                                Staff
+                              </span>
+                            ) : (
+                              <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${
+                                m.membershipTier === 'corporate' ? 'bg-navy-50 border-navy-100 text-brand' : 'bg-ivory-100 border-ivory-200 text-mid'
+                              }`}>
+                                {m.membershipTier}
+                              </span>
+                            )}
                             <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${badge}`}>
                               {m.status}
                             </span>
-                            {m.paymentMethod && (
+                            {!m.isStaff && m.paymentMethod && (
                               <span className="inline-flex px-2 py-0.5 rounded-full bg-gold-50 border border-gold-100 text-[0.6rem] capitalize text-brand font-medium">
                                 {m.paymentMethod}
                               </span>
