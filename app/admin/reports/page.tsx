@@ -4,11 +4,8 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Download, Users, DollarSign, Receipt, ExternalLink } from 'lucide-react'
-import SectionLabel from '@/components/ui/SectionLabel'
-import SectionTitle from '@/components/ui/SectionTitle'
-import Divider from '@/components/ui/Divider'
-import AnimatedSection from '@/components/ui/AnimatedSection'
+import { FileText, Download, Users, DollarSign, Receipt, ExternalLink } from 'lucide-react'
+import AdminShell from '@/components/admin/AdminShell'
 
 interface Summary {
   gross: number
@@ -63,42 +60,15 @@ export default function AdminReportsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-page-bg flex items-center justify-center">
-        <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
-      </div>
+      <AdminShell title="Reports & Exports">
+        <div className="animate-pulse text-mid text-sm">Loading…</div>
+      </AdminShell>
     )
   }
 
   return (
-    <>
-      <section className="bg-navy-900 py-24 text-center relative overflow-hidden">
-        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
-        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
-        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
-        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30" />
-        <div className="max-w-4xl mx-auto px-8">
-          <AnimatedSection>
-            <SectionLabel dark>Admin</SectionLabel>
-          </AnimatedSection>
-          <AnimatedSection delay={1}>
-            <SectionTitle dark className="mt-4">Reports &amp; Exports</SectionTitle>
-          </AnimatedSection>
-          <AnimatedSection delay={2}>
-            <Divider className="mx-auto mt-6" />
-          </AnimatedSection>
-        </div>
-      </section>
-
-      <section className="bg-page-bg py-16">
-        <div className="max-w-4xl mx-auto px-8">
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-2 text-mid hover:text-brand font-label text-[0.65rem] tracking-widest uppercase mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Admin
-          </Link>
-
+    <AdminShell title="Reports & Exports">
+      <div>
           {summary && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white border border-ivory-200 rounded-xl p-4">
@@ -202,8 +172,7 @@ export default function AdminReportsPage() {
               reconciliation, and to add offline payments or expenses.
             </p>
           </div>
-        </div>
-      </section>
-    </>
+      </div>
+    </AdminShell>
   )
 }

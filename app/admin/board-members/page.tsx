@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState, FormEvent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  ArrowLeft,
   UserPlus,
   Trash2,
   Pencil,
@@ -17,10 +16,7 @@ import {
   Mail,
   MailCheck,
 } from 'lucide-react'
-import SectionLabel from '@/components/ui/SectionLabel'
-import SectionTitle from '@/components/ui/SectionTitle'
-import Divider from '@/components/ui/Divider'
-import AnimatedSection from '@/components/ui/AnimatedSection'
+import AdminShell from '@/components/admin/AdminShell'
 
 interface BoardMemberRow {
   id: string
@@ -155,55 +151,26 @@ export default function AdminBoardMembersPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-page-bg flex items-center justify-center">
-        <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
-      </div>
+      <AdminShell title="Board Members">
+        <div className="animate-pulse text-mid text-sm">Loading…</div>
+      </AdminShell>
     )
   }
 
+  const headerActions = !showAdd ? (
+    <button
+      type="button"
+      onClick={() => setShowAdd(true)}
+      className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
+    >
+      <UserPlus className="w-3.5 h-3.5" />
+      <span className="hidden sm:inline">Add Board Member</span>
+    </button>
+  ) : null
+
   return (
-    <>
-      <section className="bg-navy-900 py-32 text-center relative overflow-hidden">
-        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
-        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
-        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
-        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30" />
-
-        <div className="max-w-4xl mx-auto px-8">
-          <AnimatedSection>
-            <SectionLabel dark>Admin</SectionLabel>
-          </AnimatedSection>
-          <AnimatedSection delay={1}>
-            <SectionTitle dark className="mt-4">Board Members</SectionTitle>
-          </AnimatedSection>
-          <AnimatedSection delay={2}>
-            <Divider className="mx-auto mt-6" />
-          </AnimatedSection>
-        </div>
-      </section>
-
-      <section className="bg-page-bg py-16">
-        <div className="max-w-4xl mx-auto px-8">
-          <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-2 text-mid hover:text-brand font-label text-[0.65rem] tracking-widest uppercase transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back to Admin
-            </Link>
-
-            {!showAdd && (
-              <button
-                onClick={() => setShowAdd(true)}
-                className="flex items-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-2.5 rounded-lg hover:bg-gold-900 transition-all"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                Add Board Member
-              </button>
-            )}
-          </div>
-
+    <AdminShell title="Board Members" actions={headerActions}>
+      <div>
           {notice && (
             <div className={`mb-6 border rounded-lg px-4 py-3 text-small flex items-start gap-3 ${
               notice.type === 'success'
@@ -459,8 +426,7 @@ export default function AdminBoardMembersPage() {
             <Link href="/about/leadership" className="text-accent hover:underline">/about/leadership</Link>
             {' '}alongside the existing hardcoded members.
           </p>
-        </div>
-      </section>
-    </>
+      </div>
+    </AdminShell>
   )
 }

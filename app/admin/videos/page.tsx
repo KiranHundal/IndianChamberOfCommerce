@@ -3,13 +3,9 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { upload } from '@vercel/blob/client'
-import { ArrowLeft, Upload, Trash2, Play, Loader2 } from 'lucide-react'
-import SectionLabel from '@/components/ui/SectionLabel'
-import SectionTitle from '@/components/ui/SectionTitle'
-import Divider from '@/components/ui/Divider'
-import AnimatedSection from '@/components/ui/AnimatedSection'
+import { Upload, Trash2, Play, Loader2 } from 'lucide-react'
+import AdminShell from '@/components/admin/AdminShell'
 import { mockLeadership } from '@/lib/mock-data'
 
 interface VideoRow {
@@ -98,47 +94,17 @@ export default function AdminVideosPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-page-bg flex items-center justify-center">
-        <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
-      </div>
+      <AdminShell title="Leadership Videos">
+        <div className="animate-pulse text-mid text-sm">Loading…</div>
+      </AdminShell>
     )
   }
 
   const videoByLeader = new Map(videos.map((v) => [v.leaderName, v]))
 
   return (
-    <>
-      <section className="bg-navy-900 py-32 text-center relative overflow-hidden">
-        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
-        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
-        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
-        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30" />
-
-        <div className="max-w-4xl mx-auto px-8">
-          <AnimatedSection>
-            <SectionLabel dark>Admin</SectionLabel>
-          </AnimatedSection>
-          <AnimatedSection delay={1}>
-            <SectionTitle dark className="mt-4">
-              Leadership Videos
-            </SectionTitle>
-          </AnimatedSection>
-          <AnimatedSection delay={2}>
-            <Divider className="mx-auto mt-6" />
-          </AnimatedSection>
-        </div>
-      </section>
-
-      <section className="bg-page-bg py-16">
-        <div className="max-w-4xl mx-auto px-8">
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-2 text-mid hover:text-brand font-label text-[0.65rem] tracking-widest uppercase mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Admin
-          </Link>
-
+    <AdminShell title="Leadership Videos">
+      <div>
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-small">
               {error}
@@ -235,8 +201,7 @@ export default function AdminVideosPage() {
           <p className="text-[0.7rem] text-hint mt-8 text-center">
             Supported: MP4, WebM, MOV · Max 500MB per file · Videos display in each leader&apos;s bio card on the Leadership page
           </p>
-        </div>
-      </section>
-    </>
+      </div>
+    </AdminShell>
   )
 }

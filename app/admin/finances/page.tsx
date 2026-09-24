@@ -15,7 +15,6 @@ import {
   Send,
   UserPlus,
   Receipt,
-  Trash2,
 } from 'lucide-react'
 import { useEffectiveRole } from '@/lib/use-effective-role'
 import AdminShell from '@/components/admin/AdminShell'
@@ -164,10 +163,6 @@ export default function AdminFinancesPage() {
   const [syncing, setSyncing] = useState(false)
   const [squareFilter, setSquareFilter] = useState<'all' | 'matched' | 'orphan'>('all')
   const [invitingOrphan, setInvitingOrphan] = useState<string | null>(null)
-  const [deletingExpense, setDeletingExpense] = useState<string | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null)
-  const [deleteReason, setDeleteReason] = useState('')
-  const [deleteError, setDeleteError] = useState('')
   const [showExpense, setShowExpense] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [modalSaving, setModalSaving] = useState(false)
@@ -213,44 +208,6 @@ export default function AdminFinancesPage() {
       fetchSummary()
     }
   }, [status, session, router, fetchSummary])
-
-  function openDeleteExpense(id: string, label: string) {
-    setDeleteTarget({ id, label })
-    setDeleteReason('')
-    setDeleteError('')
-  }
-
-  async function submitDeleteExpense(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!deleteTarget) return
-    const reason = deleteReason.trim()
-    if (reason.length < 3) {
-      setDeleteError('Please write a reason (at least 3 characters). This becomes part of the audit trail.')
-      return
-    }
-    setDeletingExpense(deleteTarget.id)
-    setDeleteError('')
-    try {
-      const res = await fetch(`/api/admin/expenses/${deleteTarget.id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setDeleteError(body.error || 'Failed to delete expense.')
-      } else {
-        const label = deleteTarget.label
-        setDeleteTarget(null)
-        setDeleteReason('')
-        await fetchSummary()
-        setNotice({ type: 'success', text: `Expense deleted (${label}). Reason recorded.` })
-      }
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Network error.')
-    }
-    setDeletingExpense(null)
-  }
 
   async function handleInviteOrphan(paymentId: string, buyerLabel: string) {
     setInvitingOrphan(paymentId)
@@ -635,138 +592,23 @@ export default function AdminFinancesPage() {
             )
           })()}
 
-          {/* Expenses list */}
-          <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-8">
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <Receipt className="w-5 h-5 text-red-600" />
-                <h3 className="font-label text-label tracking-widest uppercase text-brand">
-                  Expenses ({summary.expenses.recent.filter(e => !e.isSynthetic).length}{summary.expenses.recent.some(e => e.isSynthetic) ? ' + Square fees' : ''})
-                </h3>
-              </div>
-              <div className="text-right">
-                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Logged · Square Fees</p>
-                <p className="font-display text-h4 text-brand">
-                  {money(summary.expenses.logged)}
-                  {summary.expenses.total > summary.expenses.logged && (
-                    <span className="text-amber-700 text-h5"> + {money(summary.expenses.total - summary.expenses.logged)}</span>
-                  )}
+          {/* Expenses moved to their own tab — small summary hint */}
+          <div className="bg-white border border-ivory-200 rounded-lg p-4 mb-6 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <Receipt className="w-4 h-4 text-red-600" />
+              <div>
+                <p className="text-sm font-medium text-brand">Expenses</p>
+                <p className="text-xs text-mid">
+                  {money(summary.expenses.total)} total · {money(summary.expenses.logged)} logged + {money(Math.max(0, summary.expenses.total - summary.expenses.logged))} Square fees
                 </p>
-                <p className="text-[0.7rem] text-hint">Total {money(summary.expenses.total)}</p>
               </div>
             </div>
-            {summary.expenses.recent.length === 0 ? (
-              <p className="text-small text-hint py-6 text-center">
-                No expenses logged yet. Click <strong>Add Expense</strong> at the top to log one.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-small">
-                  <thead>
-                    <tr className="border-b border-ivory-200 text-left">
-                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Date</th>
-                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Category</th>
-                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Vendor</th>
-                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Description</th>
-                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Method / Ref</th>
-                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Logged By</th>
-                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Amount</th>
-                      <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.expenses.recent.map((e) => (
-                      <tr key={e.id} className="border-b border-ivory-200/60 hover:bg-page-bg/50">
-                        <td className="px-3 py-2.5 text-[0.7rem] text-charcoal whitespace-nowrap">
-                          {new Date(e.expenseDate).toLocaleDateString()}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] font-medium ${
-                            e.isSynthetic ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-red-50 border-red-200 text-red-700'
-                          }`}>
-                            {e.category}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 font-medium text-brand">{e.vendor}</td>
-                        <td className="px-3 py-2.5 text-[0.7rem] text-mid max-w-[16rem] truncate">
-                          {e.description || '—'}
-                        </td>
-                        <td className="px-3 py-2.5 text-[0.65rem] text-hint">
-                          {e.paymentMethod || '—'}
-                          {e.paymentReference && <span className="block truncate">Ref: {e.paymentReference}</span>}
-                        </td>
-                        <td className="px-3 py-2.5 text-[0.65rem] truncate max-w-[14rem]">
-                          {(() => {
-                            if (!e.createdBy) return <span className="text-hint italic">unknown</span>
-                            // API sends "Name <email>" when a member lookup succeeds,
-                            // or just the email when no matching member exists.
-                            const m = e.createdBy.match(/^(.*?)\s*<([^>]+)>\s*$/)
-                            if (m) {
-                              return (
-                                <>
-                                  <p className="text-mid font-medium truncate">{m[1]}</p>
-                                  <p className="text-hint truncate text-[0.6rem]">{m[2]}</p>
-                                </>
-                              )
-                            }
-                            return <p className="text-mid truncate">{e.createdBy}</p>
-                          })()}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-medium text-red-700 whitespace-nowrap">
-                          −{money(e.amount)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          {e.isSynthetic ? (
-                            <span className="text-[0.6rem] text-hint italic">auto</span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => openDeleteExpense(e.id, `${e.vendor} · ${money(e.amount)}`)}
-                              disabled={deletingExpense === e.id}
-                              title="Delete this expense (requires a reason)"
-                              className="inline-flex items-center gap-1 text-[0.6rem] text-red-600 hover:text-red-800 font-label tracking-widest uppercase disabled:opacity-40"
-                            >
-                              {deletingExpense === e.id ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-3 h-3" />
-                              )}
-                              Delete
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-brand/20 bg-page-bg">
-                      <td colSpan={6} className="px-3 py-3 font-label text-[0.65rem] tracking-widest uppercase text-brand">
-                        Total ({summary.expenses.recent.length} {summary.expenses.recent.length === 1 ? 'entry' : 'entries'})
-                      </td>
-                      <td className="px-3 py-3 text-right font-display text-h5 text-red-700">
-                        −{money(summary.expenses.total)}
-                      </td>
-                      <td className="px-3 py-3"></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
-            {Object.keys(summary.expenses.byCategory).length > 0 && (
-              <div className="mt-4 pt-4 border-t border-ivory-200">
-                <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60 mb-2">By Category</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(summary.expenses.byCategory)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([cat, amt]) => (
-                      <span key={cat} className="inline-flex items-center gap-1.5 bg-page-bg border border-ivory-200 rounded-full px-3 py-1 text-[0.7rem]">
-                        <span className="text-mid">{cat}</span>
-                        <span className="font-semibold text-brand">{money(amt)}</span>
-                      </span>
-                    ))}
-                </div>
-              </div>
-            )}
+            <Link
+              href="/admin/expenses"
+              className="text-xs font-medium text-accent hover:text-gold-900 uppercase tracking-wide"
+            >
+              Manage expenses →
+            </Link>
           </div>
 
           {/* Members list — full detail with payment info */}
@@ -1050,77 +892,6 @@ export default function AdminFinancesPage() {
           </div>
 
         </div>
-
-      {/* Delete Expense — reason is mandatory, kept for audit */}
-      {deleteTarget && (
-        <div
-          className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4"
-          onClick={() => deletingExpense !== deleteTarget.id && setDeleteTarget(null)}
-        >
-          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
-                  <Trash2 className="w-4 h-4 text-red-600" />
-                </div>
-                <h3 className="font-display text-h4 text-brand">Delete expense</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => deletingExpense !== deleteTarget.id && setDeleteTarget(null)}
-                className="text-mid hover:text-brand"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-small text-mid mb-4">
-              You&rsquo;re deleting <strong className="text-brand">{deleteTarget.label}</strong>. Please explain why — this is stored on the record for audit.
-            </p>
-            <form onSubmit={submitDeleteExpense} className="space-y-4">
-              <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">
-                  Reason for deletion *
-                </label>
-                <textarea
-                  autoFocus
-                  required
-                  rows={3}
-                  value={deleteReason}
-                  onChange={(e) => setDeleteReason(e.target.value)}
-                  maxLength={500}
-                  placeholder="e.g. Duplicate entry, wrong category, entered as $200 instead of $2,000, refunded by vendor..."
-                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30"
-                />
-                <p className="text-[0.65rem] text-hint mt-1">{deleteReason.length}/500 characters — minimum 3</p>
-              </div>
-              {deleteError && (
-                <div className="text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">{deleteError}</div>
-              )}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(null)}
-                  disabled={deletingExpense === deleteTarget.id}
-                  className="flex-1 bg-white border border-ivory-200 text-mid font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:border-brand/30 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={deletingExpense === deleteTarget.id || deleteReason.trim().length < 3}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white font-label text-label tracking-label uppercase px-4 py-3 rounded-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {deletingExpense === deleteTarget.id ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" />Deleting...</>
-                  ) : (
-                    <><Trash2 className="w-3.5 h-3.5" />Delete Expense</>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Expense Modal */}
       {showExpense && (
