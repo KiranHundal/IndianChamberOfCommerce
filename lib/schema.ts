@@ -21,6 +21,11 @@ export const members = sqliteTable('members', {
   paymentReference: text('payment_reference'),
   paymentDate: integer('payment_date', { mode: 'timestamp' }),
   paymentLinkSentAt: integer('payment_link_sent_at', { mode: 'timestamp' }),
+  // FK to board_members.id — who brought this member in. Required on the
+  // join form so the chamber can attribute new signups to board referrers.
+  // Nullable in the DB so historical rows survive the migration; the seed
+  // + admin backfill fill in older ones.
+  referredBy: text('referred_by'),
 })
 
 export const leaderVideos = sqliteTable('leader_videos', {

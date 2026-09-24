@@ -15,10 +15,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { name, email, phone, businessName, city, sector, membershipTier } = body
+    const { name, email, phone, businessName, city, sector, membershipTier, referredBy } = body
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 })
+    }
+    if (!referredBy || typeof referredBy !== 'string' || !referredBy.trim()) {
+      return NextResponse.json(
+        { error: 'Please tell us which board member invited you — this field is required.' },
+        { status: 400 }
+      )
     }
 
     const existing = await db
@@ -51,6 +57,7 @@ export async function POST(req: NextRequest) {
       paymentMethod: 'square',
       amountPaid: amountForTier,
       paymentDate: new Date(),
+      referredBy: referredBy.trim(),
     })
 
     let emailFailed = false

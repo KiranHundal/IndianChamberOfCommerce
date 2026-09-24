@@ -21,6 +21,7 @@ interface Bucket { bucket: string; label: string }
 interface RevenueBucket extends Bucket { revenue: number; payments: number }
 interface NewMemberBucket extends Bucket { count: number }
 interface AttributionRow { sender: string; converted: number; sent: number; label: string }
+interface BoardReferralRow { boardMemberId: string; boardMemberName: string; count: number }
 interface TierSlice { name: string; value: number; color: string }
 
 interface Stats {
@@ -31,6 +32,8 @@ interface Stats {
   revenueTrend: RevenueBucket[]
   newMembersTrend: NewMemberBucket[]
   attribution: AttributionRow[]
+  boardReferrals: BoardReferralRow[]
+  unattributedCount: number
   bucketSize: 'day' | 'month'
 }
 
@@ -361,7 +364,59 @@ export default function AdminHomePage() {
             )}
           </ChartCard>
 
-          {/* Attribution — who brought in members */}
+          {/* Board Referrals — how many members each board sponsor brought in */}
+          <ChartCard
+            title="Members by Board Referrer"
+            total={`${stats.boardReferrals.reduce((s, r) => s + r.count, 0)} attributed${stats.unattributedCount > 0 ? ` · ${stats.unattributedCount} unattributed` : ''}`}
+            className="lg:col-span-2"
+          >
+            {stats.boardReferrals.length === 0 ? (
+              <div className="py-8 text-center text-sm text-hint">
+                <Award className="w-8 h-8 text-hint mx-auto mb-2" />
+                No members attributed to a board referrer in this period.
+              </div>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={Math.max(180, stats.boardReferrals.length * 42)}>
+                  <BarChart data={stats.boardReferrals} layout="vertical" margin={{ top: 5, right: 20, left: 120, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#EDE6D3" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: '#5A6A7A' }} allowDecimals={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="boardMemberName"
+                      tick={{ fontSize: 11, fill: '#1E3A5F', cursor: 'pointer' }}
+                      width={120}
+                      onClick={(evt: unknown) => {
+                        const e = evt as { value?: string; index?: number }
+                        const row = typeof e?.index === 'number' ? stats.boardReferrals[e.index] : null
+                        if (row) {
+                          router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
+                        }
+                      }}
+                    />
+                    <Tooltip formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]} labelStyle={{ color: '#1E3A5F' }} />
+                    <Bar
+                      dataKey="count"
+                      fill="#D4A830"
+                      radius={[0, 4, 4, 0]}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data: unknown) => {
+                        const row = data as BoardReferralRow | undefined
+                        if (row?.boardMemberId) {
+                          router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
+                        }
+                      }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-[0.65rem] text-hint mt-2">
+                  Click any bar or name to see the members that referrer brought in.
+                </p>
+              </>
+            )}
+          </ChartCard>
+
+          {/* Attribution — who brought in members (via invitations table) */}
           <ChartCard title="Invitations & Conversions" total={`${stats.attribution.reduce((s, r) => s + r.converted, 0)} converted`} className="lg:col-span-2">
             {stats.attribution.length === 0 ? (
               <div className="py-8 text-center text-sm text-hint">

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { members, expenses, invitations, squarePayments } from '@/lib/schema'
+import { members, expenses, invitations, squarePayments, boardMembers } from '@/lib/schema'
 import { desc } from 'drizzle-orm'
 
 export const dynamic = 'force-dynamic'
@@ -86,11 +86,12 @@ export async function GET(req: Request) {
   const validPeriods: Period[] = ['week', 'month', 'quarter', 'ytd', 'all']
   const period: Period = validPeriods.includes(periodParam) ? periodParam : 'ytd'
 
-  const [allMembers, allPayments, allExpenseRows, allInvitations] = await Promise.all([
+  const [allMembers, allPayments, allExpenseRows, allInvitations, allBoard] = await Promise.all([
     db.select().from(members).catch(() => []),
     db.select().from(squarePayments).orderBy(desc(squarePayments.paidAt)).catch(() => []),
     db.select().from(expenses).orderBy(desc(expenses.expenseDate)).catch(() => []),
     db.select().from(invitations).orderBy(desc(invitations.sentAt)).catch(() => []),
+    db.select().from(boardMembers).catch(() => []),
   ])
 
   const allExpensesLive = allExpenseRows.filter((e) => !e.deletedAt)
@@ -239,6 +240,31 @@ export async function GET(req: Request) {
     .filter((r) => r.sent > 0 || r.converted > 0)
     .sort((a, b) => b.converted - a.converted)
 
+  // ---------- Board-member referrals (who brought in whom) ----------
+  const boardIdToName = new Map(allBoard.map((b) => [b.id, b.name]))
+  const boardReferralMap: Record<string, { boardMemberId: string; boardMemberName: string; count: number }> = {}
+  for (const m of nonStaff) {
+    if (!m.referredBy) continue
+    const ref = m.paymentDate || m.approvedAt || m.createdAt
+    if (!ref) continue
+    if (!inRange(ref)) continue
+    const key = m.referredBy
+    if (!boardReferralMap[key]) {
+      boardReferralMap[key] = {
+        boardMemberId: key,
+        boardMemberName: boardIdToName.get(key) || 'Unknown',
+        count: 0,
+      }
+    }
+    boardReferralMap[key].count += 1
+  }
+  const boardReferrals = Object.values(boardReferralMap).sort((a, b) => b.count - a.count)
+  const unattributedCount = nonStaff.filter((m) => {
+    if (m.referredBy) return false
+    const ref = m.paymentDate || m.approvedAt || m.createdAt
+    return ref ? inRange(ref) : false
+  }).length
+
   // ---------- KPI totals inside period ----------
   const totalRevenue = revenueTrend.reduce((s, r) => s + r.revenue, 0)
   const totalNewMembers = newMembersTrend.reduce((s, r) => s + r.count, 0)
@@ -263,6 +289,8 @@ export async function GET(req: Request) {
     revenueTrend,
     newMembersTrend,
     attribution,
+    boardReferrals,
+    unattributedCount,
     bucketSize: useDays ? 'day' : 'month',
   })
 }

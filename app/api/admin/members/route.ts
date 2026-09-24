@@ -62,6 +62,7 @@ export async function POST(req: Request) {
       paymentReference,
       paymentDate,
       sendEmail,
+      referredBy,
     } = body
 
     if (!name || !email) {
@@ -113,6 +114,7 @@ export async function POST(req: Request) {
       amountPaid: amount,
       paymentReference: paymentReference || null,
       paymentDate: isNaN(parsedPaymentDate.getTime()) ? now : parsedPaymentDate,
+      referredBy: (typeof referredBy === 'string' && referredBy.trim()) ? referredBy.trim() : null,
     })
 
     let emailStatus: 'sent' | 'failed' | 'skipped' = 'skipped'

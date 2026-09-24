@@ -42,6 +42,7 @@ interface Member {
   paymentReference: string | null
   paymentDate: string | number | null
   paymentLinkSentAt: string | number | null
+  referredBy: string | null
 }
 
 const statusBadge: Record<string, { label: string; color: string; bg: string }> = {
@@ -68,6 +69,8 @@ export default function AdminPage() {
   const [paymentSaving, setPaymentSaving] = useState(false)
   const [paymentError, setPaymentError] = useState('')
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [boardOptions, setBoardOptions] = useState<Array<{ id: string; name: string; role: string }>>([])
+  const [referredByFilter, setReferredByFilter] = useState<{ id: string; name: string } | null>(null)
 
   const fetchMembers = useCallback(async () => {
     setLoading(true)
@@ -94,7 +97,7 @@ export default function AdminPage() {
         router.push('/portal')
         return
       }
-      // Parse URL params: openLogPayment, status, method
+      // Parse URL params: openLogPayment, status, referredBy
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search)
         if (params.get('openLogPayment') === '1') {
@@ -105,8 +108,15 @@ export default function AdminPage() {
         if (s && ['all', 'pending', 'unpaid', 'approved', 'rejected', 'deactivated'].includes(s)) {
           setFilter(s)
         }
+        const rb = params.get('referredBy')
+        if (rb) setReferredByFilter({ id: rb, name: params.get('referredByName') || rb })
       }
       fetchMembers()
+      // Load board options for the Log Offline Payment dropdown.
+      fetch('/api/board-members-public')
+        .then((r) => (r.ok ? r.json() : { boardMembers: [] }))
+        .then((d) => setBoardOptions(d.boardMembers || []))
+        .catch(() => {})
     }
   }, [status, session, router, fetchMembers])
 
@@ -188,6 +198,7 @@ export default function AdminPage() {
       paymentReference: (fd.get('paymentReference') as string).trim() || null,
       paymentDate: fd.get('paymentDate') as string,
       sendEmail: fd.get('sendEmail') === 'on',
+      referredBy: (fd.get('referredBy') as string) || null,
     }
 
     try {
@@ -235,6 +246,7 @@ export default function AdminPage() {
   }
 
   const filteredMembers = members.filter((m) => {
+    if (referredByFilter && m.referredBy !== referredByFilter.id) return false
     if (filter === 'unpaid') {
       if (!isUnpaidPending(m)) return false
     } else if (filter === 'pending') {
@@ -312,6 +324,27 @@ export default function AdminPage() {
   return (
     <AdminShell title="Members" actions={headerActions}>
         <div>{/* keep block wrapper for existing layout children */}
+
+          {referredByFilter && (
+            <div className="mb-4 bg-navy-50 border border-navy-100 rounded px-4 py-2.5 flex items-center gap-3 text-sm">
+              <span className="text-brand">
+                Showing members referred by <strong>{referredByFilter.name}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setReferredByFilter(null)
+                  const url = new URL(window.location.href)
+                  url.searchParams.delete('referredBy')
+                  url.searchParams.delete('referredByName')
+                  window.history.replaceState({}, '', url.toString())
+                }}
+                className="ml-auto text-xs font-medium text-accent hover:text-gold-900 uppercase tracking-wide"
+              >
+                Clear filter
+              </button>
+            </div>
+          )}
 
           {notice && (
             <div
@@ -667,6 +700,15 @@ export default function AdminPage() {
               <div className="md:col-span-2">
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Reference (check #, Zelle sender, memo)</label>
                 <input name="paymentReference" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="Check #1234 · Combined check · etc." />
+              </div>
+              <div className="md:col-span-2">
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Referred By (board member)</label>
+                <select name="referredBy" defaultValue="" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                  <option value="">— None on record —</option>
+                  {boardOptions.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
               </div>
 
               <label className="md:col-span-2 flex items-start gap-3 cursor-pointer select-none bg-page-bg border border-ivory-200 rounded-md p-3 mt-1">

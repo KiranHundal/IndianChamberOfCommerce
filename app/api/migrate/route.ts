@@ -33,6 +33,7 @@ export async function GET(req: Request) {
     { name: 'payment_reference', type: 'TEXT' },
     { name: 'payment_date', type: 'INTEGER' },
     { name: 'payment_link_sent_at', type: 'INTEGER' },
+    { name: 'referred_by', type: 'TEXT' },
   ]
 
   for (const col of columns) {

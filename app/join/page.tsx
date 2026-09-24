@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, FormEvent } from 'react'
+import { useState, useRef, useEffect, FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import {
@@ -71,12 +71,23 @@ const tiers = [
 const inputClass =
   'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
 
+interface BoardMemberOption { id: string; name: string; role: string }
+
 export default function JoinPage() {
   const { data: session } = useSession()
   const [selectedTier, setSelectedTier] = useState<string | null>(null)
+  const [referredBy, setReferredBy] = useState('')
+  const [boardOptions, setBoardOptions] = useState<BoardMemberOption[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const formRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetch('/api/board-members-public')
+      .then((r) => (r.ok ? r.json() : { boardMembers: [] }))
+      .then((d) => setBoardOptions(d.boardMembers || []))
+      .catch(() => setBoardOptions([]))
+  }, [])
 
   function selectTierAndScroll(tierId: string) {
     setSelectedTier(tierId)
@@ -88,6 +99,10 @@ export default function JoinPage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!selectedTier) return
+    if (!referredBy) {
+      setError('Please tell us which board member invited you — this field is required.')
+      return
+    }
     setLoading(true)
     setError('')
 
@@ -127,6 +142,7 @@ export default function JoinPage() {
           city,
           sector,
           membershipTier: selectedTier,
+          referredBy,
         })
       )
 
@@ -437,6 +453,30 @@ export default function JoinPage() {
                   </div>
                 </div>
 
+                <div>
+                  <label htmlFor="referredBy" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Which CVICC board member invited you? *
+                  </label>
+                  <select
+                    id="referredBy"
+                    name="referredBy"
+                    required
+                    value={referredBy}
+                    onChange={(e) => setReferredBy(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Select the person who brought you in…</option>
+                    {boardOptions.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}{b.role && b.role !== 'Board Member' ? ` — ${b.role}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[0.7rem] text-hint mt-1">
+                    Every CVICC application needs a board sponsor. Pick the person who introduced you to us.
+                  </p>
+                </div>
+
                 {error && (
                   <p className="text-small text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
                     {error}
@@ -445,7 +485,7 @@ export default function JoinPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || !selectedTier}
+                  disabled={loading || !selectedTier || !referredBy}
                   className="group w-full flex items-center justify-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-6 py-3.5 rounded-sm transition-all hover:bg-gold-900 shadow-card hover:shadow-hover disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
