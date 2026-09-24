@@ -506,22 +506,52 @@ export async function sendMembershipInvitationEmail(invite: {
     `— To unsubscribe from future CVICC emails, reply with "unsubscribe" or visit ${siteUrl}/contact.`,
   ].filter(Boolean).join('\n')
 
-  // Text-only mode: skip the HTML body entirely. Gmail's Promotions
-  // classifier almost never fires on text/plain-only mail because the
-  // signal it uses (HTML template chrome) isn't there. Recommended for
-  // invitations to bank execs or anyone we want in Primary rather than
-  // Promotions.
+  // Text-only mode: send as genuine 1:1 correspondence. Drops every
+  // bulk-mail signal Gmail uses to route to Promotions:
+  //
+  //   - No List-Unsubscribe header (that header *explicitly* declares the
+  //     message is bulk list mail — Gmail then trusts you and files it
+  //     accordingly).
+  //   - No pricing paragraph, no /join link, no unsubscribe footer, no
+  //     address block. Those are marketing-template signals even in text.
+  //   - Subject line is "Quick note" — no "invitation", no "membership",
+  //     no product-shaped keywords.
+  //   - Body reads like a short peer-to-peer email offering a coffee, not
+  //     a member drive. If a personal note is attached it becomes the
+  //     centerpiece.
+  //
+  // The trade-off: no automatic unsubscribe. That's fine for 1:1 outreach
+  // (recipient can just reply "no thanks"), but keep textOnly=false for
+  // any actual bulk campaign.
   if (invite.textOnly) {
+    const firstName = invite.name?.split(' ')[0]
+    const shortGreeting = firstName ? `Hi ${firstName},` : 'Hi there,'
+    const senderFirst = (invite.fromName || 'Kiran').split(' ')[0]
+    const shortSubject = `Quick note from ${senderFirst}`
+    const shortBody = [
+      shortGreeting,
+      '',
+      `Hope you're doing well. I'm on the board of the Central Valley Indian Chamber of Commerce, and we've been building a group of Indian-American business owners and professionals across the valley — finance, healthcare, real estate, hospitality, and a lot in between.`,
+      invite.businessName
+        ? `I thought of ${invite.businessName} and wanted to reach out.`
+        : `I thought of you and wanted to reach out.`,
+      invite.personalNote ? `\n${invite.personalNote}\n` : '',
+      `Would you have 15 minutes for a coffee or a quick call so I can give you a real sense of what we do? No pressure either way — just wanted to say hello.`,
+      '',
+      `Warmly,`,
+      invite.fromName || 'Kiran Hundal',
+      invite.fromDesignation || '',
+      'Central Valley Indian Chamber of Commerce',
+    ].filter(Boolean).join('\n')
+
     return resend.emails.send({
       from: `${invite.fromName || 'CVICC'} <${fromEmail}>`,
       to: invite.email,
       replyTo: invite.fromReplyTo?.trim() || fromEmail,
-      subject,
-      text: plainText,
-      headers: {
-        'List-Unsubscribe': `<${siteUrl}/contact>, <mailto:${invite.fromReplyTo?.trim() || fromEmail}?subject=Unsubscribe>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      },
+      subject: shortSubject,
+      text: shortBody,
+      // Intentionally NO List-Unsubscribe / List-Unsubscribe-Post headers
+      // and NO html body — this is a personal note, not bulk mail.
     })
   }
 
