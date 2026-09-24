@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, FormEvent } from 'react'
 import { Plus, Trash2, Loader2, X, Receipt } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'
+import ExportCsvButton from '@/components/admin/ExportCsvButton'
 
 interface Expense {
   id: string
@@ -153,15 +154,31 @@ export default function AdminExpensesPage() {
   const rows = summary.expenses.recent
   const loggedRows = rows.filter((e) => !e.isSynthetic)
 
+  const exportColumns = [
+    { header: 'Date', get: (e: Expense) => e.expenseDate ? new Date(e.expenseDate).toISOString().slice(0, 10) : '' },
+    { header: 'Category', get: (e: Expense) => e.category },
+    { header: 'Vendor', get: (e: Expense) => e.vendor },
+    { header: 'Description', get: (e: Expense) => e.description || '' },
+    { header: 'Amount', get: (e: Expense) => e.amount },
+    { header: 'Payment Method', get: (e: Expense) => e.paymentMethod || '' },
+    { header: 'Reference', get: (e: Expense) => e.paymentReference || '' },
+    { header: 'Logged By', get: (e: Expense) => e.createdBy || '' },
+    { header: 'Type', get: (e: Expense) => e.isSynthetic ? 'auto' : 'logged' },
+  ]
+  const exportFilename = `cvicc-expenses-${new Date().toISOString().slice(0, 10)}.csv`
+
   const headerActions = (
-    <button
-      type="button"
-      onClick={() => { setExpenseError(''); setShowExpense(true) }}
-      className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
-    >
-      <Plus className="w-3.5 h-3.5" />
-      <span className="hidden sm:inline">Add Expense</span>
-    </button>
+    <>
+      <ExportCsvButton filename={exportFilename} rows={rows} columns={exportColumns} />
+      <button
+        type="button"
+        onClick={() => { setExpenseError(''); setShowExpense(true) }}
+        className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
+      >
+        <Plus className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Add Expense</span>
+      </button>
+    </>
   )
 
   return (

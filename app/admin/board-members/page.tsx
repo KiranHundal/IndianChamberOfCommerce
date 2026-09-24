@@ -17,6 +17,7 @@ import {
   MailCheck,
 } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'
+import ExportCsvButton from '@/components/admin/ExportCsvButton'
 import { headshotFor } from '@/lib/leader-headshots'
 
 interface BoardMemberRow {
@@ -158,16 +159,34 @@ export default function AdminBoardMembersPage() {
     )
   }
 
-  const headerActions = !showAdd ? (
-    <button
-      type="button"
-      onClick={() => setShowAdd(true)}
-      className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
-    >
-      <UserPlus className="w-3.5 h-3.5" />
-      <span className="hidden sm:inline">Add Board Member</span>
-    </button>
-  ) : null
+  const headerActions = (
+    <>
+      <ExportCsvButton
+        filename={`cvicc-board-members-${new Date().toISOString().slice(0, 10)}.csv`}
+        rows={rows}
+        columns={[
+          { header: 'Name', get: (r) => r.name },
+          { header: 'Role', get: (r) => r.role },
+          { header: 'Email', get: (r) => r.email || '' },
+          { header: 'Bio', get: (r) => r.bio || '' },
+          { header: 'Photo URL', get: (r) => r.photoUrl || '' },
+          { header: 'Display Order', get: (r) => r.displayOrder },
+          { header: 'Created', get: (r) => r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '' },
+          { header: 'Welcome Email Sent', get: (r) => r.welcomeEmailSentAt ? new Date(r.welcomeEmailSentAt).toISOString().slice(0, 10) : '' },
+        ]}
+      />
+      {!showAdd && (
+        <button
+          type="button"
+          onClick={() => setShowAdd(true)}
+          className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Add Board Member</span>
+        </button>
+      )}
+    </>
+  )
 
   return (
     <AdminShell title="Board Members" actions={headerActions}>

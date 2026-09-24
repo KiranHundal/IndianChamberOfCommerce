@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useEffectiveRole } from '@/lib/use-effective-role'
 import AdminShell from '@/components/admin/AdminShell'
+import ExportCsvButton from '@/components/admin/ExportCsvButton'
 
 interface MemberRow {
   id: string
@@ -443,6 +444,24 @@ export default function AdminFinancesPage() {
                     <h3 className="font-label text-label tracking-widest uppercase text-brand">
                       Square Payments ({rows.length}{squareFilter !== 'all' && ` of ${allPayments.length}`})
                     </h3>
+                    <ExportCsvButton
+                      filename={`cvicc-square-payments-${squareFilter}-${new Date().toISOString().slice(0, 10)}.csv`}
+                      rows={rows}
+                      columns={[
+                        { header: 'Paid At', get: (p) => p.paidAt ? new Date(p.paidAt).toISOString() : '' },
+                        { header: 'Buyer Name', get: (p) => p.buyerName || '' },
+                        { header: 'Buyer Email', get: (p) => p.buyerEmail || '' },
+                        { header: 'Amount ($)', get: (p) => ((p.amountCents - p.refundedCents) / 100).toFixed(2) },
+                        { header: 'Fee ($)', get: (p) => (p.feeCents / 100).toFixed(2) },
+                        { header: 'Refunded ($)', get: (p) => (p.refundedCents / 100).toFixed(2) },
+                        { header: 'Card', get: (p) => p.cardBrand ? `${p.cardBrand} ****${p.last4 || ''}` : '' },
+                        { header: 'Receipt #', get: (p) => p.receiptNumber || '' },
+                        { header: 'Matched Member', get: (p) => p.matchedMemberName || '' },
+                        { header: 'Membership #', get: (p) => p.matchedMembershipNumber || '' },
+                        { header: 'Matched Email', get: (p) => p.matchedMemberEmail || '' },
+                        { header: 'Status', get: (p) => (p.matched ? 'matched' : 'orphan') },
+                      ]}
+                    />
                   </div>
                   <div className="text-right">
                     <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Gross · Fees</p>
@@ -619,6 +638,26 @@ export default function AdminFinancesPage() {
                 <h3 className="font-label text-label tracking-widest uppercase text-brand">
                   Members &amp; Payments ({summary.memberList.length})
                 </h3>
+                <ExportCsvButton
+                  filename={`cvicc-members-payments-${new Date().toISOString().slice(0, 10)}.csv`}
+                  rows={summary.memberList}
+                  columns={[
+                    { header: 'Name', get: (m) => m.name },
+                    { header: 'Business', get: (m) => m.businessName || '' },
+                    { header: 'Email', get: (m) => m.email },
+                    { header: 'Membership #', get: (m) => m.membershipNumber || '' },
+                    { header: 'Tier', get: (m) => m.membershipTier },
+                    { header: 'Status', get: (m) => m.status },
+                    { header: 'Role', get: (m) => m.role },
+                    { header: 'Payment Method', get: (m) => m.paymentMethod || '' },
+                    { header: 'Amount Paid', get: (m) => m.amountPaid ?? '' },
+                    { header: 'Inferred Amount', get: (m) => m.inferredAmount ?? '' },
+                    { header: 'Estimated?', get: (m) => m.isEstimated ? 'yes' : 'no' },
+                    { header: 'Has Square Receipt', get: (m) => m.hasSquareReceipt ? 'yes' : 'no' },
+                    { header: 'Payment Reference', get: (m) => m.paymentReference || '' },
+                    { header: 'Payment Date', get: (m) => m.paymentDate ? new Date(m.paymentDate).toISOString().slice(0, 10) : '' },
+                  ]}
+                />
               </div>
               <div className="flex gap-2 flex-wrap items-center">
                 <input

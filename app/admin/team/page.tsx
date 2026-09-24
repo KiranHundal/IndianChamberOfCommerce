@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import AdminShell from '@/components/admin/AdminShell'
+import ExportCsvButton from '@/components/admin/ExportCsvButton'
 import { headshotFor } from '@/lib/leader-headshots'
 
 interface TeamMember {
@@ -194,14 +195,29 @@ export default function AdminTeamPage() {
   }
 
   const headerActions = (
-    <button
-      type="button"
-      onClick={() => { setManualError(''); setShowManual(true) }}
-      className="inline-flex items-center gap-1.5 bg-navy-900 text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-navy-800"
-    >
-      <UserPlus className="w-3.5 h-3.5 text-gold-400" />
-      <span className="hidden sm:inline">Grant Access</span>
-    </button>
+    <>
+      <ExportCsvButton
+        filename={`cvicc-team-accounts-${new Date().toISOString().slice(0, 10)}.csv`}
+        rows={data.team}
+        columns={[
+          { header: 'Name', get: (m) => m.name },
+          { header: 'Email', get: (m) => m.email },
+          { header: 'Role', get: (m) => m.role },
+          { header: 'Status', get: (m) => m.status },
+          { header: 'Membership #', get: (m) => m.membershipNumber || '' },
+          { header: 'Created', get: (m) => m.createdAt ? new Date(m.createdAt).toISOString().slice(0, 10) : '' },
+          { header: 'Approved', get: (m) => m.approvedAt ? new Date(m.approvedAt).toISOString().slice(0, 10) : '' },
+        ]}
+      />
+      <button
+        type="button"
+        onClick={() => { setManualError(''); setShowManual(true) }}
+        className="inline-flex items-center gap-1.5 bg-navy-900 text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-navy-800"
+      >
+        <UserPlus className="w-3.5 h-3.5 text-gold-400" />
+        <span className="hidden sm:inline">Grant Access</span>
+      </button>
+    </>
   )
 
   return (

@@ -21,6 +21,7 @@ import {
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import { useEffectiveRole } from '@/lib/use-effective-role'
 import AdminShell from '@/components/admin/AdminShell'
+import ExportCsvButton from '@/components/admin/ExportCsvButton'
 
 interface Member {
   id: string
@@ -270,16 +271,44 @@ export default function AdminPage() {
     deactivated: nonStaff.filter((m) => m.status === 'deactivated').length,
   }
 
-  const headerActions = canFinanceActions ? (
-    <button
-      type="button"
-      onClick={() => { setPaymentError(''); setShowPaymentModal(true) }}
-      className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
-    >
-      <DollarSign className="w-3.5 h-3.5" />
-      <span className="hidden sm:inline">Log Offline Payment</span>
-    </button>
-  ) : null
+  const exportColumns = [
+    { header: 'Name', get: (m: Member) => m.name },
+    { header: 'Email', get: (m: Member) => m.email },
+    { header: 'Phone', get: (m: Member) => m.phone || '' },
+    { header: 'Business', get: (m: Member) => m.businessName || '' },
+    { header: 'City', get: (m: Member) => m.city || '' },
+    { header: 'Sector', get: (m: Member) => m.sector || '' },
+    { header: 'Tier', get: (m: Member) => m.membershipTier },
+    { header: 'Status', get: (m: Member) => m.status },
+    { header: 'Role', get: (m: Member) => m.role },
+    { header: 'Membership #', get: (m: Member) => m.membershipNumber || '' },
+    { header: 'Payment Method', get: (m: Member) => m.paymentMethod || '' },
+    { header: 'Amount Paid', get: (m: Member) => m.amountPaid ?? '' },
+    { header: 'Payment Reference', get: (m: Member) => m.paymentReference || '' },
+    { header: 'Payment Date', get: (m: Member) => m.paymentDate ? new Date(m.paymentDate).toISOString().slice(0, 10) : '' },
+    { header: 'Joined', get: (m: Member) => m.createdAt ? new Date(m.createdAt).toISOString().slice(0, 10) : '' },
+  ]
+  const exportFilename = `cvicc-members-${filter}-${new Date().toISOString().slice(0, 10)}.csv`
+
+  const headerActions = (
+    <>
+      <ExportCsvButton
+        filename={exportFilename}
+        rows={filteredMembers}
+        columns={exportColumns}
+      />
+      {canFinanceActions && (
+        <button
+          type="button"
+          onClick={() => { setPaymentError(''); setShowPaymentModal(true) }}
+          className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
+        >
+          <DollarSign className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Log Offline Payment</span>
+        </button>
+      )}
+    </>
+  )
 
   return (
     <AdminShell title="Members" actions={headerActions}>
