@@ -1062,13 +1062,17 @@ export default function AdminFinancesPage() {
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Send From (Email)</label>
-                <input name="fromEmail" type="email" placeholder="info@indianchamberofcommerce.org" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-                <p className="text-[0.65rem] text-hint mt-1">Blank = default. Must be on a domain verified in Resend.</p>
+                <input name="fromEmail" type="email" placeholder="kiran@indianchamberofcommerce.org" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <p className="text-[0.65rem] text-hint mt-1">
+                  Must end in <strong>@indianchamberofcommerce.org</strong> (verified in Resend). Blank = info@indianchamberofcommerce.org.
+                </p>
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Reply-To (Optional)</label>
-                <input name="fromReplyTo" type="email" placeholder="your.email@gmail.com" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-                <p className="text-[0.65rem] text-hint mt-1">Where replies land. Blank = same as Send From.</p>
+                <input name="fromReplyTo" type="email" placeholder="kiran.farmers@gmail.com" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
+                <p className="text-[0.65rem] text-hint mt-1">
+                  Any address (Gmail is fine). Where replies land when the recipient hits Reply.
+                </p>
               </div>
               <div className="md:col-span-2">
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Personal Note</label>
