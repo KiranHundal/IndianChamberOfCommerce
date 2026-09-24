@@ -544,14 +544,55 @@ export async function sendMembershipInvitationEmail(invite: {
       ].filter(Boolean).join('\n')
     })()
 
+    // Minimal-HTML companion. Same words as the plain-text body but
+    // rendered in a serif face with proper paragraph spacing and a subtle
+    // underlined "Join CVICC" link. NO banner, NO big button, NO tables —
+    // Gmail's Promotions classifier looks for those signals. What we have
+    // instead is well-formatted personal correspondence, the kind a lawyer
+    // or a bank president actually sends. Reads premium, stays in Primary.
+    const escaped = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const paragraphs = finalBody.split(/\n\s*\n/).filter((p) => p.trim())
+    // The signature is the last chunk (Warmly, / Name / Title / Chamber).
+    // Splitting on \n gives us clean lines for that block.
+    const signatureLines = (paragraphs[paragraphs.length - 1] || '')
+      .split('\n')
+      .filter((s) => s.trim())
+    const bodyParagraphs = paragraphs.slice(0, -1)
+
+    const htmlBody = `
+      <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 560px; margin: 0 auto; padding: 24px 32px; color: #222; font-size: 16px; line-height: 1.75;">
+        ${bodyParagraphs
+          .map((p) => `<p style="margin: 0 0 18px;">${escaped(p).replace(/\n/g, '<br/>')}</p>`)
+          .join('')}
+        <p style="margin: 24px 0 0;">
+          If you'd like to know more, everything is at
+          <a href="${siteUrl}" style="color: #1E3A5F; text-decoration: underline;">www.indianchamberofcommerce.org</a>
+          — and you can
+          <a href="${siteUrl}/join" style="color: #1E3A5F; text-decoration: underline; font-weight: 600;">join here</a>
+          when you're ready.
+        </p>
+        <p style="margin: 28px 0 0; color: #444;">
+          ${signatureLines
+            .map((line, i) => {
+              if (i === 0) return `<span>${escaped(line)}</span>` // "Warmly,"
+              if (i === 1) return `<br/><strong style="color: #1a1a1a;">${escaped(line)}</strong>` // Name
+              return `<br/><span style="color: #555;">${escaped(line)}</span>` // Title / Org
+            })
+            .join('')}
+        </p>
+      </div>
+    `
+
     return resend.emails.send({
       from: `${invite.fromName || 'CVICC'} <${fromEmail}>`,
       to: invite.email,
       replyTo: invite.fromReplyTo?.trim() || fromEmail,
       subject: finalSubject,
       text: finalBody,
+      html: htmlBody,
       // Intentionally NO List-Unsubscribe / List-Unsubscribe-Post headers
-      // and NO html body — this is a personal note, not bulk mail.
+      // — this is personal correspondence, not bulk mail.
     })
   }
 
