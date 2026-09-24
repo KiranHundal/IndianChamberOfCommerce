@@ -40,6 +40,20 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const [preview, setPreviewState] = useState<'moderator' | 'reviewer' | null>(null)
 
   useEffect(() => {
+    // Escape hatch: any admin URL with ?resetPreview=1 hard-clears preview
+    // state before rendering the page. Bookmarkable panic button.
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      if (url.searchParams.get('resetPreview') === '1') {
+        try {
+          sessionStorage.removeItem(STORAGE_KEY)
+        } catch {}
+        url.searchParams.delete('resetPreview')
+        window.history.replaceState({}, '', url.toString())
+        setPreviewState(null)
+        return
+      }
+    }
     setPreviewState(readPreview())
     function onStorage(e: StorageEvent) {
       if (e.key === STORAGE_KEY) setPreviewState(readPreview())
