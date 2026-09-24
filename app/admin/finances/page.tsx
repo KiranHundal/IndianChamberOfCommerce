@@ -1061,11 +1061,32 @@ export default function AdminFinancesPage() {
                 <input name="fromDesignation" defaultValue="Treasurer & Chief Financial Officer" placeholder="e.g. Treasurer & CFO" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
               </div>
               <div>
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Send From (Email)</label>
-                <input name="fromEmail" type="email" placeholder="kiran@indianchamberofcommerce.org" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" />
-                <p className="text-[0.65rem] text-hint mt-1">
-                  Must end in <strong>@indianchamberofcommerce.org</strong> (verified in Resend). Blank = info@indianchamberofcommerce.org.
-                </p>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Send From</label>
+                <select
+                  name="fromEmail"
+                  defaultValue=""
+                  onChange={(e) => {
+                    // Autofill signature to match the chosen sender so admins
+                    // don't have to hand-edit three fields to switch identity.
+                    const form = e.currentTarget.form
+                    if (!form) return
+                    const preset = {
+                      '': { name: 'The CVICC Board', role: '' },
+                      'sonia@indianchamberofcommerce.org': { name: 'Sonia Heer', role: 'Chairwoman · Founder · Spokeswoman' },
+                      'raj@indianchamberofcommerce.org': { name: 'Rajinder Kumar', role: 'Executive Director · Founder' },
+                    }[e.currentTarget.value] || { name: 'The CVICC Board', role: '' }
+                    const nameEl = form.elements.namedItem('fromName') as HTMLInputElement | null
+                    const desigEl = form.elements.namedItem('fromDesignation') as HTMLInputElement | null
+                    if (nameEl) nameEl.value = preset.name
+                    if (desigEl) desigEl.value = preset.role
+                  }}
+                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30"
+                >
+                  <option value="">info@indianchamberofcommerce.org (default)</option>
+                  <option value="sonia@indianchamberofcommerce.org">sonia@indianchamberofcommerce.org — Sonia Heer</option>
+                  <option value="raj@indianchamberofcommerce.org">raj@indianchamberofcommerce.org — Rajinder Kumar</option>
+                </select>
+                <p className="text-[0.65rem] text-hint mt-1">Picks the sender + auto-fills their signature.</p>
               </div>
               <div>
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Reply-To (Optional)</label>

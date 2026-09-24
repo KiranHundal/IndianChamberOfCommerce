@@ -35,15 +35,21 @@ export async function POST(req: NextRequest) {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 })
     }
-    // Send-From must be on the verified Resend domain — reject early so the
-    // admin gets a clear error instead of Resend's raw "domain not verified"
-    // 403. Keeping this check in the API (not just the form) so a curl/direct
-    // call still fails clean.
+    // Send-From is a whitelist — only the 3 addresses verified in Resend
+    // (info, sonia, raj). Anything else including a typo silently fails at
+    // Resend, so reject early with a clear message. Blank means info@.
+    const ALLOWED_SENDERS = new Set([
+      'info@indianchamberofcommerce.org',
+      'sonia@indianchamberofcommerce.org',
+      'raj@indianchamberofcommerce.org',
+    ])
     if (fromEmail && typeof fromEmail === 'string' && fromEmail.trim()) {
       const trimmed = fromEmail.trim().toLowerCase()
-      if (!/^[^\s@]+@indianchamberofcommerce\.org$/.test(trimmed)) {
+      if (!ALLOWED_SENDERS.has(trimmed)) {
         return NextResponse.json(
-          { error: `"Send From" must end in @indianchamberofcommerce.org (that's the domain verified in Resend). You entered: ${fromEmail}` },
+          {
+            error: `"Send From" must be one of the verified addresses: info@, sonia@, or raj@indianchamberofcommerce.org. You entered: ${fromEmail}`,
+          },
           { status: 400 }
         )
       }
