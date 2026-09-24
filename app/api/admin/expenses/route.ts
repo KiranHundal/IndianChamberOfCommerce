@@ -18,7 +18,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const rows = await db.select().from(expenses).orderBy(desc(expenses.expenseDate))
-  return NextResponse.json({ expenses: rows })
+  // Soft-deleted expenses are hidden from the live list.
+  return NextResponse.json({ expenses: rows.filter((e) => !e.deletedAt) })
 }
 
 export async function POST(req: NextRequest) {

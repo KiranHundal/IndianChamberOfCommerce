@@ -18,10 +18,13 @@ export async function GET() {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  const [loggedExpenses, allPayments] = await Promise.all([
+  const [allExpenseRows, allPayments] = await Promise.all([
     db.select().from(expenses).orderBy(desc(expenses.expenseDate)),
     db.select().from(squarePayments),
   ])
+  // Soft-deleted expenses are excluded from the CSV — the treasurer's
+  // export should reflect live position only.
+  const loggedExpenses = allExpenseRows.filter((e) => !e.deletedAt)
 
   const squareFees = allPayments
     .filter((p) => p.status === 'COMPLETED')

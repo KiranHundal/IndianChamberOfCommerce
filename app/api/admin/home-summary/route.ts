@@ -16,13 +16,18 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const [allMembers, allExpenses, allInvitations, allSquarePayments, lastSync] = await Promise.all([
+  const [allMembers, allExpenseRows, allInvitations, allSquarePayments, lastSync] = await Promise.all([
     db.select().from(members).catch(() => []),
-    db.select().from(expenses).orderBy(desc(expenses.createdAt)).limit(20).catch(() => []),
+    // Fetch a wider window than we need so filtering out soft-deleted rows
+    // still leaves the latest live ones for "recent activity".
+    db.select().from(expenses).orderBy(desc(expenses.createdAt)).limit(50).catch(() => []),
     db.select().from(invitations).orderBy(desc(invitations.sentAt)).limit(20).catch(() => []),
     db.select().from(squarePayments).where(isNull(squarePayments.matchedMemberId)).catch(() => []),
     db.select().from(squareSync).orderBy(desc(squareSync.startedAt)).limit(1).catch(() => []),
   ])
+  // Soft-deleted expenses are hidden from totals and activity — they still
+  // live in the DB for audit but shouldn't affect Expenses YTD or Net Position.
+  const allExpenses = allExpenseRows.filter((e) => !e.deletedAt)
 
   const OFFLINE_METHODS = ['check', 'zelle', 'cash', 'other']
 

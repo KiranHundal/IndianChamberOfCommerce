@@ -731,8 +731,22 @@ export default function AdminFinancesPage() {
                           {e.paymentMethod || '—'}
                           {e.paymentReference && <span className="block truncate">Ref: {e.paymentReference}</span>}
                         </td>
-                        <td className="px-3 py-2.5 text-[0.65rem] text-mid truncate max-w-[12rem]">
-                          {e.createdBy || <span className="text-hint italic">unknown</span>}
+                        <td className="px-3 py-2.5 text-[0.65rem] truncate max-w-[14rem]">
+                          {(() => {
+                            if (!e.createdBy) return <span className="text-hint italic">unknown</span>
+                            // API sends "Name <email>" when a member lookup succeeds,
+                            // or just the email when no matching member exists.
+                            const m = e.createdBy.match(/^(.*?)\s*<([^>]+)>\s*$/)
+                            if (m) {
+                              return (
+                                <>
+                                  <p className="text-mid font-medium truncate">{m[1]}</p>
+                                  <p className="text-hint truncate text-[0.6rem]">{m[2]}</p>
+                                </>
+                              )
+                            }
+                            return <p className="text-mid truncate">{e.createdBy}</p>
+                          })()}
                         </td>
                         <td className="px-3 py-2.5 text-right font-medium text-red-700 whitespace-nowrap">
                           −{money(e.amount)}

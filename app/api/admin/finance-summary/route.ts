@@ -232,6 +232,19 @@ export async function GET() {
       isSynthetic: true,
     })
   }
+  // Enrich createdBy with the display name of the member behind that email.
+  // Names can change; source of truth is the members table.
+  const nameByEmail = new Map<string, string>()
+  for (const m of allMembers) {
+    nameByEmail.set(m.email.toLowerCase(), m.name)
+  }
+  function displayActor(raw: string | null): string | null {
+    if (!raw) return null
+    const email = raw.toLowerCase().trim()
+    const name = nameByEmail.get(email)
+    return name ? `${name} <${raw}>` : raw
+  }
+
   recentExpenses.push(...allExpenses.slice(0, 50).map((e) => ({
     id: e.id,
     category: e.category,
@@ -241,7 +254,7 @@ export async function GET() {
     paymentMethod: e.paymentMethod,
     paymentReference: e.paymentReference,
     expenseDate: e.expenseDate,
-    createdBy: e.createdBy,
+    createdBy: displayActor(e.createdBy),
   })))
 
   const invitationsSent = allInvitations.length

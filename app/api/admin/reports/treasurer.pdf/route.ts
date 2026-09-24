@@ -20,11 +20,14 @@ export async function GET() {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  const [allMembers, allExpenses, allPayments] = await Promise.all([
+  const [allMembers, allExpenseRows, allPayments] = await Promise.all([
     db.select().from(members),
     db.select().from(expenses),
     db.select().from(squarePayments),
   ])
+  // Soft-deleted expenses stay in the audit DB but are excluded from the
+  // Treasurer's Report — the board is signing off on live position.
+  const allExpenses = allExpenseRows.filter((e) => !e.deletedAt)
 
   const squareLinkedMemberIds = new Set<string>()
   for (const p of allPayments) {
