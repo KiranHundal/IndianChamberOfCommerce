@@ -461,60 +461,55 @@ export async function sendMembershipInvitationEmail(invite: {
   const cfg = getConfig()
   const fromEmail = invite.fromEmail?.trim() || cfg.fromEmail
   const siteUrl = cfg.siteUrl
-  const greeting = invite.name ? `Dear ${invite.name},` : 'Hello,'
-  const tierLine = invite.suggestedTier === 'corporate'
-    ? 'For your organization, we recommend our <strong>Corporate Membership</strong> ($395/year, founding rate — regularly $495).'
+  // Exec-oriented copy: warm, plain-spoken, short. No CAPS banner, no gold
+  // CTA button — those look like marketing and land in Promotions. This
+  // reads like a real business email a bank president would trade with a
+  // peer: opens with why-you, states value in two lines, ends with a low-
+  // pressure ask and the sender's real signature. Personal Note is quoted
+  // inline where a personal remark actually belongs.
+  const greeting = invite.name
+    ? `Dear ${invite.name.split(' ')[0]},`
+    : 'Hello,'
+  const senderName = invite.fromName || 'The CVICC Board'
+  const senderTitle = invite.fromDesignation || ''
+
+  const openingLine = invite.businessName
+    ? `I hope this note finds you well. I'm reaching out on behalf of the Central Valley Indian Chamber of Commerce because we'd very much like to see ${invite.businessName} represented in our membership.`
+    : `I hope this note finds you well. I'm reaching out on behalf of the Central Valley Indian Chamber of Commerce because we'd very much like to have you as part of our membership.`
+
+  const membershipLine = invite.suggestedTier === 'corporate'
+    ? `For an organization of your size, our Corporate Membership at $395/year is the best fit (currently at founding-member pricing — the standard rate is $495).`
     : invite.suggestedTier === 'individual'
-      ? 'We recommend our <strong>Individual Membership</strong> ($95/year, founding rate — regularly $195).'
-      : 'We offer <strong>Individual Membership</strong> ($95/year) and <strong>Corporate Membership</strong> ($395/year) — both at founding-member pricing.'
+      ? `Individual Membership is $95/year at founding-member pricing (the standard rate is $195).`
+      : `Membership starts at $95/year for individuals and $395/year for organizations — both currently at founding-member pricing.`
 
-  const businessLine = invite.businessName
-    ? `<p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">We&rsquo;d be honored to have <strong>${invite.businessName}</strong> represented in our chamber.</p>`
-    : ''
-
-  const noteBlock = invite.personalNote
-    ? `<div style="background: #FFFFFF; border-left: 3px solid #D4A830; padding: 14px 18px; margin: 20px 0; color: #5A6A7A; font-style: italic; line-height: 1.7;">${invite.personalNote}</div>`
-    : ''
-
-  // Plain-text alternative + List-Unsubscribe header. Gmail specifically
-  // weights both heavily — the presence of a text/plain body signals "real
-  // person mail," and a working unsubscribe drops a "why is this bulk?"
-  // penalty. Domain reputation still has to warm up organically (Google
-  // watches how many recipients open, reply, and don't complain), but
-  // these two changes get invitations out of the promotions/spam bucket
-  // for most recipients on day one.
   const subject = invite.name
-    ? `${invite.fromName || 'CVICC'} — a personal invitation for ${invite.name}`
-    : `A personal invitation from ${invite.fromName || 'the CVICC Board'}`
+    ? `A quick note from ${senderName} — CVICC membership`
+    : `A quick note from ${senderName} — CVICC membership`
+
   const plainText = [
-    invite.name ? `Dear ${invite.name},` : 'Hello,',
+    greeting,
     '',
-    `On behalf of the Central Valley Indian Chamber of Commerce, I'm personally inviting you to join our growing network of Indian-American business leaders across California's Central Valley.`,
-    invite.businessName ? `\nWe'd be honored to have ${invite.businessName} represented in our chamber.` : '',
-    invite.personalNote ? `\n"${invite.personalNote}"` : '',
+    openingLine,
     '',
-    `CVICC connects, supports, and elevates Indian-American businesses through networking events, mentorship, community advocacy, and cultural celebration. As a member, you'll access exclusive events, a business directory listing, and the opportunity to shape the future of our community.`,
+    `CVICC is the Central Valley's chamber for Indian-American business owners and professionals. What that translates to for you: a curated network of peers across finance, healthcare, real estate, hospitality, and technology; access to our events (both invitation-only and open); a business directory that ranks well on Google; and, for corporate members, promotion of your brand alongside other partner organizations.`,
     '',
-    invite.suggestedTier === 'corporate'
-      ? `For your organization, we recommend our Corporate Membership ($395/year, founding rate — regularly $495).`
-      : invite.suggestedTier === 'individual'
-        ? `We recommend our Individual Membership ($95/year, founding rate — regularly $195).`
-        : `We offer Individual Membership ($95/year) and Corporate Membership ($395/year) — both at founding-member pricing.`,
+    `${membershipLine} If you'd like the details, everything is at ${siteUrl}/join.`,
+    invite.personalNote ? `\n${invite.personalNote}` : '',
     '',
-    `Join at ${siteUrl}/join`,
+    `I'd be glad to jump on a call or coffee first if that's easier — just reply to this note and we'll set it up. No pressure either way.`,
     '',
-    `Questions? Just reply to this email, or visit ${siteUrl}/contact.`,
-    '',
-    `Warm regards,`,
-    invite.fromName || 'The CVICC Board',
-    invite.fromDesignation || '',
+    `Warmly,`,
+    senderName,
+    senderTitle ? senderTitle : '',
     `Central Valley Indian Chamber of Commerce`,
+    `www.indianchamberofcommerce.org`,
     '',
-    `— To unsubscribe from future CVICC emails, reply with "unsubscribe" or visit ${siteUrl}/contact.`,
+    `— If you'd rather not hear from us again, just reply "no thanks" and I'll remove you. Or visit ${siteUrl}/contact.`,
   ].filter(Boolean).join('\n')
 
   return resend.emails.send({
-    from: `${invite.fromName || 'CVICC'} <${fromEmail}>`,
+    from: `${senderName} <${fromEmail}>`,
     to: invite.email,
     replyTo: invite.fromReplyTo?.trim() || fromEmail,
     subject,
@@ -523,51 +518,27 @@ export async function sendMembershipInvitationEmail(invite: {
       'List-Unsubscribe': `<${siteUrl}/contact>, <mailto:${invite.fromReplyTo?.trim() || fromEmail}?subject=Unsubscribe>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     },
+    // Minimal HTML that mirrors the plain text — no banner, no button, no
+    // marketing chrome. Reads like a well-formatted business email a real
+    // person would write. Padded so it looks native on both desktop and
+    // mobile Gmail, but the styling is intentionally understated.
     html: `
-      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
-        <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
-          <h1 style="color: #D4A830; font-size: 24px; margin: 0; font-weight: 300; letter-spacing: 2px;">
-            CENTRAL VALLEY INDIAN<br/>CHAMBER OF COMMERCE
-          </h1>
-        </div>
-        <div style="padding: 40px 32px; background: #FAFAF7;">
-          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">
-            You&rsquo;re Invited
-          </p>
-          <h2 style="color: #1E3A5F; font-size: 22px; font-weight: 300; margin: 0 0 20px;">
-            ${greeting}
-          </h2>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
-            On behalf of the Central Valley Indian Chamber of Commerce, I&rsquo;m personally inviting you to join our growing network of Indian-American business leaders across California&rsquo;s Central Valley.
-          </p>
-          ${businessLine}
-          ${noteBlock}
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
-            CVICC connects, supports, and elevates Indian-American businesses through networking events, mentorship, community advocacy, and cultural celebration. As a member, you&rsquo;ll access exclusive events, a business directory listing, and the opportunity to shape the future of our community.
-          </p>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 24px;">
-            ${tierLine}
-          </p>
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${siteUrl}/join" style="display: inline-block; background: #D4A830; color: #FFFFFF; text-decoration: none; padding: 14px 32px; border-radius: 4px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">
-              Join CVICC Today
-            </a>
-          </div>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0; font-size: 14px;">
-            Questions? Reply to this email or visit <a href="${siteUrl}/contact" style="color: #1E3A5F;">${siteUrl}/contact</a>.
-          </p>
-          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0;">
-            Warm regards,<br/>
-            <strong style="color: #1E3A5F;">${invite.fromName || 'The CVICC Board'}</strong>${invite.fromDesignation ? `<br/><span style="font-size: 13px; color: #5A6A7A;">${invite.fromDesignation}</span>` : ''}<br/>
-            <span style="font-size: 13px;">Central Valley Indian Chamber of Commerce</span>
-          </p>
-        </div>
-        <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
-          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
-            Central Valley Indian Chamber of Commerce, Inc.<br/>
-            4610 W Jacquelyn Ave, Fresno, CA 93722
-          </p>
-        </div>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #1a1a1a; font-size: 15px; line-height: 1.6;">
+        <p style="margin: 0 0 16px;">${greeting}</p>
+        <p style="margin: 0 0 16px;">${openingLine}</p>
+        <p style="margin: 0 0 16px;">CVICC is the Central Valley&rsquo;s chamber for Indian-American business owners and professionals. What that translates to for you: a curated network of peers across finance, healthcare, real estate, hospitality, and technology; access to our events (both invitation-only and open); a business directory that ranks well on Google; and, for corporate members, promotion of your brand alongside other partner organizations.</p>
+        <p style="margin: 0 0 16px;">${membershipLine} If you&rsquo;d like the details, everything is at <a href="${siteUrl}/join" style="color: #1E3A5F; text-decoration: underline;">${siteUrl}/join</a>.</p>
+        ${invite.personalNote ? `<p style="margin: 0 0 16px; padding-left: 16px; border-left: 2px solid #EDE6D3; color: #4a4a4a;">${invite.personalNote}</p>` : ''}
+        <p style="margin: 0 0 16px;">I&rsquo;d be glad to jump on a call or coffee first if that&rsquo;s easier &mdash; just reply to this note and we&rsquo;ll set it up. No pressure either way.</p>
+        <p style="margin: 24px 0 0;">Warmly,</p>
+        <p style="margin: 4px 0 0;">
+          <strong style="color: #1E3A5F;">${senderName}</strong>${senderTitle ? `<br/><span style="color: #5A6A7A; font-size: 14px;">${senderTitle}</span>` : ''}<br/>
+          <span style="color: #5A6A7A; font-size: 14px;">Central Valley Indian Chamber of Commerce</span><br/>
+          <a href="${siteUrl}" style="color: #5A6A7A; font-size: 13px; text-decoration: none;">www.indianchamberofcommerce.org</a>
+        </p>
+        <p style="margin: 32px 0 0; color: #8a8a8a; font-size: 11px; line-height: 1.5;">
+          If you&rsquo;d rather not hear from us again, just reply &ldquo;no thanks&rdquo; and I&rsquo;ll remove you &mdash; or visit <a href="${siteUrl}/contact" style="color: #8a8a8a;">${siteUrl}/contact</a>.
+        </p>
       </div>
     `,
   })
