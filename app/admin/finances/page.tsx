@@ -19,6 +19,8 @@ import {
 import { useEffectiveRole } from '@/lib/use-effective-role'
 import AdminShell from '@/components/admin/AdminShell'
 import ExportCsvButton from '@/components/admin/ExportCsvButton'
+import SortableTh from '@/components/admin/SortableTh'
+import { useSortable } from '@/lib/use-sortable'
 
 interface MemberRow {
   id: string
@@ -171,6 +173,26 @@ export default function AdminFinancesPage() {
 
   const [fetchError, setFetchError] = useState('')
   const { effectiveRole } = useEffectiveRole()
+
+  // Sort state for both tables. Held at top level so hooks stay above the
+  // early return, and applied inside the IIFEs that render each table.
+  const squareSort = useSortable(summary?.square?.allPayments || [], {
+    name: (p) => p.matchedMemberName || p.buyerName || '',
+    email: (p) => p.matchedMemberEmail || p.buyerEmail || '',
+    amount: (p) => (p.amountCents - p.refundedCents) / 100,
+    fee: (p) => p.feeCents / 100,
+    paidAt: (p) => new Date(p.paidAt),
+    status: (p) => (p.matched ? 'matched' : 'orphan'),
+  }, { key: 'paidAt', dir: 'desc' })
+  const memberListSort = useSortable(summary?.memberList || [], {
+    name: (m) => m.name,
+    business: (m) => m.businessName || '',
+    email: (m) => m.email,
+    tier: (m) => m.membershipTier,
+    status: (m) => m.status,
+    amount: (m) => (m.inferredAmount ?? 0) as number,
+    paid: (m) => (m.paymentDate ? new Date(m.paymentDate) : m.createdAt ? new Date(m.createdAt) : null),
+  }, { key: 'paid', dir: 'desc' })
 
   const fetchSummary = useCallback(async () => {
     setLoading(true)
@@ -421,17 +443,12 @@ export default function AdminFinancesPage() {
           {/* All Square Payments — one flat table incl. matched + orphans */}
           {summary.square.allPayments.length > 0 && (() => {
             const allPayments = summary.square.allPayments
-            const rows = allPayments
-              .filter((p) => {
-                if (squareFilter === 'matched') return p.matched
-                if (squareFilter === 'orphan') return !p.matched
-                return true
-              })
-              .sort((a, b) => {
-                const an = (a.buyerName || a.matchedMemberName || a.buyerEmail || '').toLowerCase()
-                const bn = (b.buyerName || b.matchedMemberName || b.buyerEmail || '').toLowerCase()
-                return an.localeCompare(bn)
-              })
+            // Sort at top level via squareSort, then apply filter here.
+            const rows = squareSort.sortedRows.filter((p) => {
+              if (squareFilter === 'matched') return p.matched
+              if (squareFilter === 'orphan') return !p.matched
+              return true
+            })
             const grossTotal = rows.reduce((sum, r) => sum + (r.amountCents - r.refundedCents) / 100, 0)
             const feeTotal = rows.reduce((sum, r) => sum + r.feeCents / 100, 0)
             const matchedCount = allPayments.filter((p) => p.matched).length
@@ -512,12 +529,12 @@ export default function AdminFinancesPage() {
                   <table className="min-w-full text-small">
                     <thead>
                       <tr className="border-b border-ivory-200 text-left">
-                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Name / Business</th>
-                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Email</th>
-                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Amount</th>
-                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Fee</th>
-                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Date</th>
-                        <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Status</th>
+                        <SortableTh label="Name / Business" sortKey="name" activeKey={squareSort.sortKey} dir={squareSort.sortDir} onToggle={squareSort.toggleSort} />
+                        <SortableTh label="Email" sortKey="email" activeKey={squareSort.sortKey} dir={squareSort.sortDir} onToggle={squareSort.toggleSort} />
+                        <SortableTh label="Amount" sortKey="amount" activeKey={squareSort.sortKey} dir={squareSort.sortDir} onToggle={squareSort.toggleSort} align="right" />
+                        <SortableTh label="Fee" sortKey="fee" activeKey={squareSort.sortKey} dir={squareSort.sortDir} onToggle={squareSort.toggleSort} align="right" />
+                        <SortableTh label="Date" sortKey="paidAt" activeKey={squareSort.sortKey} dir={squareSort.sortDir} onToggle={squareSort.toggleSort} />
+                        <SortableTh label="Status" sortKey="status" activeKey={squareSort.sortKey} dir={squareSort.sortDir} onToggle={squareSort.toggleSort} />
                         <th className="px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60 text-right">Action</th>
                       </tr>
                     </thead>
@@ -774,7 +791,8 @@ export default function AdminFinancesPage() {
                 }
                 return true
               }
-              const filtered = summary.memberList.filter(matchesFilters)
+              // Filter then reorder by the current member-list sort.
+              const filtered = memberListSort.sortedRows.filter(matchesFilters)
 
               if (filtered.length === 0) {
                 return <p className="text-small text-hint py-6 text-center">No members match your filter.</p>
@@ -787,12 +805,12 @@ export default function AdminFinancesPage() {
                     <table className="min-w-full text-small">
                       <thead>
                         <tr className="border-b border-ivory-200">
-                          <th className="text-left px-6 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Member</th>
-                          <th className="text-left px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Tier</th>
-                          <th className="text-left px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Status</th>
-                          <th className="text-right px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Amount</th>
+                          <SortableTh label="Member" sortKey="name" activeKey={memberListSort.sortKey} dir={memberListSort.sortDir} onToggle={memberListSort.toggleSort} className="px-6" />
+                          <SortableTh label="Tier" sortKey="tier" activeKey={memberListSort.sortKey} dir={memberListSort.sortDir} onToggle={memberListSort.toggleSort} className="px-3" />
+                          <SortableTh label="Status" sortKey="status" activeKey={memberListSort.sortKey} dir={memberListSort.sortDir} onToggle={memberListSort.toggleSort} className="px-3" />
+                          <SortableTh label="Amount" sortKey="amount" activeKey={memberListSort.sortKey} dir={memberListSort.sortDir} onToggle={memberListSort.toggleSort} align="right" className="px-3" />
                           <th className="text-left px-3 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Method</th>
-                          <th className="text-left px-6 py-2 font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Date / Ref</th>
+                          <SortableTh label="Date / Ref" sortKey="paid" activeKey={memberListSort.sortKey} dir={memberListSort.sortDir} onToggle={memberListSort.toggleSort} className="px-6" />
                         </tr>
                       </thead>
                       <tbody>

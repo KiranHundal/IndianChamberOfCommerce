@@ -21,6 +21,8 @@ import AnimatedSection from '@/components/ui/AnimatedSection'
 import { useEffectiveRole } from '@/lib/use-effective-role'
 import AdminShell from '@/components/admin/AdminShell'
 import ExportCsvButton from '@/components/admin/ExportCsvButton'
+import SortableTh from '@/components/admin/SortableTh'
+import { useSortable } from '@/lib/use-sortable'
 
 interface Member {
   id: string
@@ -230,14 +232,6 @@ export default function AdminPage() {
     setPaymentSaving(false)
   }
 
-  if (status === 'loading' || loading) {
-    return (
-      <div className="min-h-screen bg-page-bg flex items-center justify-center">
-        <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
-      </div>
-    )
-  }
-
   function isUnpaidPending(m: Member): boolean {
     if (m.status !== 'pending') return false
     if (m.role === 'admin' || m.role === 'moderator') return false
@@ -266,6 +260,26 @@ export default function AdminPage() {
     }
     return true
   })
+
+  const boardIdToName = new Map(boardOptions.map((b) => [b.id, b.name]))
+  const membersSort = useSortable(filteredMembers, {
+    name: (m) => m.name,
+    email: (m) => m.email,
+    business: (m) => m.businessName || '',
+    tier: (m) => m.membershipTier,
+    status: (m) => m.status,
+    payment: (m) => (m.amountPaid ?? 0) as number,
+    joined: (m) => (m.createdAt ? new Date(m.createdAt) : null),
+  }, { key: 'joined', dir: 'desc' })
+  const sortedMembers = membersSort.sortedRows
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen bg-page-bg flex items-center justify-center">
+        <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
+      </div>
+    )
+  }
 
   // Counters exclude admin/moderator staff so they line up with the "Members"
   // KPI on /admin, which is a paying-member count. Staff still show in the
@@ -389,8 +403,8 @@ export default function AdminPage() {
             {staffCount === 0 && <div className="mb-10" />}
           </AnimatedSection>
 
-          {/* Search & Refresh */}
-          <div className="flex items-center gap-4 mb-6">
+          {/* Search & Filters */}
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-hint" />
               <input
@@ -398,12 +412,35 @@ export default function AdminPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, email, business..."
-                className="w-full bg-white border border-ivory-200 rounded-lg pl-10 pr-4 py-2.5 text-small text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+                className="w-full bg-white border border-ivory-200 rounded pl-10 pr-4 py-2 text-sm text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30"
               />
             </div>
+            <select
+              value={referredByFilter?.id || ''}
+              onChange={(e) => {
+                const id = e.target.value
+                if (!id) {
+                  setReferredByFilter(null)
+                  const url = new URL(window.location.href)
+                  url.searchParams.delete('referredBy')
+                  url.searchParams.delete('referredByName')
+                  window.history.replaceState({}, '', url.toString())
+                } else {
+                  const name = boardIdToName.get(id) || id
+                  setReferredByFilter({ id, name })
+                }
+              }}
+              className="bg-white border border-ivory-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+            >
+              <option value="">All referrers</option>
+              {boardOptions.map((b) => (
+                <option key={b.id} value={b.id}>Referred by {b.name}</option>
+              ))}
+            </select>
             <button
+              type="button"
               onClick={fetchMembers}
-              className="flex items-center gap-2 text-mid font-label text-[0.65rem] tracking-widest uppercase hover:text-brand transition-colors"
+              className="ml-auto inline-flex items-center gap-1.5 text-mid text-xs font-medium hover:text-brand"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Refresh
@@ -430,18 +467,18 @@ export default function AdminPage() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-page-bg">
                     <tr className="text-left border-b border-ivory-200">
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Member</th>
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Contact</th>
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Business</th>
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Tier</th>
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Status</th>
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid text-right">Payment</th>
-                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Joined</th>
+                      <SortableTh label="Member" sortKey="name" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
+                      <SortableTh label="Contact" sortKey="email" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
+                      <SortableTh label="Business" sortKey="business" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
+                      <SortableTh label="Tier" sortKey="tier" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
+                      <SortableTh label="Status" sortKey="status" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
+                      <SortableTh label="Payment" sortKey="payment" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} align="right" />
+                      <SortableTh label="Joined" sortKey="joined" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredMembers.map((member) => {
+                    {sortedMembers.map((member) => {
                       const badge = statusBadge[member.status] || statusBadge.pending
                       const isStaff = member.role === 'admin' || member.role === 'moderator' || member.role === 'reviewer'
                       const unpaid = isUnpaidPending(member)

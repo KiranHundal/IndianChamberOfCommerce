@@ -455,7 +455,7 @@ export default function JoinPage() {
 
                 <div>
                   <label htmlFor="referredBy" className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
-                    Which CVICC board member invited you? *
+                    Referred By *
                   </label>
                   <select
                     id="referredBy"
@@ -465,16 +465,13 @@ export default function JoinPage() {
                     onChange={(e) => setReferredBy(e.target.value)}
                     className={inputClass}
                   >
-                    <option value="">Select the person who brought you in…</option>
+                    <option value="">Select a board member…</option>
                     {boardOptions.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}{b.role && b.role !== 'Board Member' ? ` — ${b.role}` : ''}
                       </option>
                     ))}
                   </select>
-                  <p className="text-[0.7rem] text-hint mt-1">
-                    Every CVICC application needs a board sponsor. Pick the person who introduced you to us.
-                  </p>
                 </div>
 
                 {error && (

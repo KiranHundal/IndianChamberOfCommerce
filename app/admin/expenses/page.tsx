@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState, FormEvent } from 'react'
 import { Plus, Trash2, Loader2, X, Receipt } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'
 import ExportCsvButton from '@/components/admin/ExportCsvButton'
+import SortableTh from '@/components/admin/SortableTh'
+import { useSortable } from '@/lib/use-sortable'
 
 interface Expense {
   id: string
@@ -143,6 +145,20 @@ export default function AdminExpensesPage() {
     setDeletingId(null)
   }
 
+  const rows = summary?.expenses.recent || []
+  const loggedRows = rows.filter((e) => !e.isSynthetic)
+
+  const expenseSort = useSortable(rows, {
+    date: (e) => e.expenseDate ? new Date(e.expenseDate) : null,
+    category: (e) => e.category,
+    vendor: (e) => e.vendor,
+    description: (e) => e.description || '',
+    amount: (e) => e.amount,
+    method: (e) => e.paymentMethod || '',
+    loggedBy: (e) => e.createdBy || '',
+  }, { key: 'date', dir: 'desc' })
+  const sortedExpenses = expenseSort.sortedRows
+
   if (status === 'loading' || loading || !summary) {
     return (
       <AdminShell title="Expenses">
@@ -150,9 +166,6 @@ export default function AdminExpensesPage() {
       </AdminShell>
     )
   }
-
-  const rows = summary.expenses.recent
-  const loggedRows = rows.filter((e) => !e.isSynthetic)
 
   const exportColumns = [
     { header: 'Date', get: (e: Expense) => e.expenseDate ? new Date(e.expenseDate).toISOString().slice(0, 10) : '' },
@@ -231,18 +244,18 @@ export default function AdminExpensesPage() {
             <table className="min-w-full text-sm">
               <thead className="bg-page-bg">
                 <tr className="text-left border-b border-ivory-200">
-                  <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Date</th>
-                  <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Category</th>
-                  <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Vendor</th>
-                  <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Description</th>
-                  <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Method / Ref</th>
-                  <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Logged By</th>
-                  <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid text-right">Amount</th>
+                  <SortableTh label="Date" sortKey="date" activeKey={expenseSort.sortKey} dir={expenseSort.sortDir} onToggle={expenseSort.toggleSort} />
+                  <SortableTh label="Category" sortKey="category" activeKey={expenseSort.sortKey} dir={expenseSort.sortDir} onToggle={expenseSort.toggleSort} />
+                  <SortableTh label="Vendor" sortKey="vendor" activeKey={expenseSort.sortKey} dir={expenseSort.sortDir} onToggle={expenseSort.toggleSort} />
+                  <SortableTh label="Description" sortKey="description" activeKey={expenseSort.sortKey} dir={expenseSort.sortDir} onToggle={expenseSort.toggleSort} />
+                  <SortableTh label="Method / Ref" sortKey="method" activeKey={expenseSort.sortKey} dir={expenseSort.sortDir} onToggle={expenseSort.toggleSort} />
+                  <SortableTh label="Logged By" sortKey="loggedBy" activeKey={expenseSort.sortKey} dir={expenseSort.sortDir} onToggle={expenseSort.toggleSort} />
+                  <SortableTh label="Amount" sortKey="amount" activeKey={expenseSort.sortKey} dir={expenseSort.sortDir} onToggle={expenseSort.toggleSort} align="right" />
                   <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((e) => (
+                {sortedExpenses.map((e) => (
                   <tr key={e.id} className="border-b border-ivory-200/60 hover:bg-page-bg/50">
                     <td className="px-4 py-2.5 text-xs text-charcoal whitespace-nowrap">
                       {new Date(e.expenseDate).toLocaleDateString()}
