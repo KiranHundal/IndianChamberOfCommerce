@@ -515,17 +515,26 @@ function MembersCompactCard({ stats, router }: { stats: Stats; router: Router })
           <div className="flex flex-wrap gap-2">
             {stats.statusBreakdown.map((s) => {
               const filterKey = s.name.toLowerCase() // approved / pending / unpaid / rejected / deactivated
+              // Pending and Unpaid need attention: red border + text + pulsing
+              // ring. Skip the pulse when the count is zero so the chip
+              // doesn't scream about nothing.
+              const needsAttention = (filterKey === 'pending' || filterKey === 'unpaid') && s.value > 0
+              const baseClass = 'inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs transition-all'
+              const chipClass = needsAttention
+                ? `${baseClass} bg-red-50 border border-red-300 text-red-700 ring-2 ring-red-400/40 animate-pulse hover:animate-none hover:ring-red-500`
+                : `${baseClass} bg-white border border-ivory-200 hover:border-accent/40`
+              const dotColor = needsAttention ? '#DC2626' : s.color
               return (
                 <button
                   key={s.name}
                   type="button"
                   onClick={() => router.push(`/admin/members?status=${filterKey}`)}
-                  className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 hover:border-accent/40 rounded px-2.5 py-1 text-xs transition-all"
+                  className={chipClass}
                 >
-                  <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
-                  <span className="font-medium text-brand">{s.value}</span>
-                  <span className="text-mid">{s.name}</span>
-                  <span className="text-hint">· {statusTotal > 0 ? Math.round((s.value / statusTotal) * 100) : 0}%</span>
+                  <span className="w-2 h-2 rounded-full" style={{ background: dotColor }} />
+                  <span className={`font-medium ${needsAttention ? 'text-red-700' : 'text-brand'}`}>{s.value}</span>
+                  <span className={needsAttention ? 'text-red-700' : 'text-mid'}>{s.name}</span>
+                  <span className={needsAttention ? 'text-red-600' : 'text-hint'}>· {statusTotal > 0 ? Math.round((s.value / statusTotal) * 100) : 0}%</span>
                 </button>
               )
             })}
