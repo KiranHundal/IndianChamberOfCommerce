@@ -160,6 +160,29 @@ export default function AdminPage() {
     setActionLoading(null)
   }
 
+  async function handleSetReferrer(member: Member, referredBy: string) {
+    if (!referredBy) return
+    setActionLoading(`${member.id}-referrer`)
+    try {
+      const res = await fetch('/api/admin/members', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: member.id, action: 'set-referrer', referredBy }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Failed to set referrer.' })
+      } else {
+        const boardName = boardIdToName.get(referredBy) || referredBy
+        setNotice({ type: 'success', text: `${member.name} → referred by ${boardName}.` })
+        await fetchMembers()
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setActionLoading(null)
+  }
+
   async function handleResendWelcome(member: Member) {
     setActionLoading(`${member.id}-welcome`)
     try {
@@ -470,6 +493,7 @@ export default function AdminPage() {
                       <SortableTh label="Member" sortKey="name" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <SortableTh label="Contact" sortKey="email" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <SortableTh label="Business" sortKey="business" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
+                      <th className="px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-wide text-mid">Referred By</th>
                       <SortableTh label="Tier" sortKey="tier" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <SortableTh label="Status" sortKey="status" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} />
                       <SortableTh label="Payment" sortKey="payment" activeKey={membersSort.sortKey} dir={membersSort.sortDir} onToggle={membersSort.toggleSort} align="right" />
@@ -528,6 +552,30 @@ export default function AdminPage() {
                             <p className="text-hint mt-0.5">
                               {[member.city, member.sector].filter(Boolean).join(' · ') || ''}
                             </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            {isStaff ? (
+                              <span className="text-hint italic text-xs">—</span>
+                            ) : member.referredBy ? (
+                              <p className="text-xs text-charcoal truncate max-w-[10rem]" title={boardIdToName.get(member.referredBy) || member.referredBy}>
+                                {boardIdToName.get(member.referredBy) || 'Unknown'}
+                              </p>
+                            ) : (
+                              <select
+                                defaultValue=""
+                                disabled={actionLoading === `${member.id}-referrer`}
+                                onChange={(e) => {
+                                  if (e.target.value) handleSetReferrer(member, e.target.value)
+                                }}
+                                className="bg-white border border-ivory-200 rounded px-1.5 py-1 text-xs max-w-[10rem] focus:outline-none focus:ring-1 focus:ring-brand/30"
+                                title="Set who referred this member"
+                              >
+                                <option value="">— Set referrer —</option>
+                                {boardOptions.map((b) => (
+                                  <option key={b.id} value={b.id}>{b.name}</option>
+                                ))}
+                              </select>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             {isStaff ? (

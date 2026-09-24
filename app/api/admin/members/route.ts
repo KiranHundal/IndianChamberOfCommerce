@@ -153,7 +153,8 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { memberId, action } = await req.json()
+  const body = await req.json()
+  const { memberId, action } = body as { memberId?: string; action?: string }
 
   if (!memberId || !action) {
     return NextResponse.json({ error: 'Missing memberId or action' }, { status: 400 })
@@ -163,6 +164,25 @@ export async function PATCH(req: Request) {
   // cannot approve or deny — that stays with the reviewer / admin.
   if ((action === 'approve' || action === 'reject') && role !== 'admin' && role !== 'reviewer') {
     return NextResponse.json({ error: 'Only admins or the reviewer can approve or deny members.' }, { status: 403 })
+  }
+
+  // Set-referrer: admin / moderator / reviewer can all attribute a member to
+  // a board sponsor. Existing values are protected — Gigi (reviewer) can
+  // fill blanks but not overwrite what was set at signup.
+  if (action === 'set-referrer') {
+    const referredBy = typeof (body as { referredBy?: unknown }).referredBy === 'string'
+      ? (body as { referredBy: string }).referredBy.trim()
+      : ''
+    if (!referredBy) {
+      return NextResponse.json({ error: 'referredBy is required' }, { status: 400 })
+    }
+    const [existing] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
+    if (!existing) return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+    if (existing.referredBy) {
+      return NextResponse.json({ error: 'This member already has a referrer on record.' }, { status: 400 })
+    }
+    await db.update(members).set({ referredBy }).where(eq(members.id, memberId))
+    return NextResponse.json({ success: true, memberId, referredBy })
   }
 
   if (action === 'approve') {
