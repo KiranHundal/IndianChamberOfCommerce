@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
 
 export default function AnnouncementBar() {
+  const pathname = usePathname()
+  const isAdmin = pathname?.startsWith('/admin')
   const [dismissed, setDismissed] = useState(false)
   const [fading, setFading] = useState(false)
 
@@ -26,7 +29,7 @@ export default function AnnouncementBar() {
     }
   }, [])
 
-  if (dismissed) return null
+  if (dismissed || isAdmin) return null
 
   return (
     <div

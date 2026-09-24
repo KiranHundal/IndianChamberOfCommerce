@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Users,
-  DollarSign,
   TrendingUp,
   Receipt,
   Wallet,
@@ -18,17 +17,12 @@ import {
   Plus,
   RefreshCw,
   UserPlus,
-  Video,
-  FileText,
   Loader2,
-  Settings,
+  DollarSign,
   Mail,
 } from 'lucide-react'
-import SectionLabel from '@/components/ui/SectionLabel'
-import SectionTitle from '@/components/ui/SectionTitle'
-import Divider from '@/components/ui/Divider'
-import AnimatedSection from '@/components/ui/AnimatedSection'
 import { useEffectiveRole } from '@/lib/use-effective-role'
+import AdminShell from '@/components/admin/AdminShell'
 
 interface HomeSummary {
   role: 'admin' | 'moderator' | 'reviewer'
@@ -75,7 +69,6 @@ export default function AdminHomePage() {
   // off for non-admins). When admin is previewing, effectiveRole is what
   // the previewed role would see.
   const uiRole = effectiveRole || summary?.role || realRole
-  const isAdmin = uiRole === 'admin'
   const isReviewer = uiRole === 'reviewer'
   const canSeeFinances = uiRole === 'admin' || uiRole === 'moderator'
 
@@ -132,9 +125,9 @@ export default function AdminHomePage() {
 
   if (status === 'loading' || loading || !summary) {
     return (
-      <div className="min-h-screen bg-page-bg flex items-center justify-center">
-        <div className="animate-pulse text-brand font-label text-label tracking-label uppercase">Loading...</div>
-      </div>
+      <AdminShell title="Overview">
+        <div className="animate-pulse text-mid text-sm">Loading…</div>
+      </AdminShell>
     )
   }
 
@@ -145,297 +138,184 @@ export default function AdminHomePage() {
     summary.alerts.orphanPayments > 0 ||
     summary.alerts.unverifiedApproved > 0
 
-  return (
+  const headerActions = !isReviewer ? (
     <>
-      {/* Hero */}
-      <section className="bg-navy-900 py-24 text-center relative overflow-hidden">
-        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
-        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
-        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
-        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30" />
-        <div className="max-w-4xl mx-auto px-8">
-          <AnimatedSection>
-            <SectionLabel dark>Admin Dashboard</SectionLabel>
-          </AnimatedSection>
-          <AnimatedSection delay={1}>
-            <SectionTitle dark className="mt-4">
-              Welcome, {userName}
-            </SectionTitle>
-          </AnimatedSection>
-          <AnimatedSection delay={2}>
-            <Divider className="mx-auto mt-6" />
-          </AnimatedSection>
-        </div>
-      </section>
+      <button
+        type="button"
+        onClick={handleSyncSquare}
+        disabled={syncing}
+        className="inline-flex items-center gap-1.5 bg-navy-900 text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-navy-800 disabled:opacity-50"
+      >
+        {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 text-gold-400" />}
+        <span className="hidden sm:inline">{syncing ? 'Syncing…' : 'Sync Square'}</span>
+      </button>
+      <Link
+        href="/admin/members?openLogPayment=1"
+        className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
+      >
+        <DollarSign className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Log Payment</span>
+      </Link>
+      <Link
+        href="/admin/expenses?openExpense=1"
+        className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
+      >
+        <Plus className="w-3.5 h-3.5 text-red-600" />
+        <span className="hidden sm:inline">Expense</span>
+      </Link>
+      <Link
+        href="/admin/finances?openInvite=1"
+        className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
+      >
+        <Send className="w-3.5 h-3.5 text-accent" />
+        <span className="hidden sm:inline">Invite</span>
+      </Link>
+    </>
+  ) : null
 
-      <section className="bg-page-bg py-12">
-        <div className="max-w-6xl mx-auto px-8">
+  return (
+    <AdminShell title={`Welcome back, ${userName}`} actions={headerActions}>
           {notice && (
             <div
-              className={`mb-6 border rounded-lg px-4 py-3 text-small flex items-start gap-3 ${
+              className={`mb-4 border rounded-lg px-4 py-3 text-sm flex items-start gap-3 ${
                 notice.type === 'success'
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                   : 'bg-red-50 border-red-200 text-red-700'
               }`}
             >
               <span className="flex-1">{notice.text}</span>
-              <button onClick={() => setNotice(null)} className="opacity-60 hover:opacity-100">×</button>
+              <button type="button" onClick={() => setNotice(null)} className="opacity-60 hover:opacity-100">×</button>
             </div>
           )}
 
-          {/* KPIs — Members first; finance tiles hidden for the review-only role */}
-          <AnimatedSection>
-            <div className={`grid ${isReviewer ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4'} gap-4 mb-6`}>
-              <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-4 h-4 text-accent" />
-                  <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Members</p>
-                </div>
-                <p className="font-display text-h3 text-brand font-light">{summary.kpis.totalMembers}</p>
-              </Link>
-              {canSeeFinances && (
-                <>
-                  <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="w-4 h-4 text-emerald-600" />
-                      <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Revenue YTD</p>
-                    </div>
-                    <p className="font-display text-h3 text-brand font-light">{money(summary.kpis.revenueYtd)}</p>
-                  </Link>
-                  <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Receipt className="w-4 h-4 text-red-600" />
-                      <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">Expenses YTD</p>
-                    </div>
-                    <p className="font-display text-h3 text-brand font-light">{money(summary.kpis.expensesYtd)}</p>
-                  </Link>
-                  <Link href="/admin/finances" className={`${summary.kpis.netPosition >= 0 ? 'bg-navy-900 text-white' : 'bg-red-50 border border-red-200'} rounded-xl p-5 hover:opacity-95 transition-all`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Wallet className={`w-4 h-4 ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-600'}`} />
-                      <p className={`font-label text-[0.6rem] tracking-widest uppercase ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-700'}`}>Net Position</p>
-                    </div>
-                    <p className={`font-display text-h3 font-light ${summary.kpis.netPosition >= 0 ? 'text-white' : 'text-brand'}`}>{money(summary.kpis.netPosition)}</p>
-                  </Link>
-                </>
-              )}
-            </div>
-          </AnimatedSection>
-
-          {/* Alerts */}
-          {hasAlerts && (
-            <AnimatedSection delay={1}>
-              <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <AlertCircle className="w-4 h-4 text-red-600" />
-                  <p className="font-label text-[0.65rem] tracking-widest uppercase text-red-800">Needs your attention</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {summary.alerts.pendingMembers > 0 && (
-                    <Link
-                      href="/admin/members?status=pending"
-                      className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
-                    >
-                      <div>
-                        <p className="font-display text-h4 text-brand">{summary.alerts.pendingMembers}</p>
-                        <p className="text-[0.7rem] text-mid">Awaiting approval</p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-red-600" />
-                    </Link>
-                  )}
-                  {summary.alerts.unpaidMembers > 0 && (
-                    <Link
-                      href="/admin/members?status=unpaid"
-                      className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
-                    >
-                      <div>
-                        <p className="font-display text-h4 text-brand">{summary.alerts.unpaidMembers}</p>
-                        <p className="text-[0.7rem] text-mid">Unpaid signups</p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-red-600" />
-                    </Link>
-                  )}
-                  {!isReviewer && summary.alerts.orphanPayments > 0 && (
-                    <Link
-                      href="/admin/finances"
-                      className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
-                    >
-                      <div>
-                        <p className="font-display text-h4 text-brand">{summary.alerts.orphanPayments}</p>
-                        <p className="text-[0.7rem] text-mid">Unmatched Square payments</p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-red-600" />
-                    </Link>
-                  )}
-                  {!isReviewer && summary.alerts.unverifiedApproved > 0 && (
-                    <Link
-                      href="/admin/members?status=approved&method=unknown"
-                      className="flex items-center justify-between bg-white border border-red-200 rounded-lg px-4 py-3 hover:border-red-400 transition-all"
-                    >
-                      <div>
-                        <p className="font-display text-h4 text-brand">{summary.alerts.unverifiedApproved}</p>
-                        <p className="text-[0.7rem] text-mid">Approved w/ no method</p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-red-600" />
-                    </Link>
-                  )}
-                </div>
+          {/* KPI tiles — compact */}
+          <div className={`grid ${isReviewer ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-4'} gap-3 mb-6`}>
+            <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-lg p-4 hover:border-accent/40 transition-all">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-3.5 h-3.5 text-accent" />
+                <p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Members</p>
               </div>
-            </AnimatedSection>
-          )}
-
-          {/* Quick actions — hidden for the review-only role */}
-          {!isReviewer && (
-            <AnimatedSection delay={2}>
-              <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-6">
-                <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <button
-                    onClick={handleSyncSquare}
-                    disabled={syncing}
-                    className="flex items-center justify-center gap-2 bg-navy-900 text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-navy-800 transition-all disabled:opacity-50"
-                  >
-                    {syncing ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 text-gold-400" />
-                        Sync Square
-                      </>
-                    )}
-                  </button>
-                  <Link
-                    href="/admin/members?openLogPayment=1"
-                    className="flex items-center justify-center gap-2 bg-accent text-white font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:bg-gold-900 transition-all"
-                  >
-                    <DollarSign className="w-3.5 h-3.5" />
-                    Log Payment
-                  </Link>
-                  <Link
-                    href="/admin/finances?openExpense=1"
-                    className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
-                  >
-                    <Plus className="w-3.5 h-3.5 text-red-600" />
-                    Add Expense
-                  </Link>
-                  <Link
-                    href="/admin/finances?openInvite=1"
-                    className="flex items-center justify-center gap-2 bg-white border border-ivory-200 text-brand font-label text-[0.65rem] tracking-widest uppercase px-4 py-3 rounded-lg hover:border-accent/40 transition-all"
-                  >
-                    <Send className="w-3.5 h-3.5 text-accent" />
-                    Send Invitation
-                  </Link>
-                </div>
-                {summary.lastSync?.finishedAt && (
-                  <p className="text-[0.7rem] text-hint mt-3">
-                    Last Square sync: {new Date(summary.lastSync.finishedAt).toLocaleString()} · {summary.lastSync.status}
-                  </p>
-                )}
-              </div>
-            </AnimatedSection>
-          )}
-
-          {/* Navigation cards */}
-          <AnimatedSection delay={3}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <Link href="/admin/members" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                <Users className="w-6 h-6 text-accent mb-3" />
-                <p className="font-display text-h5 text-brand">Members</p>
-                <p className="text-[0.7rem] text-mid mt-1">
-                  {isReviewer ? 'Approve or deny pending members' : 'Approve, review, log offline payments'}
-                </p>
-              </Link>
-              {canSeeFinances && (
-                <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                  <DollarSign className="w-6 h-6 text-accent mb-3" />
-                  <p className="font-display text-h5 text-brand">Finances</p>
-                  <p className="text-[0.7rem] text-mid mt-1">Square + offline payments, expenses</p>
-                </Link>
-              )}
-              {isAdmin && (
-                <Link href="/admin/team" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                  <Settings className="w-6 h-6 text-accent mb-3" />
-                  <p className="font-display text-h5 text-brand">Team &amp; Content</p>
-                  <p className="text-[0.7rem] text-mid mt-1">Board, videos, team accounts</p>
-                </Link>
-              )}
-              {isAdmin && (
-                <Link href="/admin/reports" className="bg-white border border-ivory-200 rounded-xl p-5 hover:border-accent/40 hover:shadow-hover transition-all">
-                  <FileText className="w-6 h-6 text-accent mb-3" />
-                  <p className="font-display text-h5 text-brand">Reports</p>
-                  <p className="text-[0.7rem] text-mid mt-1">Board meeting PDF, CSV exports</p>
-                </Link>
-              )}
-            </div>
-          </AnimatedSection>
-
-          {/* Recent activity */}
-          <AnimatedSection delay={4}>
-            <div className="bg-white border border-ivory-200 rounded-xl p-6">
-              <h3 className="font-label text-label tracking-widest uppercase text-brand mb-4">Recent Activity</h3>
-              {summary.recentActivity.length === 0 ? (
-                <p className="text-small text-hint py-4 text-center">Nothing recent to show.</p>
-              ) : (
-                <div className="divide-y divide-ivory-200">
-                  {summary.recentActivity.map((a) => {
-                    const iconClass = 'w-4 h-4'
-                    const icon =
-                      a.type === 'payment' ? <CheckCircle className={`${iconClass} text-emerald-600`} />
-                      : a.type === 'expense' ? <Receipt className={`${iconClass} text-red-600`} />
-                      : a.type === 'invitation' ? <Mail className={`${iconClass} text-accent`} />
-                      : <UserPlus className={`${iconClass} text-navy-600`} />
-                    return (
-                      <div key={a.id} className="py-3 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-page-bg flex items-center justify-center flex-shrink-0">
-                          {icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-small text-brand font-medium truncate">{a.title}</p>
-                          <p className="text-[0.7rem] text-hint truncate">{a.subtitle}</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          {a.amount !== null && (
-                            <p className={`font-medium ${a.type === 'expense' ? 'text-red-600' : 'text-brand'}`}>
-                              {a.type === 'expense' ? '−' : ''}{money(Math.abs(a.amount))}
-                            </p>
-                          )}
-                          <p className="text-[0.65rem] text-hint flex items-center justify-end gap-1">
-                            <Clock className="w-3 h-3" />
-                            {new Date(a.at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </AnimatedSection>
-
-          {/* Small footer */}
-          <div className="mt-8 flex flex-wrap gap-4 items-center justify-center text-[0.65rem] tracking-widest uppercase text-hint font-label">
-            <Link href="/portal" className="hover:text-brand transition-colors">My Portal</Link>
-            <span>·</span>
-            <Link href="/" className="hover:text-brand transition-colors">Public Site</Link>
-            {isAdmin && (
+              <p className="text-2xl font-medium text-brand">{summary.kpis.totalMembers}</p>
+            </Link>
+            {canSeeFinances && (
               <>
-                <span>·</span>
-                <Link href="/admin/videos" className="hover:text-brand transition-colors">
-                  <Video className="w-3 h-3 inline mr-1" />
-                  Videos
+                <Link href="/admin/finances" className="bg-white border border-ivory-200 rounded-lg p-4 hover:border-accent/40 transition-all">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                    <p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Revenue YTD</p>
+                  </div>
+                  <p className="text-2xl font-medium text-brand">{money(summary.kpis.revenueYtd)}</p>
                 </Link>
-                <span>·</span>
-                <Link href="/admin/board-members" className="hover:text-brand transition-colors">
-                  <UserPlus className="w-3 h-3 inline mr-1" />
-                  Board
+                <Link href="/admin/expenses" className="bg-white border border-ivory-200 rounded-lg p-4 hover:border-accent/40 transition-all">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Receipt className="w-3.5 h-3.5 text-red-600" />
+                    <p className="text-[0.65rem] font-medium text-mid uppercase tracking-wide">Expenses YTD</p>
+                  </div>
+                  <p className="text-2xl font-medium text-brand">{money(summary.kpis.expensesYtd)}</p>
+                </Link>
+                <Link href="/admin/finances" className={`rounded-lg p-4 transition-all ${summary.kpis.netPosition >= 0 ? 'bg-navy-900 text-white' : 'bg-red-50 border border-red-200'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Wallet className={`w-3.5 h-3.5 ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-600'}`} />
+                    <p className={`text-[0.65rem] font-medium uppercase tracking-wide ${summary.kpis.netPosition >= 0 ? 'text-gold-400' : 'text-red-700'}`}>Net Position</p>
+                  </div>
+                  <p className={`text-2xl font-medium ${summary.kpis.netPosition >= 0 ? 'text-white' : 'text-brand'}`}>{money(summary.kpis.netPosition)}</p>
                 </Link>
               </>
             )}
           </div>
-        </div>
-      </section>
-    </>
+
+          {/* Alerts — compact strip, only when there's actually something */}
+          {hasAlerts && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                <p className="text-[0.65rem] font-medium uppercase tracking-wide text-red-800">Needs your attention</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                {summary.alerts.pendingMembers > 0 && (
+                  <Link href="/admin/members?status=pending" className="flex items-center justify-between bg-white border border-red-200 rounded px-3 py-2 hover:border-red-400 transition-all">
+                    <div>
+                      <p className="text-lg font-medium text-brand leading-tight">{summary.alerts.pendingMembers}</p>
+                      <p className="text-xs text-mid">Awaiting approval</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+                  </Link>
+                )}
+                {summary.alerts.unpaidMembers > 0 && (
+                  <Link href="/admin/members?status=unpaid" className="flex items-center justify-between bg-white border border-red-200 rounded px-3 py-2 hover:border-red-400 transition-all">
+                    <div>
+                      <p className="text-lg font-medium text-brand leading-tight">{summary.alerts.unpaidMembers}</p>
+                      <p className="text-xs text-mid">Unpaid signups</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+                  </Link>
+                )}
+                {!isReviewer && summary.alerts.orphanPayments > 0 && (
+                  <Link href="/admin/finances" className="flex items-center justify-between bg-white border border-red-200 rounded px-3 py-2 hover:border-red-400 transition-all">
+                    <div>
+                      <p className="text-lg font-medium text-brand leading-tight">{summary.alerts.orphanPayments}</p>
+                      <p className="text-xs text-mid">Orphan Square payments</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+                  </Link>
+                )}
+                {!isReviewer && summary.alerts.unverifiedApproved > 0 && (
+                  <Link href="/admin/members?status=approved&method=unknown" className="flex items-center justify-between bg-white border border-red-200 rounded px-3 py-2 hover:border-red-400 transition-all">
+                    <div>
+                      <p className="text-lg font-medium text-brand leading-tight">{summary.alerts.unverifiedApproved}</p>
+                      <p className="text-xs text-mid">Approved · no method</p>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-red-600" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Recent activity */}
+          <div className="bg-white border border-ivory-200 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-brand">Recent activity</h3>
+              {summary.lastSync?.finishedAt && (
+                <p className="text-[0.65rem] text-hint">Last sync: {new Date(summary.lastSync.finishedAt).toLocaleString()}</p>
+              )}
+            </div>
+            {summary.recentActivity.length === 0 ? (
+              <p className="text-sm text-hint py-3 text-center">Nothing recent to show.</p>
+            ) : (
+              <div className="divide-y divide-ivory-200">
+                {summary.recentActivity.map((a) => {
+                  const icon =
+                    a.type === 'payment' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    : a.type === 'expense' ? <Receipt className="w-3.5 h-3.5 text-red-600" />
+                    : a.type === 'invitation' ? <Mail className="w-3.5 h-3.5 text-accent" />
+                    : <UserPlus className="w-3.5 h-3.5 text-navy-600" />
+                  return (
+                    <div key={a.id} className="py-2.5 flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-full bg-page-bg flex items-center justify-center flex-shrink-0">
+                        {icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-brand font-medium truncate">{a.title}</p>
+                        <p className="text-xs text-hint truncate">{a.subtitle}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        {a.amount !== null && (
+                          <p className={`text-sm font-medium ${a.type === 'expense' ? 'text-red-600' : 'text-brand'}`}>
+                            {a.type === 'expense' ? '−' : ''}{money(Math.abs(a.amount))}
+                          </p>
+                        )}
+                        <p className="text-[0.65rem] text-hint flex items-center justify-end gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(a.at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+    </AdminShell>
   )
 }

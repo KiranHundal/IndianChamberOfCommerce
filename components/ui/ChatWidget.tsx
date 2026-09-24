@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, FormEvent } from 'react'
+import { usePathname } from 'next/navigation'
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
 
 interface Message {
@@ -11,6 +12,7 @@ interface Message {
 const WELCOME = 'Hello! I\'m the CVICC assistant. Ask me about membership, events, or how we can help your business grow in the Central Valley.'
 
 export default function ChatWidget() {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: WELCOME },
@@ -84,6 +86,8 @@ export default function ChatWidget() {
       setLoading(false)
     }
   }
+
+  if (pathname?.startsWith('/admin')) return null
 
   return (
     <>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X, LogIn } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import LogoPlaceholder from '../ui/LogoPlaceholder';
@@ -17,8 +18,11 @@ const navLinks = [
 
 export default function Navbar() {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // The admin dashboard owns its own shell — don't render public site chrome there.
+  const isAdminRoute = pathname?.startsWith('/admin');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +34,8 @@ export default function Navbar() {
 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  if (isAdminRoute) return null;
 
   return (
     <nav

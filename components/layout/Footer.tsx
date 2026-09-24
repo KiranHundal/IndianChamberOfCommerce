@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Globe } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import LogoPlaceholder from '../ui/LogoPlaceholder';
@@ -13,6 +14,8 @@ const baseLinks = [
 
 export default function Footer() {
   const { data: session } = useSession();
+  const pathname = usePathname();
+  if (pathname?.startsWith('/admin')) return null;
 
   const quickLinks = session
     ? [...baseLinks, { label: 'Portal', href: '/portal' }]
