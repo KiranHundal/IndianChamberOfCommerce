@@ -527,21 +527,28 @@ export async function sendMembershipInvitationEmail(invite: {
     const finalBody = invite.bodyOverride?.trim() || (() => {
       const firstName = invite.name?.split(' ')[0]
       const shortGreeting = firstName ? `Hi ${firstName},` : 'Hi there,'
-      return [
+      // Body paragraphs — SEPARATED by blank lines. Keep filter(Boolean)
+      // AFTER building the parts (so a null personal note doesn't leave a
+      // stray blank paragraph), then join with \n\n so the HTML formatter
+      // can identify each one.
+      const bodyParas = [
         shortGreeting,
-        '',
         `Hope you're doing well. I'm on the board of the Central Valley Indian Chamber of Commerce, and we've been building a group of Indian-American business owners and professionals across the valley — finance, healthcare, real estate, hospitality, and a lot in between.`,
         invite.businessName
           ? `I thought of ${invite.businessName} and wanted to reach out.`
           : `I thought of you and wanted to reach out.`,
-        invite.personalNote ? `\n${invite.personalNote}\n` : '',
+        invite.personalNote?.trim() || null,
         `Would you have 15 minutes for a coffee or a quick call so I can give you a real sense of what we do? No pressure either way — just wanted to say hello.`,
-        '',
-        `Warmly,`,
+      ].filter(Boolean).join('\n\n')
+      // Signature block — single \n between lines so it renders as one
+      // grouped paragraph, but separated from the body by a blank line.
+      const signature = [
+        'Warmly,',
         invite.fromName || 'Kiran Hundal',
-        invite.fromDesignation || '',
+        invite.fromDesignation?.trim() || null,
         'Central Valley Indian Chamber of Commerce',
       ].filter(Boolean).join('\n')
+      return `${bodyParas}\n\n${signature}`
     })()
 
     // Minimal-HTML companion. Same words as the plain-text body but

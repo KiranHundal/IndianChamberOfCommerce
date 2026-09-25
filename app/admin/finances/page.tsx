@@ -193,20 +193,20 @@ export default function AdminFinancesPage() {
     const businessLine = vals.businessName?.trim()
       ? `I thought of ${vals.businessName.trim()} and wanted to reach out.`
       : `I thought of you and wanted to reach out.`
-    const body = [
+    const bodyParas = [
       greeting,
-      '',
       `Hope you're doing well. I'm on the board of the Central Valley Indian Chamber of Commerce, and we've been building a group of Indian-American business owners and professionals across the valley — finance, healthcare, real estate, hospitality, and a lot in between.`,
       businessLine,
-      vals.personalNote?.trim() ? `\n${vals.personalNote.trim()}\n` : '',
+      vals.personalNote?.trim() || null,
       `Would you have 15 minutes for a coffee or a quick call so I can give you a real sense of what we do? No pressure either way — just wanted to say hello.`,
-      '',
-      `Warmly,`,
+    ].filter(Boolean).join('\n\n')
+    const signature = [
+      'Warmly,',
       senderName,
-      (vals.fromDesignation || '').trim(),
+      (vals.fromDesignation || '').trim() || null,
       'Central Valley Indian Chamber of Commerce',
     ].filter(Boolean).join('\n')
-    return { subject, body }
+    return { subject, body: `${bodyParas}\n\n${signature}` }
   }
 
   function regeneratePreviewFromForm(form: HTMLFormElement | null) {
