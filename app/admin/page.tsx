@@ -294,40 +294,70 @@ export default function AdminHomePage() {
               </div>
             ) : (
               <>
-                <ResponsiveContainer width="100%" height={Math.max(180, stats.boardReferrals.length * 42)}>
-                  <BarChart data={stats.boardReferrals} layout="vertical" margin={{ top: 5, right: 20, left: 120, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#EDE6D3" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#5A6A7A' }} allowDecimals={false} />
-                    <YAxis
-                      type="category"
-                      dataKey="boardMemberName"
-                      tick={{ fontSize: 11, fill: '#1E3A5F', cursor: 'pointer' }}
-                      width={120}
-                      onClick={(evt: unknown) => {
-                        const e = evt as { value?: string; index?: number }
-                        const row = typeof e?.index === 'number' ? stats.boardReferrals[e.index] : null
-                        if (row) {
-                          router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
-                        }
-                      }}
-                    />
-                    <Tooltip formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]} labelStyle={{ color: '#1E3A5F' }} />
-                    <Bar
-                      dataKey="count"
-                      fill="#D4A830"
-                      radius={[0, 4, 4, 0]}
-                      style={{ cursor: 'pointer' }}
-                      onClick={(data: unknown) => {
-                        const row = data as BoardReferralRow | undefined
-                        if (row?.boardMemberId) {
-                          router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
-                        }
-                      }}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                {/* Mobile: leaderboard-style rows so names have room */}
+                <div className="lg:hidden space-y-2.5">
+                  {(() => {
+                    const max = Math.max(...stats.boardReferrals.map((r) => r.count), 1)
+                    return stats.boardReferrals.map((r) => (
+                      <button
+                        key={r.boardMemberId}
+                        type="button"
+                        onClick={() => router.push(`/admin/members?referredBy=${encodeURIComponent(r.boardMemberId)}&referredByName=${encodeURIComponent(r.boardMemberName)}`)}
+                        className="w-full text-left group"
+                      >
+                        <div className="flex items-baseline justify-between mb-1">
+                          <span className="text-sm text-brand font-medium group-hover:underline">{r.boardMemberName}</span>
+                          <span className="text-sm text-brand font-medium">{r.count}</span>
+                        </div>
+                        <div className="h-2.5 bg-page-bg rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gold-400 rounded-full transition-all"
+                            style={{ width: `${Math.max(4, (r.count / max) * 100)}%` }}
+                          />
+                        </div>
+                      </button>
+                    ))
+                  })()}
+                </div>
+
+                {/* Desktop: recharts bar chart */}
+                <div className="hidden lg:block">
+                  <ResponsiveContainer width="100%" height={Math.max(180, stats.boardReferrals.length * 42)}>
+                    <BarChart data={stats.boardReferrals} layout="vertical" margin={{ top: 5, right: 20, left: 120, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#EDE6D3" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11, fill: '#5A6A7A' }} allowDecimals={false} />
+                      <YAxis
+                        type="category"
+                        dataKey="boardMemberName"
+                        tick={{ fontSize: 11, fill: '#1E3A5F', cursor: 'pointer' }}
+                        width={120}
+                        onClick={(evt: unknown) => {
+                          const e = evt as { value?: string; index?: number }
+                          const row = typeof e?.index === 'number' ? stats.boardReferrals[e.index] : null
+                          if (row) {
+                            router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
+                          }
+                        }}
+                      />
+                      <Tooltip formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]} labelStyle={{ color: '#1E3A5F' }} />
+                      <Bar
+                        dataKey="count"
+                        fill="#D4A830"
+                        radius={[0, 4, 4, 0]}
+                        style={{ cursor: 'pointer' }}
+                        onClick={(data: unknown) => {
+                          const row = data as BoardReferralRow | undefined
+                          if (row?.boardMemberId) {
+                            router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
+                          }
+                        }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
                 <p className="text-[0.65rem] text-hint mt-2">
-                  Click any bar or name to see the members that referrer brought in.
+                  Tap any name to see the members that referrer brought in.
                 </p>
               </>
             )}
@@ -342,17 +372,54 @@ export default function AdminHomePage() {
               </div>
             ) : (
               <>
-                <ResponsiveContainer width="100%" height={Math.max(180, stats.attribution.length * 40)}>
-                  <BarChart data={stats.attribution} layout="vertical" margin={{ top: 5, right: 20, left: 100, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#EDE6D3" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#5A6A7A' }} allowDecimals={false} />
-                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#1E3A5F' }} width={100} />
-                    <Tooltip labelStyle={{ color: '#1E3A5F' }} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="sent" name="Invitations sent" fill="#EDE6D3" />
-                    <Bar dataKey="converted" name="Converted to members" fill="#059669" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {/* Mobile: leaderboard rows with sent + converted paired */}
+                <div className="lg:hidden space-y-3">
+                  {(() => {
+                    const max = Math.max(...stats.attribution.map((r) => r.sent), 1)
+                    return stats.attribution.map((r) => {
+                      const rate = r.sent > 0 ? Math.round((r.converted / r.sent) * 100) : 0
+                      return (
+                        <div key={r.sender} className="space-y-1">
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-sm text-brand font-medium truncate pr-2">{r.label}</span>
+                            <span className="text-[0.65rem] text-hint whitespace-nowrap">
+                              <span className="text-brand font-medium">{r.converted}</span>/{r.sent} · {rate}%
+                            </span>
+                          </div>
+                          <div className="relative h-2.5 bg-page-bg rounded-full overflow-hidden">
+                            <div
+                              className="absolute inset-y-0 left-0 bg-ivory-200"
+                              style={{ width: `${Math.max(4, (r.sent / max) * 100)}%` }}
+                            />
+                            <div
+                              className="absolute inset-y-0 left-0 bg-emerald-600 rounded-full"
+                              style={{ width: `${Math.max(0, (r.converted / max) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
+                  <div className="flex items-center gap-3 text-[0.65rem] text-hint pt-1">
+                    <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-600" /> Converted</span>
+                    <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-ivory-200" /> Sent</span>
+                  </div>
+                </div>
+
+                {/* Desktop: recharts grouped bars */}
+                <div className="hidden lg:block">
+                  <ResponsiveContainer width="100%" height={Math.max(180, stats.attribution.length * 40)}>
+                    <BarChart data={stats.attribution} layout="vertical" margin={{ top: 5, right: 20, left: 100, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#EDE6D3" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11, fill: '#5A6A7A' }} allowDecimals={false} />
+                      <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#1E3A5F' }} width={100} />
+                      <Tooltip labelStyle={{ color: '#1E3A5F' }} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="sent" name="Invitations sent" fill="#EDE6D3" />
+                      <Bar dataKey="converted" name="Converted to members" fill="#059669" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
                 <div className="flex items-center gap-2 text-[0.65rem] text-hint mt-2">
                   <Award className="w-3 h-3 text-gold-400" />
                   Top referrer: <span className="text-brand font-medium">{stats.attribution[0].label}</span> ({stats.attribution[0].converted} conversions)
