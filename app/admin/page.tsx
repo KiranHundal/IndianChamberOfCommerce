@@ -299,75 +299,74 @@ export default function AdminHomePage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                  {/* Donut — counts and slice colors read from the legend
-                      below, so no hover needed to know who brought whom in */}
-                  <div className="relative w-full max-w-[280px] mx-auto">
-                    <ResponsiveContainer width="100%" height={240}>
-                      <PieChart>
-                        <Pie
-                          data={stats.boardReferrals}
-                          dataKey="count"
-                          nameKey="boardMemberName"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={62}
-                          outerRadius={104}
-                          paddingAngle={2}
-                          stroke="#FFFFFF"
-                          strokeWidth={2}
-                          onClick={(data: unknown) => {
-                            const row = (data as { payload?: BoardReferralRow })?.payload
-                            if (row?.boardMemberId) {
-                              router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
-                            }
-                          }}
-                        >
-                          {stats.boardReferrals.map((_, i) => (
-                            <Cell key={i} fill={REFERRER_PALETTE[i % REFERRER_PALETTE.length]} cursor="pointer" />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]}
-                          labelStyle={{ color: '#1E3A5F' }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <p className="text-3xl font-medium text-brand leading-none">
-                        {stats.boardReferrals.reduce((s, r) => s + r.count, 0)}
-                      </p>
-                      <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1">Attributed</p>
-                    </div>
-                  </div>
-
-                  {/* Legend rows — color swatch + name + count, all clickable */}
-                  <div>
-                    <div className="border-b border-ivory-200 pb-1.5 mb-1 flex items-center justify-between text-[0.65rem] font-medium uppercase tracking-wide text-hint">
-                      <span>Board member</span>
-                      <span>Brought in</span>
-                    </div>
-                    <div className="divide-y divide-ivory-200">
-                      {stats.boardReferrals.map((r, i) => (
-                        <button
-                          key={r.boardMemberId}
-                          type="button"
-                          onClick={() => router.push(`/admin/members?referredBy=${encodeURIComponent(r.boardMemberId)}&referredByName=${encodeURIComponent(r.boardMemberName)}`)}
-                          className="w-full flex items-center gap-3 py-2 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group"
-                        >
-                          <span
-                            className="w-3 h-3 rounded-sm flex-shrink-0"
-                            style={{ background: REFERRER_PALETTE[i % REFERRER_PALETTE.length] }}
-                          />
-                          <span className="text-sm text-brand flex-1 group-hover:underline">{r.boardMemberName}</span>
-                          <span className="text-sm text-brand font-medium tabular-nums">{r.count}</span>
-                        </button>
-                      ))}
-                    </div>
+                {/* Big donut, centered, matches the reference layout — the
+                    slice colors read directly against the legend rows below,
+                    so the split is obvious without any hover. */}
+                <div className="relative w-full max-w-[440px] mx-auto">
+                  <ResponsiveContainer width="100%" height={380}>
+                    <PieChart>
+                      <Pie
+                        data={stats.boardReferrals}
+                        dataKey="count"
+                        nameKey="boardMemberName"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={95}
+                        outerRadius={170}
+                        paddingAngle={2}
+                        stroke="#FFFFFF"
+                        strokeWidth={3}
+                        onClick={(data: unknown) => {
+                          const row = (data as { payload?: BoardReferralRow })?.payload
+                          if (row?.boardMemberId) {
+                            router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
+                          }
+                        }}
+                      >
+                        {stats.boardReferrals.map((_, i) => (
+                          <Cell key={i} fill={REFERRER_PALETTE[i % REFERRER_PALETTE.length]} cursor="pointer" />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]}
+                        labelStyle={{ color: '#1E3A5F' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <p className="text-5xl font-medium text-brand leading-none">
+                      {stats.boardReferrals.reduce((s, r) => s + r.count, 0)}
+                    </p>
+                    <p className="text-xs text-hint uppercase tracking-wide mt-2">Attributed</p>
                   </div>
                 </div>
 
-                <p className="text-[0.65rem] text-hint mt-3">
+                {/* Legend rows — big color swatches + names + counts, all clickable */}
+                <div className="max-w-[520px] mx-auto mt-6">
+                  <div className="border-b border-ivory-200 pb-1.5 mb-1 flex items-center justify-between text-[0.65rem] font-medium uppercase tracking-wide text-hint">
+                    <span>Board member</span>
+                    <span>Brought in</span>
+                  </div>
+                  <div className="divide-y divide-ivory-200">
+                    {stats.boardReferrals.map((r, i) => (
+                      <button
+                        key={r.boardMemberId}
+                        type="button"
+                        onClick={() => router.push(`/admin/members?referredBy=${encodeURIComponent(r.boardMemberId)}&referredByName=${encodeURIComponent(r.boardMemberName)}`)}
+                        className="w-full flex items-center gap-3 py-2.5 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group"
+                      >
+                        <span
+                          className="w-4 h-4 rounded-sm flex-shrink-0"
+                          style={{ background: REFERRER_PALETTE[i % REFERRER_PALETTE.length] }}
+                        />
+                        <span className="text-sm text-brand flex-1 group-hover:underline">{r.boardMemberName}</span>
+                        <span className="text-sm text-brand font-medium tabular-nums">{r.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="text-[0.65rem] text-hint mt-4 text-center">
                   Tap a name or slice to see the members that referrer brought in.
                 </p>
               </>
