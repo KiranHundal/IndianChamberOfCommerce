@@ -38,7 +38,8 @@ export async function GET() {
       rsvpCount: sql<number>`count(*)`,
       seats: sql<number>`coalesce(sum(1 + guests), 0)`,
       paid: sql<number>`sum(case when paid_at is not null then 1 else 0 end)`,
-      paidSeats: sql<number>`coalesce(sum(case when paid_at is not null then 1 + guests else 0 end), 0)`,
+      collectedCents: sql<number>`coalesce(sum(coalesce(paid_amount, 0)), 0)`,
+      atDoorSeats: sql<number>`coalesce(sum(case when pay_mode = 'door' then 1 + guests else 0 end), 0)`,
     })
     .from(eventRsvps)
     .groupBy(eventRsvps.eventId)
@@ -46,20 +47,29 @@ export async function GET() {
   const summaryMap = new Map(
     summaryRows.map((s) => [
       s.eventId,
-      { rsvpCount: Number(s.rsvpCount) || 0, seats: Number(s.seats) || 0, paid: Number(s.paid) || 0, paidSeats: Number(s.paidSeats) || 0 },
+      {
+        rsvpCount: Number(s.rsvpCount) || 0,
+        seats: Number(s.seats) || 0,
+        paid: Number(s.paid) || 0,
+        collectedCents: Number(s.collectedCents) || 0,
+        atDoorSeats: Number(s.atDoorSeats) || 0,
+      },
     ])
   )
 
   const withSummary = rows.map((r) => {
-    const s = summaryMap.get(r.id) || { rsvpCount: 0, seats: 0, paid: 0, paidSeats: 0 }
+    const s = summaryMap.get(r.id) || { rsvpCount: 0, seats: 0, paid: 0, collectedCents: 0, atDoorSeats: 0 }
+    // Expected total = online seats × price + door seats × (price + $5)
+    const onlineSeats = s.seats - s.atDoorSeats
+    const owedCents = onlineSeats * (r.priceCents || 0) + s.atDoorSeats * ((r.priceCents || 0) + 500)
     return {
       ...r,
       summary: {
         rsvpCount: s.rsvpCount,
         seats: s.seats,
         paid: s.paid,
-        owedCents: s.seats * (r.priceCents || 0),
-        collectedCents: s.paidSeats * (r.priceCents || 0),
+        owedCents,
+        collectedCents: s.collectedCents,
       },
     }
   })

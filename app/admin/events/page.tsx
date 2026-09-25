@@ -7,7 +7,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   Calendar, Plus, Pencil, Trash2, X, Save, Loader2, MapPin,
-  Users, Eye, EyeOff, ExternalLink, ImagePlus, DollarSign, CheckCircle2, Circle,
+  Users, Eye, EyeOff, ExternalLink, ImagePlus, DollarSign, CheckCircle2,
 } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'
 
@@ -48,7 +48,13 @@ interface RsvpRow {
   phone: string | null
   guests: number
   note: string | null
+  payMode: 'online' | 'door' | 'none' | null
+  paidAmount: number | null
   paidAt: string | number | null
+  paymentMethod: string | null
+  paymentReference: string | null
+  squareCheckoutId: string | null
+  squareOrderId: string | null
   createdAt: string | number
 }
 
@@ -103,6 +109,11 @@ export default function AdminEventsPage() {
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  // Cover File stays in state because our form conditionally unmounts the
+  // <input type="file"> when a preview is shown. Without this we'd lose
+  // the picked file the moment the preview renders — which is the bug the
+  // user saw as "photo uploaded but never appears on the event page".
+  const [coverFile, setCoverFile] = useState<File | null>(null)
   const [removeCover, setRemoveCover] = useState(false)
   const [rsvpMode, setRsvpMode] = useState<'none' | 'external' | 'internal'>('none')
   const [priceCents, setPriceCents] = useState<number | null>(null)
@@ -139,6 +150,7 @@ export default function AdminEventsPage() {
   function openAdd() {
     setEditing(null)
     setCoverPreview(null)
+    setCoverFile(null)
     setRemoveCover(false)
     setRsvpMode('none')
     setPriceCents(null)
@@ -151,6 +163,7 @@ export default function AdminEventsPage() {
   function openEdit(ev: EventRow) {
     setEditing(ev)
     setCoverPreview(ev.coverImageUrl)
+    setCoverFile(null)
     setRemoveCover(false)
     setRsvpMode(ev.rsvpMode)
     setPriceCents(ev.priceCents)
@@ -165,6 +178,7 @@ export default function AdminEventsPage() {
     setShowForm(false)
     setEditing(null)
     setCoverPreview(null)
+    setCoverFile(null)
     setRemoveCover(false)
     setError('')
     if (coverRef.current) coverRef.current.value = ''
@@ -188,6 +202,12 @@ export default function AdminEventsPage() {
     setError('')
     const formData = new FormData(e.currentTarget)
     if (editing && removeCover) formData.set('removeCover', 'true')
+
+    // Inject the currently-picked File from state — form.get('cover') is
+    // unreliable because the file input is conditionally unmounted while
+    // the preview is showing.
+    if (coverFile) formData.set('cover', coverFile)
+    else formData.delete('cover')
 
     // Price + notify come from React state, not native inputs — inject
     // them into the FormData before it goes to the API. An empty string
@@ -261,8 +281,8 @@ export default function AdminEventsPage() {
   function onCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const url = URL.createObjectURL(file)
-    setCoverPreview(url)
+    setCoverFile(file)
+    setCoverPreview(URL.createObjectURL(file))
     setRemoveCover(false)
   }
 
@@ -402,13 +422,14 @@ export default function AdminEventsPage() {
 
               <div>
                 <label className={labelClass}>Cover image</label>
-                {coverPreview ? (
+                {coverPreview && (
                   <div className="relative w-full h-40 rounded overflow-hidden border border-ivory-200 mb-2">
                     <Image src={coverPreview} alt="" fill className="object-cover" unoptimized />
                     <button
                       type="button"
                       onClick={() => {
                         setCoverPreview(null)
+                        setCoverFile(null)
                         setRemoveCover(true)
                         if (coverRef.current) coverRef.current.value = ''
                       }}
@@ -417,16 +438,12 @@ export default function AdminEventsPage() {
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                ) : (
-                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-ivory-200 rounded p-6 cursor-pointer hover:border-accent/40 text-sm text-mid">
-                    <ImagePlus className="w-4 h-4" />
-                    Choose an image (up to 8MB)
-                    <input ref={coverRef} type="file" name="cover" accept="image/*" onChange={onCoverChange} className="hidden" />
-                  </label>
                 )}
-                {coverPreview && !removeCover && (
-                  <input ref={coverRef} type="file" name="cover" accept="image/*" onChange={onCoverChange} className="text-xs mt-1" />
-                )}
+                <label className="flex items-center justify-center gap-2 border-2 border-dashed border-ivory-200 rounded p-4 cursor-pointer hover:border-accent/40 text-sm text-mid">
+                  <ImagePlus className="w-4 h-4" />
+                  {coverPreview ? 'Replace image' : 'Choose an image (up to 8MB)'}
+                  <input ref={coverRef} type="file" accept="image/*" onChange={onCoverChange} className="hidden" />
+                </label>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -553,15 +570,34 @@ export default function AdminEventsPage() {
           event={rsvpFor}
           rsvps={rsvps}
           onClose={() => setRsvpFor(null)}
-          onTogglePaid={async (r) => {
-            const paid = !r.paidAt
+          onLogPayment={async (r, payload) => {
             const res = await fetch(`/api/admin/events/${rsvpFor.id}/rsvps/${r.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paid }),
+              body: JSON.stringify({ paid: true, ...payload }),
             })
             if (res.ok) {
-              setRsvps((prev) => prev.map((x) => x.id === r.id ? { ...x, paidAt: paid ? new Date().toISOString() : null } : x))
+              setRsvps((prev) => prev.map((x) => x.id === r.id ? {
+                ...x,
+                paidAt: new Date().toISOString(),
+                paidAmount: payload.amount ? Math.round(parseFloat(payload.amount) * 100) : null,
+                paymentMethod: payload.method,
+                paymentReference: payload.reference || null,
+              } : x))
+              await fetchRows()
+            }
+          }}
+          onUnpay={async (r) => {
+            if (!confirm(`Clear payment record for ${r.name}?`)) return
+            const res = await fetch(`/api/admin/events/${rsvpFor.id}/rsvps/${r.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paid: false }),
+            })
+            if (res.ok) {
+              setRsvps((prev) => prev.map((x) => x.id === r.id ? {
+                ...x, paidAt: null, paidAmount: null, paymentMethod: null, paymentReference: null,
+              } : x))
               await fetchRows()
             }
           }}
@@ -654,28 +690,49 @@ function EventCard({ ev, onEdit, onDelete, onToggle, onRsvps, isPast = false }: 
   )
 }
 
-function RsvpModal({ event, rsvps, onClose, onTogglePaid, onRemove }: {
+function RsvpModal({ event, rsvps, onClose, onLogPayment, onUnpay, onRemove }: {
   event: EventRow
   rsvps: RsvpRow[]
   onClose: () => void
-  onTogglePaid: (r: RsvpRow) => void
-  onRemove: (r: RsvpRow) => void
+  onLogPayment: (r: RsvpRow, payload: { amount: string; method: string; reference: string }) => Promise<void>
+  onUnpay: (r: RsvpRow) => Promise<void>
+  onRemove: (r: RsvpRow) => Promise<void>
 }) {
+  const [logFor, setLogFor] = useState<RsvpRow | null>(null)
+  const [logAmount, setLogAmount] = useState('')
+  const [logMethod, setLogMethod] = useState('cash')
+  const [logReference, setLogReference] = useState('')
+  const [logSubmitting, setLogSubmitting] = useState(false)
+
   const totalSeats = rsvps.reduce((s, r) => s + 1 + r.guests, 0)
-  const paidSeats = rsvps.filter((r) => r.paidAt).reduce((s, r) => s + 1 + r.guests, 0)
+  const paidRsvps = rsvps.filter((r) => r.paidAt)
+  const collected = paidRsvps.reduce((s, r) => s + (r.paidAmount || 0), 0)
   const price = event.priceCents || 0
-  const collected = paidSeats * price
   const owed = totalSeats * price
+
+  function openLog(r: RsvpRow) {
+    const seats = 1 + r.guests
+    const suggested = r.payMode === 'door'
+      ? (price + 500) * seats / 100
+      : price * seats / 100
+    setLogAmount(suggested > 0 ? String(suggested.toFixed(2)) : '')
+    setLogMethod(r.paymentMethod || 'cash')
+    setLogReference(r.paymentReference || '')
+    setLogFor(r)
+  }
 
   function exportCsv() {
     const rows = [
-      ['Name', 'Email', 'Phone', 'Seats', 'Paid', 'RSVP Date', 'Note'],
+      ['Name', 'Email', 'Phone', 'Seats', 'Pay mode', 'Paid ($)', 'Method', 'Reference', 'RSVP Date', 'Note'],
       ...rsvps.map((r) => [
         r.name,
         r.email,
         r.phone || '',
         String(1 + r.guests),
-        r.paidAt ? 'Yes' : 'No',
+        r.payMode || 'none',
+        r.paidAmount != null ? (r.paidAmount / 100).toFixed(2) : '',
+        r.paymentMethod || '',
+        r.paymentReference || '',
         new Date(r.createdAt).toLocaleString(),
         r.note || '',
       ]),
@@ -692,13 +749,13 @@ function RsvpModal({ event, rsvps, onClose, onTogglePaid, onRemove }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-hover w-full max-w-3xl my-8">
+      <div className="bg-white rounded-lg shadow-hover w-full max-w-4xl my-8">
         <div className="flex items-center justify-between px-5 py-3 border-b border-ivory-200">
           <div>
             <h2 className="text-sm font-medium text-brand">RSVPs · {event.title}</h2>
             <p className="text-xs text-hint">
               {rsvps.length} confirmed · {totalSeats} seats{event.capacity ? ` / ${event.capacity}` : ''}
-              {price > 0 ? <> · <span className="text-brand font-medium">{money(collected)}</span> collected / {money(owed)} owed</> : null}
+              {price > 0 ? <> · <span className="text-brand font-medium">{money(collected)}</span> collected / {money(owed)} expected</> : null}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -729,9 +786,9 @@ function RsvpModal({ event, rsvps, onClose, onTogglePaid, onRemove }: {
                   <tr>
                     <th className="text-left py-2 pr-3">Attendee</th>
                     <th className="text-right py-2 pr-3">Seats</th>
+                    <th className="text-left py-2 pr-3">Chose</th>
+                    {price > 0 && <th className="text-left py-2 pr-3">Payment</th>}
                     <th className="text-left py-2 pr-3">Note</th>
-                    <th className="text-left py-2 pr-3">Confirmed</th>
-                    {price > 0 && <th className="text-center py-2 pr-3">Paid</th>}
                     <th className="w-4"></th>
                   </tr>
                 </thead>
@@ -744,25 +801,51 @@ function RsvpModal({ event, rsvps, onClose, onTogglePaid, onRemove }: {
                           <a href={`mailto:${r.email}`} className="hover:text-accent">{r.email}</a>
                           {r.phone ? ` · ${r.phone}` : ''}
                         </div>
+                        <div className="text-[0.65rem] text-hint mt-0.5">RSVP&apos;d {new Date(r.createdAt).toLocaleDateString()}</div>
                       </td>
-                      <td className="py-2 pr-3 text-right text-brand">{1 + r.guests}</td>
-                      <td className="py-2 pr-3 text-mid truncate max-w-[180px]" title={r.note || ''}>{r.note || '—'}</td>
-                      <td className="py-2 pr-3 text-xs text-hint">{new Date(r.createdAt).toLocaleDateString()}</td>
+                      <td className="py-2 pr-3 text-right text-brand align-top">{1 + r.guests}</td>
+                      <td className="py-2 pr-3 text-xs align-top">
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.65rem] ${
+                          r.payMode === 'online' ? 'bg-emerald-50 text-emerald-700'
+                          : r.payMode === 'door' ? 'bg-amber-50 text-amber-800'
+                          : 'bg-page-bg text-hint'
+                        }`}>
+                          {r.payMode === 'online' ? 'Online' : r.payMode === 'door' ? 'At door' : 'Free/none'}
+                        </span>
+                      </td>
                       {price > 0 && (
-                        <td className="py-2 pr-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => onTogglePaid(r)}
-                            title={r.paidAt ? 'Mark unpaid' : 'Mark paid'}
-                            className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
-                              r.paidAt ? 'text-emerald-700 hover:bg-emerald-50' : 'text-hint hover:bg-page-bg'
-                            }`}
-                          >
-                            {r.paidAt ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                          </button>
+                        <td className="py-2 pr-3 text-xs align-top">
+                          {r.paidAt ? (
+                            <div>
+                              <div className="text-emerald-700 font-medium flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                {money(r.paidAmount)}
+                              </div>
+                              <div className="text-hint mt-0.5 capitalize">
+                                {r.paymentMethod || 'unknown'}
+                                {r.paymentReference ? ` · ${r.paymentReference}` : ''}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => onUnpay(r)}
+                                className="text-[0.6rem] text-hint hover:text-red-600 mt-0.5 underline underline-offset-2"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openLog(r)}
+                              className="inline-flex items-center gap-1 text-brand border border-ivory-200 rounded px-2 py-1 hover:border-accent/40"
+                            >
+                              <DollarSign className="w-3 h-3 text-emerald-600" /> Log payment
+                            </button>
+                          )}
                         </td>
                       )}
-                      <td className="py-2 pl-1">
+                      <td className="py-2 pr-3 text-mid truncate max-w-[220px] align-top" title={r.note || ''}>{r.note || '—'}</td>
+                      <td className="py-2 pl-1 align-top">
                         <button
                           type="button"
                           onClick={() => onRemove(r)}
@@ -780,6 +863,79 @@ function RsvpModal({ event, rsvps, onClose, onTogglePaid, onRemove }: {
           )}
         </div>
       </div>
+
+      {logFor && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-hover w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-ivory-200">
+              <div>
+                <h3 className="text-sm font-medium text-brand">Log payment</h3>
+                <p className="text-xs text-hint">{logFor.name} · {logFor.email}</p>
+              </div>
+              <button type="button" onClick={() => setLogFor(null)} className="text-mid hover:text-brand"><X className="w-4 h-4" /></button>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                setLogSubmitting(true)
+                await onLogPayment(logFor, { amount: logAmount, method: logMethod, reference: logReference })
+                setLogSubmitting(false)
+                setLogFor(null)
+              }}
+              className="p-5 space-y-4"
+            >
+              <div>
+                <label className={labelClass}>Amount ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={logAmount}
+                  onChange={(e) => setLogAmount(e.target.value)}
+                  className={inputClass}
+                  placeholder="0.00"
+                />
+                <p className="text-[0.65rem] text-hint mt-1">
+                  Suggested from ticket price × seats{logFor.payMode === 'door' ? ' + $5 at-door' : ''}. Adjust if the attendee overpaid or you comped a portion.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Method</label>
+                  <select value={logMethod} onChange={(e) => setLogMethod(e.target.value)} className={inputClass}>
+                    <option value="cash">Cash</option>
+                    <option value="check">Check</option>
+                    <option value="zelle">Zelle</option>
+                    <option value="venmo">Venmo</option>
+                    <option value="square">Square (manual entry)</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Reference</label>
+                  <input
+                    value={logReference}
+                    onChange={(e) => setLogReference(e.target.value)}
+                    className={inputClass}
+                    placeholder="Check #, txn id…"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-ivory-200">
+                <button type="button" onClick={() => setLogFor(null)} className="text-sm text-mid px-3 py-2 hover:text-brand">Cancel</button>
+                <button
+                  type="submit"
+                  disabled={logSubmitting}
+                  className="inline-flex items-center gap-1.5 bg-accent text-white text-sm font-medium px-4 py-2 rounded hover:bg-gold-900 disabled:opacity-50"
+                >
+                  {logSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Record payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

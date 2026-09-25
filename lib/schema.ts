@@ -67,6 +67,13 @@ export const squarePayments = sqliteTable('square_payments', {
   paidAt: integer('paid_at', { mode: 'timestamp' }).notNull(),
   syncedAt: integer('synced_at', { mode: 'timestamp' }).notNull(),
   matchedMemberId: text('matched_member_id'),
+  // 'membership' | 'event' | 'other'. Derived from the order reference_id
+  // during sync (event links embed `event:<eventId>:<rsvpId>`). Defaults
+  // to null for legacy rows — treat null as 'membership' at the query
+  // layer to keep the current Finances view unchanged.
+  paymentKind: text('payment_kind'),
+  eventId: text('event_id'),
+  eventRsvpId: text('event_rsvp_id'),
 })
 
 export const squareSync = sqliteTable('square_sync', {
@@ -144,7 +151,22 @@ export const eventRsvps = sqliteTable('event_rsvps', {
   phone: text('phone'),
   guests: integer('guests').notNull().default(0),
   note: text('note'),
+  // Chosen pay track. 'online' triggers a Square checkout link on submit;
+  // 'door' commits the visitor to paying at check-in and adds the $5
+  // convenience surcharge. Null on RSVPs made before this field existed.
+  payMode: text('pay_mode'),
+  // Cents actually paid. Null until an admin records payment or a Square
+  // return marks it.
+  paidAmount: integer('paid_amount'),
   paidAt: integer('paid_at', { mode: 'timestamp' }),
+  // 'square' | 'cash' | 'check' | 'zelle' | 'venmo' | 'other'.
+  paymentMethod: text('payment_method'),
+  // Square payment/order id, check number, Zelle confirmation, etc.
+  paymentReference: text('payment_reference'),
+  // Populated when the RSVP kicked off a Square Checkout Link so we can
+  // verify status on redirect back from Square.
+  squareCheckoutId: text('square_checkout_id'),
+  squareOrderId: text('square_order_id'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 

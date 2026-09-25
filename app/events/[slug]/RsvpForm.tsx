@@ -1,10 +1,12 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2, CreditCard, DoorOpen } from 'lucide-react'
 
 const inputClass =
   'w-full bg-white border border-ivory-200 rounded-md px-4 py-3 text-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
+
+const DOOR_SURCHARGE_CENTS = 500
 
 function priceLabel(cents: number | null): string {
   if (cents == null) return ''
@@ -17,6 +19,8 @@ export default function RsvpForm({ slug, title, priceCents }: { slug: string; ti
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
   const [guests, setGuests] = useState(0)
+  const isPaid = (priceCents ?? 0) > 0
+  const [payMode, setPayMode] = useState<'online' | 'door'>(isPaid ? 'online' : 'online')
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -28,8 +32,9 @@ export default function RsvpForm({ slug, title, priceCents }: { slug: string; ti
       name: (form.elements.namedItem('name') as HTMLInputElement)?.value,
       email: (form.elements.namedItem('email') as HTMLInputElement)?.value,
       phone: (form.elements.namedItem('phone') as HTMLInputElement)?.value,
-      guests: Number((form.elements.namedItem('guests') as HTMLInputElement)?.value || 0),
+      guests,
       note: (form.elements.namedItem('note') as HTMLTextAreaElement)?.value,
+      payMode: isPaid ? payMode : 'none',
     }
 
     try {
@@ -38,9 +43,16 @@ export default function RsvpForm({ slug, title, priceCents }: { slug: string; ti
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      const body = await res.json()
+      const raw = await res.text()
+      let body: { error?: string; paymentUrl?: string } = {}
+      try { body = raw ? JSON.parse(raw) : {} } catch { /* not JSON */ }
       if (!res.ok) {
-        setError(body.error || 'Something went wrong.')
+        setError(body.error || `Request failed (${res.status}).`)
+      } else if (body.paymentUrl) {
+        // Hand off to Square. Their hosted page owns the rest of the
+        // flow and redirects back to /events/<slug>/paid on success.
+        window.location.href = body.paymentUrl
+        return
       } else {
         setDone(true)
       }
@@ -63,7 +75,9 @@ export default function RsvpForm({ slug, title, priceCents }: { slug: string; ti
   }
 
   const seats = 1 + guests
-  const totalCents = priceCents != null ? priceCents * seats : null
+  const baseCents = priceCents ?? 0
+  const perTicket = payMode === 'door' ? baseCents + DOOR_SURCHARGE_CENTS : baseCents
+  const totalCents = perTicket * seats
 
   return (
     <div>
@@ -95,17 +109,54 @@ export default function RsvpForm({ slug, title, priceCents }: { slug: string; ti
         </div>
         <textarea name="note" rows={3} placeholder="Anything we should know? (dietary needs, questions…)" className={inputClass} />
 
-        {priceCents != null && priceCents > 0 && (
-          <div className="bg-page-alt border border-ivory-200 rounded px-4 py-3 text-sm text-brand flex items-center justify-between">
-            <span>
-              Ticket: <strong>{priceLabel(priceCents)}</strong>
-              {seats > 1 ? <> × {seats} seats</> : null}
-            </span>
-            <span className="font-medium">Total: {priceLabel(totalCents)}</span>
+        {isPaid && (
+          <div className="space-y-2 pt-2">
+            <p className="font-label text-[0.7rem] tracking-widest uppercase text-brand/70">Payment</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPayMode('online')}
+                className={`text-left rounded-md border p-4 transition-all ${
+                  payMode === 'online'
+                    ? 'border-accent bg-accent/5 ring-2 ring-accent/20'
+                    : 'border-ivory-200 hover:border-accent/40'
+                }`}
+              >
+                <div className="flex items-center gap-2 text-brand">
+                  <CreditCard className="w-4 h-4 text-accent" />
+                  <span className="text-sm font-medium">Pay online now</span>
+                </div>
+                <p className="text-xs text-mid mt-1">
+                  {priceLabel(baseCents)} · secure Square checkout · confirmed instantly
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayMode('door')}
+                className={`text-left rounded-md border p-4 transition-all ${
+                  payMode === 'door'
+                    ? 'border-accent bg-accent/5 ring-2 ring-accent/20'
+                    : 'border-ivory-200 hover:border-accent/40'
+                }`}
+              >
+                <div className="flex items-center gap-2 text-brand">
+                  <DoorOpen className="w-4 h-4 text-accent" />
+                  <span className="text-sm font-medium">Pay at door</span>
+                </div>
+                <p className="text-xs text-mid mt-1">
+                  {priceLabel(baseCents + DOOR_SURCHARGE_CENTS)} · adds a ${(DOOR_SURCHARGE_CENTS / 100).toFixed(0)} at-door convenience
+                </p>
+              </button>
+            </div>
+
+            <div className="bg-page-alt border border-ivory-200 rounded px-4 py-3 text-sm text-brand flex items-center justify-between mt-3">
+              <span>
+                {priceLabel(perTicket)}
+                {seats > 1 ? <> × {seats} seats</> : null}
+              </span>
+              <span className="font-medium">Total: {priceLabel(totalCents)}</span>
+            </div>
           </div>
-        )}
-        {priceCents != null && priceCents > 0 && (
-          <p className="text-xs text-hint text-center">Payment collected at check-in unless you receive a separate payment link.</p>
         )}
 
         <button
@@ -114,7 +165,7 @@ export default function RsvpForm({ slug, title, priceCents }: { slug: string; ti
           className="w-full inline-flex items-center justify-center gap-2 px-8 py-3 bg-accent text-white rounded-md font-label text-sm tracking-label uppercase hover:bg-accent/90 disabled:opacity-50 transition-all"
         >
           {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          {submitting ? 'Sending…' : 'Confirm RSVP'}
+          {submitting ? 'Sending…' : isPaid && payMode === 'online' ? 'Continue to payment' : 'Confirm RSVP'}
         </button>
       </form>
     </div>

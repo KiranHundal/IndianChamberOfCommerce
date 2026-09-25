@@ -56,14 +56,33 @@ export async function ensureEventsSchema() {
         phone TEXT,
         guests INTEGER NOT NULL DEFAULT 0,
         note TEXT,
+        pay_mode TEXT,
+        paid_amount INTEGER,
         paid_at INTEGER,
+        payment_method TEXT,
+        payment_reference TEXT,
+        square_checkout_id TEXT,
+        square_order_id TEXT,
         created_at INTEGER NOT NULL
       )
     `)
     await tryRun(`ALTER TABLE event_rsvps ADD COLUMN paid_at INTEGER`)
+    await tryRun(`ALTER TABLE event_rsvps ADD COLUMN pay_mode TEXT`)
+    await tryRun(`ALTER TABLE event_rsvps ADD COLUMN paid_amount INTEGER`)
+    await tryRun(`ALTER TABLE event_rsvps ADD COLUMN payment_method TEXT`)
+    await tryRun(`ALTER TABLE event_rsvps ADD COLUMN payment_reference TEXT`)
+    await tryRun(`ALTER TABLE event_rsvps ADD COLUMN square_checkout_id TEXT`)
+    await tryRun(`ALTER TABLE event_rsvps ADD COLUMN square_order_id TEXT`)
+
+    // Tag columns on square_payments so /admin/finances can filter event
+    // vs. membership income. No-op when the schema was never touched.
+    await tryRun(`ALTER TABLE square_payments ADD COLUMN payment_kind TEXT`)
+    await tryRun(`ALTER TABLE square_payments ADD COLUMN event_id TEXT`)
+    await tryRun(`ALTER TABLE square_payments ADD COLUMN event_rsvp_id TEXT`)
 
     await tryRun(`CREATE INDEX IF NOT EXISTS idx_events_start_at ON events(start_at)`)
     await tryRun(`CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_id ON event_rsvps(event_id)`)
+    await tryRun(`CREATE INDEX IF NOT EXISTS idx_square_payments_kind ON square_payments(payment_kind)`)
     ensured = true
   } catch (e) {
     // Any unexpected error — do not set `ensured`, but do not throw either.

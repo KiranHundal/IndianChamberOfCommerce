@@ -204,3 +204,90 @@ export function sumProcessingFees(p: SquarePayment): number {
   if (!p.processing_fee || p.processing_fee.length === 0) return 0
   return p.processing_fee.reduce((sum, f) => sum + (f.amount_money?.amount || 0), 0)
 }
+
+async function squarePost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${SQUARE_API_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${requireToken()}`,
+      'Content-Type': 'application/json',
+      'Square-Version': SQUARE_VERSION,
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Square API ${res.status} on ${path}: ${text}`)
+  }
+  return res.json() as Promise<T>
+}
+
+interface SquarePaymentLink {
+  id: string
+  version: number
+  url: string
+  order_id?: string
+}
+
+interface CreatePaymentLinkResponse {
+  payment_link?: SquarePaymentLink
+  errors?: Array<{ code: string; detail: string }>
+}
+
+/**
+ * Create a Square Checkout Link for a single ticket purchase. The order
+ * `reference_id` embeds `event:<eventId>:<rsvpId>` so the Square-sync
+ * job can tag the resulting payment as an event purchase.
+ */
+export async function createEventCheckoutLink(input: {
+  name: string
+  amountCents: number
+  buyerEmail: string
+  eventId: string
+  rsvpId: string
+  redirectUrl: string
+}): Promise<SquarePaymentLink> {
+  const locationId = process.env.SQUARE_LOCATION_ID
+  if (!locationId) throw new Error('SQUARE_LOCATION_ID is not configured.')
+
+  const body = {
+    idempotency_key: `evt-${input.rsvpId}`,
+    quick_pay: {
+      name: input.name.slice(0, 255),
+      price_money: { amount: input.amountCents, currency: 'USD' },
+      location_id: locationId,
+    },
+    checkout_options: {
+      redirect_url: input.redirectUrl,
+      ask_for_shipping_address: false,
+    },
+    pre_populated_data: { buyer_email: input.buyerEmail },
+    payment_note: `event:${input.eventId}:${input.rsvpId}`,
+    // We would also like reference_id on the order to filter payments,
+    // but quick_pay doesn't expose it — the note above is what sync reads.
+  }
+
+  const res = await squarePost<CreatePaymentLinkResponse>('/v2/online-checkout/payment-links', body)
+  if (res.errors?.length) {
+    throw new Error(`Square: ${res.errors.map((e) => e.detail).join('; ')}`)
+  }
+  if (!res.payment_link) throw new Error('Square did not return a payment link.')
+  return res.payment_link
+}
+
+/**
+ * Look up a payment link by id to verify a completed checkout on redirect.
+ */
+interface RetrievePaymentLinkResponse {
+  payment_link?: SquarePaymentLink
+  errors?: Array<{ code: string; detail: string }>
+}
+export async function fetchSquarePaymentLink(id: string): Promise<SquarePaymentLink | null> {
+  try {
+    const res = await squareGet<RetrievePaymentLinkResponse>(`/v2/online-checkout/payment-links/${id}`)
+    return res.payment_link || null
+  } catch {
+    return null
+  }
+}
