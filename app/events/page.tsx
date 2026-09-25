@@ -30,8 +30,13 @@ function formatTime(d: Date): string {
 }
 
 export default async function EventsPage() {
-  await ensureEventsSchema()
-  const rows = await db.select().from(events).where(eq(events.published, true))
+  let rows: (typeof events.$inferSelect)[] = []
+  try {
+    await ensureEventsSchema()
+    rows = await db.select().from(events).where(eq(events.published, true))
+  } catch (e) {
+    console.error('EventsPage load failed:', e)
+  }
   const now = Date.now()
   const upcoming = rows
     .filter((r) => new Date(r.startAt).getTime() >= now)

@@ -211,9 +211,14 @@ export default function AdminEventsPage() {
       const url = editing ? `/api/admin/events/${editing.id}` : '/api/admin/events'
       const method = editing ? 'PUT' : 'POST'
       const res = await fetch(url, { method, body: formData })
-      const data = await res.json()
+      // Parse defensively — the server can return HTML on hard crashes,
+      // or an empty body on serverless timeouts. Either shouldn't leave
+      // the admin staring at "Unexpected end of JSON input".
+      const raw = await res.text()
+      let data: { error?: string } = {}
+      try { data = raw ? JSON.parse(raw) : {} } catch { /* not JSON */ }
       if (!res.ok) {
-        setError(data.error || 'Something went wrong.')
+        setError(data.error || raw.slice(0, 200) || `Request failed (${res.status} ${res.statusText || 'error'}).`)
       } else {
         await fetchRows()
         closeForm()

@@ -26,14 +26,22 @@ function priceLabel(cents: number | null): string | null {
 }
 
 export default async function UpcomingEvents() {
-  await ensureEventsSchema()
-  const now = new Date()
-  const rows = await db
-    .select()
-    .from(events)
-    .where(and(eq(events.published, true), gte(events.startAt, now)))
-    .orderBy(asc(events.startAt))
-    .limit(4)
+  // The homepage renders this section, so nothing here is allowed to
+  // throw — a broken query must degrade to the empty state, not the
+  // site-wide error page.
+  let rows: (typeof events.$inferSelect)[] = []
+  try {
+    await ensureEventsSchema()
+    const now = new Date()
+    rows = await db
+      .select()
+      .from(events)
+      .where(and(eq(events.published, true), gte(events.startAt, now)))
+      .orderBy(asc(events.startAt))
+      .limit(4)
+  } catch (e) {
+    console.error('UpcomingEvents load failed:', e)
+  }
 
   // No events? Section still shows an elegant, on-brand message so the
   // page doesn't look broken during quiet weeks. Better restraint than

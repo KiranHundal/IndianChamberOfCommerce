@@ -72,9 +72,9 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  await ensureEventsSchema()
 
   try {
+    await ensureEventsSchema()
     const formData = await req.formData()
     const title = formData.get('title')?.toString()?.trim()
     const description = formData.get('description')?.toString()?.trim() || null
