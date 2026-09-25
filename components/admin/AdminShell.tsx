@@ -13,6 +13,7 @@ import {
   FileText,
   UserPlus,
   Video,
+  Calendar,
   LogOut,
   Menu,
   X,
@@ -77,6 +78,13 @@ const NAV: NavItem[] = [
     icon: UserPlus,
     match: (p) => p.startsWith('/admin/board-members'),
     roles: ['admin'],
+  },
+  {
+    href: '/admin/events',
+    label: 'Events',
+    icon: Calendar,
+    match: (p) => p.startsWith('/admin/events'),
+    roles: ['admin', 'moderator'],
   },
   {
     href: '/admin/videos',

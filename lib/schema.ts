@@ -107,6 +107,40 @@ export const boardMembers = sqliteTable('board_members', {
   welcomeEmailSentAt: integer('welcome_email_sent_at', { mode: 'timestamp' }),
 })
 
+export const events = sqliteTable('events', {
+  id: text('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  title: text('title').notNull(),
+  description: text('description'),
+  location: text('location'),
+  address: text('address'),
+  startAt: integer('start_at', { mode: 'timestamp' }).notNull(),
+  endAt: integer('end_at', { mode: 'timestamp' }),
+  coverImageUrl: text('cover_image_url'),
+  eventType: text('event_type').notNull().default('Networking'),
+  membersOnly: integer('members_only', { mode: 'boolean' }).notNull().default(false),
+  // 'external' → send visitors to rsvpUrl; 'internal' → collect RSVPs in
+  // event_rsvps; 'none' → info page only.
+  rsvpMode: text('rsvp_mode').notNull().default('none'),
+  rsvpUrl: text('rsvp_url'),
+  capacity: integer('capacity'),
+  published: integer('published', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdBy: text('created_by'),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }),
+})
+
+export const eventRsvps = sqliteTable('event_rsvps', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  phone: text('phone'),
+  guests: integer('guests').notNull().default(0),
+  note: text('note'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export type Member = typeof members.$inferSelect
 export type NewMember = typeof members.$inferInsert
 export type LeaderVideo = typeof leaderVideos.$inferSelect
@@ -119,3 +153,7 @@ export type NewInvitation = typeof invitations.$inferInsert
 export type SquarePayment = typeof squarePayments.$inferSelect
 export type NewSquarePayment = typeof squarePayments.$inferInsert
 export type SquareSyncRun = typeof squareSync.$inferSelect
+export type Event = typeof events.$inferSelect
+export type NewEvent = typeof events.$inferInsert
+export type EventRsvp = typeof eventRsvps.$inferSelect
+export type NewEventRsvp = typeof eventRsvps.$inferInsert
