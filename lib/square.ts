@@ -235,6 +235,50 @@ interface CreatePaymentLinkResponse {
   errors?: Array<{ code: string; detail: string }>
 }
 
+interface SquareLocation {
+  id: string
+  name?: string
+  status?: string
+}
+
+interface ListLocationsResponse {
+  locations?: SquareLocation[]
+  errors?: Array<{ code: string; detail: string }>
+}
+
+// Cached inside the container so the "resolve my location id" round-trip
+// only happens once per cold start. `null` is a valid negative cache to
+// avoid re-hitting Square if the account genuinely has no active
+// locations — that'd be a fatal misconfiguration, not a retryable case.
+let cachedLocationId: string | null | undefined = undefined
+
+/**
+ * Return an active Square location ID for the connected account.
+ * Prefers SQUARE_LOCATION_ID when set (explicit is safer for
+ * multi-location merchants). Falls back to discovering one via
+ * /v2/locations. For single-location merchants this is a safe default
+ * because there's nothing to pick wrong.
+ */
+async function resolveLocationId(): Promise<string> {
+  const fromEnv = process.env.SQUARE_LOCATION_ID?.trim()
+  if (fromEnv) return fromEnv
+  if (cachedLocationId) return cachedLocationId
+  if (cachedLocationId === null) throw new Error('No active Square locations on this account.')
+
+  const res = await squareGet<ListLocationsResponse>('/v2/locations')
+  if (res.errors?.length) {
+    throw new Error(`Square: ${res.errors.map((e) => e.detail).join('; ')}`)
+  }
+  const active = (res.locations || []).find((l) => (l.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
+    || (res.locations || [])[0]
+  if (!active?.id) {
+    cachedLocationId = null
+    throw new Error('No Square locations returned for this account.')
+  }
+  cachedLocationId = active.id
+  return active.id
+}
+
 /**
  * Create a Square Checkout Link for a single ticket purchase. The order
  * `reference_id` embeds `event:<eventId>:<rsvpId>` so the Square-sync
@@ -248,8 +292,7 @@ export async function createEventCheckoutLink(input: {
   rsvpId: string
   redirectUrl: string
 }): Promise<SquarePaymentLink> {
-  const locationId = process.env.SQUARE_LOCATION_ID
-  if (!locationId) throw new Error('SQUARE_LOCATION_ID is not configured.')
+  const locationId = await resolveLocationId()
 
   const body = {
     idempotency_key: `evt-${input.rsvpId}`,
