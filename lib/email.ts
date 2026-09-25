@@ -692,6 +692,8 @@ export async function sendEventRsvpConfirmationEmail(input: {
   to: string
   name: string
   guests: number
+  rsvpId?: string
+  eventId?: string
   event: {
     slug: string
     title: string
@@ -710,6 +712,19 @@ export async function sendEventRsvpConfirmationEmail(input: {
   const price = moneyFromCents(input.event.priceCents)
   const totalCents = (input.event.priceCents || 0) * seats
   const total = moneyFromCents(totalCents)
+
+  // Check-in QR — scan at the door to mark this RSVP attended. Embedded
+  // inline as base64 so the email is fully self-contained.
+  let qrDataUri: string | null = null
+  if (input.rsvpId && input.eventId) {
+    try {
+      const QRCode = (await import('qrcode')).default
+      const target = `${siteUrl}/admin/events/${input.eventId}/checkin?code=${input.rsvpId}`
+      qrDataUri = await QRCode.toDataURL(target, { width: 240, margin: 1, color: { dark: '#1E3A5F', light: '#FFFFFF' } })
+    } catch (e) {
+      console.error('QR generation failed:', e)
+    }
+  }
 
   return resend.emails.send({
     from: `CVICC <${fromEmail}>`,
@@ -741,6 +756,12 @@ export async function sendEventRsvpConfirmationEmail(input: {
             <p style="color: #92700C; margin: 0; font-size: 13px; line-height: 1.6;">
               Payment of <strong>${total}</strong> will be collected at check-in unless a separate payment link is sent. Reply to this email if you&rsquo;d like to pay in advance.
             </p>
+          </div>` : ''}
+          ${qrDataUri ? `
+          <div style="text-align: center; margin: 28px 0 8px;">
+            <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">Check-in pass</p>
+            <img src="${qrDataUri}" alt="Check-in QR" width="180" height="180" style="border: 1px solid #EDE6D3; padding: 8px; background: #FFFFFF; border-radius: 8px;"/>
+            <p style="color: #8a8a8a; font-size: 12px; margin: 12px 0 0;">Show this at the door — scan for a one-tap check-in.</p>
           </div>` : ''}
           <p style="color: #5A6A7A; line-height: 1.7; margin: 24px 0 0;">
             Need to change your RSVP or bring more guests? Just reply and we&rsquo;ll update it.

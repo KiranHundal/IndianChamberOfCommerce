@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
@@ -7,11 +7,17 @@ import { and, eq, isNotNull } from 'drizzle-orm'
 import { ensureMembersRenewalSchema } from '@/lib/ensure-members-schema'
 import { sendRenewalReminderEmail } from '@/lib/email'
 
-async function requireAdmin() {
+// Authorize either as an admin session (manual button click) or via
+// Vercel Cron's Authorization: Bearer <CRON_SECRET> header (daily job).
+async function requireAdminOrCron(req: NextRequest): Promise<boolean> {
+  const secret = process.env.CRON_SECRET
+  if (secret) {
+    const auth = req.headers.get('authorization')
+    if (auth === `Bearer ${secret}`) return true
+  }
   const session = await getServerSession(authOptions)
   const user = session?.user as Record<string, unknown> | undefined
-  if (!user || (user.role !== 'admin' && user.role !== 'moderator')) return null
-  return session
+  return !!user && (user.role === 'admin' || user.role === 'moderator')
 }
 
 // Window: reminders go out for anyone expiring within the next 30 days
@@ -23,10 +29,7 @@ const DAYS_PAST = 14
 const COOLDOWN_DAYS = 21
 const DAY_MS = 24 * 60 * 60 * 1000
 
-export async function POST() {
-  const session = await requireAdmin()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+async function runRemindersPass() {
   await ensureMembersRenewalSchema()
 
   const rows = await db
@@ -65,7 +68,7 @@ export async function POST() {
     }
   }
 
-  return NextResponse.json({
+  return {
     success: true,
     sent,
     skippedCooldown,
@@ -73,5 +76,22 @@ export async function POST() {
     errors,
     windowDaysAhead: DAYS_AHEAD,
     windowDaysPast: DAYS_PAST,
-  })
+  }
+}
+
+export async function POST(req: NextRequest) {
+  if (!(await requireAdminOrCron(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const result = await runRemindersPass()
+  return NextResponse.json(result)
+}
+
+// Vercel Cron issues GETs. Same auth, same work.
+export async function GET(req: NextRequest) {
+  if (!(await requireAdminOrCron(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const result = await runRemindersPass()
+  return NextResponse.json(result)
 }

@@ -183,6 +183,10 @@ export const eventRsvps = sqliteTable('event_rsvps', {
   // verify status on redirect back from Square.
   squareCheckoutId: text('square_checkout_id'),
   squareOrderId: text('square_order_id'),
+  // Marked when the admin checks the attendee in at the door (via QR
+  // scan or a manual click on /admin/events/<id>/checkin).
+  attendedAt: integer('attended_at', { mode: 'timestamp' }),
+  checkedInBy: text('checked_in_by'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 

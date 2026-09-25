@@ -124,6 +124,11 @@ export default function PortalPage() {
   const router = useRouter()
   const [profile, setProfile] = useState<MemberProfile | null>(null)
   const [rsvps, setRsvps] = useState<{ upcoming: MyRsvpRow[]; past: MyRsvpRow[] }>({ upcoming: [], past: [] })
+  const [referrals, setReferrals] = useState<{
+    isBoardMember: boolean
+    count: number
+    referrals: Array<{ id: string; name: string; businessName: string | null; membershipTier: string; approvedAt: string | null }>
+  }>({ isBoardMember: false, count: 0, referrals: [] })
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -153,6 +158,14 @@ export default function PortalPage() {
       fetch('/api/portal/my-rsvps')
         .then((r) => r.json())
         .then((data) => setRsvps({ upcoming: data.upcoming || [], past: data.past || [] }))
+        .catch(() => {})
+      fetch('/api/portal/my-referrals')
+        .then((r) => r.json())
+        .then((data) => setReferrals({
+          isBoardMember: !!data.isBoardMember,
+          count: data.count || 0,
+          referrals: data.referrals || [],
+        }))
         .catch(() => {})
     }
   }, [status])
@@ -522,6 +535,57 @@ export default function PortalPage() {
                   </div>
                 )}
 
+                <div className="gold-accent-line" />
+              </div>
+            </AnimatedSection>
+          )}
+
+          {/* My Referrals — only shown to board members whose email
+              matches a board_members row. Regular members get referred
+              BY someone, not FROM. */}
+          {referrals.isBoardMember && (
+            <AnimatedSection delay={4}>
+              <div className="mt-8 leadership-card bg-white border border-ivory-200 rounded-xl p-8 relative">
+                <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gold-100 flex items-center justify-center text-accent">
+                      <Award className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-label text-label tracking-label uppercase text-brand">
+                      Your Referrals
+                    </h3>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-display text-h2 text-brand leading-none">{referrals.count}</p>
+                    <p className="text-small text-mid mt-1">member{referrals.count === 1 ? '' : 's'} brought in</p>
+                  </div>
+                </div>
+                {referrals.count === 0 ? (
+                  <p className="text-body text-mid">
+                    When members join and name you as their referrer, they&rsquo;ll appear here. Share the chamber with your network.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-ivory-200">
+                    {referrals.referrals.slice(0, 12).map((r) => (
+                      <li key={r.id} className="py-3 flex items-baseline justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-body text-brand truncate">{r.name}</p>
+                          {r.businessName && <p className="text-small text-mid truncate">{r.businessName}</p>}
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">
+                            {r.membershipTier === 'corporate' ? 'Corporate' : 'Individual'}
+                          </p>
+                          {r.approvedAt && (
+                            <p className="text-small text-hint">
+                              {new Date(r.approvedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            </p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="gold-accent-line" />
               </div>
             </AnimatedSection>

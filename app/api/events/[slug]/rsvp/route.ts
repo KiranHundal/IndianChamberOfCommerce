@@ -124,7 +124,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
         priceCents: payMode === 'door' ? (event.priceCents ?? 0) + DOOR_SURCHARGE_CENTS : event.priceCents,
       }
       try {
-        await sendEventRsvpConfirmationEmail({ to: email, name, guests, event: eventPayload })
+        await sendEventRsvpConfirmationEmail({ to: email, name, guests, rsvpId, eventId: event.id, event: eventPayload })
       } catch (e) {
         console.error('RSVP confirmation email failed:', e)
       }

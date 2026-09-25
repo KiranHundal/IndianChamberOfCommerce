@@ -686,7 +686,10 @@ function EventCard({ ev, onEdit, onDelete, onToggle, onRsvps, onPhotos, isPast =
             {ev.published ? <><EyeOff className="w-3 h-3" />Unpublish</> : <><Eye className="w-3 h-3" />Publish</>}
           </button>
           {ev.rsvpMode === 'internal' && (
-            <button type="button" onClick={() => onRsvps(ev)} className="text-xs text-brand hover:text-accent inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-page-bg"><Users className="w-3 h-3" />RSVPs</button>
+            <>
+              <button type="button" onClick={() => onRsvps(ev)} className="text-xs text-brand hover:text-accent inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-page-bg"><Users className="w-3 h-3" />RSVPs</button>
+              <Link href={`/admin/events/${ev.id}/checkin`} className="text-xs text-brand hover:text-accent inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-page-bg"><CheckCircle2 className="w-3 h-3" />Check-in</Link>
+            </>
           )}
           {isPast && (
             <button type="button" onClick={() => onPhotos(ev)} className="text-xs text-brand hover:text-accent inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-page-bg"><ImageIcon className="w-3 h-3" />Photos</button>

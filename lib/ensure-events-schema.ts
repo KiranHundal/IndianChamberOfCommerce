@@ -73,6 +73,8 @@ export async function ensureEventsSchema() {
     await tryRun(`ALTER TABLE event_rsvps ADD COLUMN payment_reference TEXT`)
     await tryRun(`ALTER TABLE event_rsvps ADD COLUMN square_checkout_id TEXT`)
     await tryRun(`ALTER TABLE event_rsvps ADD COLUMN square_order_id TEXT`)
+    await tryRun(`ALTER TABLE event_rsvps ADD COLUMN attended_at INTEGER`)
+    await tryRun(`ALTER TABLE event_rsvps ADD COLUMN checked_in_by TEXT`)
 
     // Tag columns on square_payments so /admin/finances can filter event
     // vs. membership income. No-op when the schema was never touched.

@@ -52,6 +52,8 @@ export default async function EventPaidPage({
                 to: rsvp.email,
                 name: rsvp.name,
                 guests: rsvp.guests,
+                rsvpId: rsvp.id,
+                eventId: event.id,
                 event: {
                   slug: event.slug,
                   title: event.title,
