@@ -485,7 +485,201 @@ export default function AdminPage() {
               <p className="text-sm text-mid">No members found.</p>
             </div>
           ) : (
-            <div className="bg-white border border-ivory-200 rounded-lg overflow-hidden">
+            <>
+              {/* Mobile: card layout — table cells wrap awkwardly on small
+                  screens so we show a card per member instead. Same info,
+                  stacked vertically, actions flush to the bottom of each card. */}
+              <div className="lg:hidden space-y-3">
+                {sortedMembers.map((member) => {
+                  const badge = statusBadge[member.status] || statusBadge.pending
+                  const isStaff = member.role === 'admin' || member.role === 'moderator' || member.role === 'reviewer'
+                  const unpaid = isUnpaidPending(member)
+                  const linkSent = !!member.paymentLinkSentAt
+                  const explicit = !!(member.amountPaid && member.amountPaid > 0)
+                  const isApproved = member.status === 'approved'
+                  const paymentAmount = explicit
+                    ? member.amountPaid!
+                    : member.membershipTier === 'corporate' ? 395 : 95
+                  const paymentMethod = member.paymentMethod || (isApproved && !isStaff ? 'square' : null)
+                  const showPayment = !isStaff && (explicit || isApproved)
+                  return (
+                    <div key={member.id} className="bg-white border border-ivory-200 rounded-lg p-4">
+                      {/* Header row: name + status */}
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-medium text-brand text-base truncate">{member.name}</p>
+                            {member.role === 'admin' && (
+                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-navy-900 text-gold-400 text-[0.55rem] font-medium uppercase tracking-wide">
+                                <Shield className="w-2.5 h-2.5" />A
+                              </span>
+                            )}
+                            {member.role === 'moderator' && (
+                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-accent/10 border border-accent/30 text-accent text-[0.55rem] font-medium uppercase tracking-wide">
+                                <Shield className="w-2.5 h-2.5" />M
+                              </span>
+                            )}
+                            {member.role === 'reviewer' && (
+                              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.55rem] font-medium uppercase tracking-wide">
+                                <Shield className="w-2.5 h-2.5" />R
+                              </span>
+                            )}
+                          </div>
+                          {member.membershipNumber && (
+                            <p className="text-[0.65rem] text-hint mt-0.5">#{member.membershipNumber}</p>
+                          )}
+                        </div>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[0.65rem] font-medium flex-shrink-0 ${badge.bg} ${badge.color}`}>
+                          {badge.label}
+                        </span>
+                      </div>
+
+                      {/* Contact block */}
+                      <div className="text-xs text-charcoal mb-2 break-all">{member.email}</div>
+                      {member.phone && <div className="text-xs text-hint mb-2">{member.phone}</div>}
+
+                      {/* Business + location */}
+                      {(member.businessName || member.city || member.sector) && (
+                        <div className="text-xs text-mid mb-3">
+                          {member.businessName && <p className="font-medium text-charcoal">{member.businessName}</p>}
+                          {(member.city || member.sector) && (
+                            <p className="text-hint mt-0.5">{[member.city, member.sector].filter(Boolean).join(' · ')}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Tier + payment chips */}
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        {isStaff ? (
+                          <span className="inline-flex px-2 py-0.5 rounded border text-[0.65rem] font-medium bg-navy-50 border-navy-100 text-brand">
+                            Staff
+                          </span>
+                        ) : (
+                          <span className={`inline-flex px-2 py-0.5 rounded border text-[0.65rem] font-medium capitalize ${
+                            member.membershipTier === 'corporate'
+                              ? 'bg-navy-50 border-navy-100 text-brand'
+                              : 'bg-ivory-100 border-ivory-200 text-mid'
+                          }`}>
+                            {member.membershipTier}
+                          </span>
+                        )}
+                        {showPayment && (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded px-2 py-0.5 text-[0.65rem] font-medium">
+                            ${paymentAmount} · <span className="capitalize">{paymentMethod}</span>{!explicit && ' · est.'}
+                          </span>
+                        )}
+                        {unpaid && (
+                          <span className="inline-flex items-center gap-1 bg-red-50 border border-red-200 text-red-700 rounded px-2 py-0.5 text-[0.65rem] font-medium">
+                            ${member.membershipTier === 'corporate' ? '395' : '95'} due
+                          </span>
+                        )}
+                        {unpaid && linkSent && (
+                          <span
+                            className="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded px-2 py-0.5 text-[0.65rem]"
+                            title={`Link sent ${new Date(member.paymentLinkSentAt!).toLocaleString()}`}
+                          >
+                            <MailCheck className="w-2.5 h-2.5" /> Link sent
+                          </span>
+                        )}
+                        {member.createdAt && (
+                          <span className="text-[0.65rem] text-hint ml-auto">
+                            {new Date(member.createdAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Referred By */}
+                      {!isStaff && (
+                        <div className="mb-3 text-xs">
+                          <span className="text-hint text-[0.65rem] uppercase tracking-wide mr-2">Referred by</span>
+                          {member.referredBy ? (
+                            <span className="text-charcoal">{boardIdToName.get(member.referredBy) || 'Unknown'}</span>
+                          ) : (
+                            <select
+                              defaultValue=""
+                              disabled={actionLoading === `${member.id}-referrer`}
+                              onChange={(e) => { if (e.target.value) handleSetReferrer(member, e.target.value) }}
+                              className="bg-white border border-ivory-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand/30"
+                            >
+                              <option value="">— Not set —</option>
+                              {boardOptions.map((b) => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Actions flush at the bottom */}
+                      <div className="flex gap-2 flex-wrap pt-2 border-t border-ivory-200/60">
+                        {member.status === 'pending' && unpaid && canFinanceActions && (
+                          <button
+                            type="button"
+                            onClick={() => handleSendPaymentLink(member)}
+                            disabled={actionLoading === `${member.id}-paylink`}
+                            className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-navy-900 text-white text-xs font-medium px-3 py-2 rounded hover:bg-navy-800 disabled:opacity-50"
+                          >
+                            {actionLoading === `${member.id}-paylink`
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Send className="w-3.5 h-3.5 text-gold-400" />}
+                            {linkSent ? 'Resend' : 'Send Link'}
+                          </button>
+                        )}
+                        {member.status === 'pending' && canApproveDeny && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleAction(member.id, 'approve')}
+                              disabled={actionLoading === `${member.id}-approve` || unpaid}
+                              title={unpaid ? 'Log a payment before approving' : undefined}
+                              className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-emerald-600 text-white text-xs font-medium px-3 py-2 rounded hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              {unpaid ? 'Awaiting' : 'Approve'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAction(member.id, 'reject')}
+                              disabled={actionLoading === `${member.id}-reject`}
+                              className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-white border border-red-200 text-red-600 text-xs font-medium px-3 py-2 rounded hover:bg-red-50 disabled:opacity-50"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        {canFinanceActions && member.status === 'approved' && !isStaff && !!member.membershipNumber && (
+                          <button
+                            type="button"
+                            onClick={() => handleResendWelcome(member)}
+                            disabled={actionLoading === `${member.id}-welcome`}
+                            className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-accent text-white text-xs font-medium px-3 py-2 rounded hover:bg-gold-900 disabled:opacity-50"
+                          >
+                            {actionLoading === `${member.id}-welcome`
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Send className="w-3.5 h-3.5" />}
+                            Send Invite
+                          </button>
+                        )}
+                        {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => handleAction(member.id, 'deactivate')}
+                            disabled={actionLoading === `${member.id}-deactivate`}
+                            className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-white border border-gray-200 text-gray-600 text-xs font-medium px-3 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            <UserX className="w-3.5 h-3.5" />
+                            Deactivate
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden lg:block bg-white border border-ivory-200 rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm [&_th]:!px-2 [&_td]:px-2">
                   <thead className="bg-page-bg">
@@ -697,7 +891,8 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+              </div>
+            </>
           )}
         </div>
 
