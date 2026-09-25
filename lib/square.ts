@@ -164,6 +164,25 @@ export async function fetchSquareOrder(orderId: string): Promise<SquareOrder | n
 }
 
 /**
+ * Fetch one payment from Square by id. Used by the webhook to enrich the
+ * lightweight event payload with the same shape sync uses (fees, refunds,
+ * card details, receipt url).
+ */
+interface RetrievePaymentResponse {
+  payment?: SquarePayment
+  errors?: Array<{ code: string; detail: string }>
+}
+export async function fetchSquarePayment(paymentId: string): Promise<SquarePayment | null> {
+  try {
+    const res = await squareGet<RetrievePaymentResponse>(`/v2/payments/${paymentId}`)
+    if (res.errors && res.errors.length > 0) return null
+    return res.payment || null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Extract a normalized email address from a Square payment, falling back to the
  * order if necessary.
  */
