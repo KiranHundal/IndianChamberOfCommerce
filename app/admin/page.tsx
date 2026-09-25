@@ -6,8 +6,13 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
-  CartesianGrid, Legend, LineChart, Line,
+  CartesianGrid, Legend, LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts'
+
+// Categorical palette for the Board Referrer donut. Order matters —
+// the top referrer gets navy, then gold, then the supporting hues,
+// so the largest slice always reads as the brand color.
+const REFERRER_PALETTE = ['#1E3A5F', '#D4A830', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#DB2777', '#B45309']
 import {
   Users, TrendingUp, Receipt, Wallet, Send, Plus,
   RefreshCw, Loader2, DollarSign, UserPlus, Award, CreditCard,
@@ -294,70 +299,76 @@ export default function AdminHomePage() {
               </div>
             ) : (
               <>
-                {/* Mobile: leaderboard-style rows so names have room */}
-                <div className="lg:hidden space-y-2.5">
-                  {(() => {
-                    const max = Math.max(...stats.boardReferrals.map((r) => r.count), 1)
-                    return stats.boardReferrals.map((r) => (
-                      <button
-                        key={r.boardMemberId}
-                        type="button"
-                        onClick={() => router.push(`/admin/members?referredBy=${encodeURIComponent(r.boardMemberId)}&referredByName=${encodeURIComponent(r.boardMemberName)}`)}
-                        className="w-full text-left group"
-                      >
-                        <div className="flex items-baseline justify-between mb-1">
-                          <span className="text-sm text-brand font-medium group-hover:underline">{r.boardMemberName}</span>
-                          <span className="text-sm text-brand font-medium">{r.count}</span>
-                        </div>
-                        <div className="h-2.5 bg-page-bg rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gold-400 rounded-full transition-all"
-                            style={{ width: `${Math.max(4, (r.count / max) * 100)}%` }}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                  {/* Donut — counts and slice colors read from the legend
+                      below, so no hover needed to know who brought whom in */}
+                  <div className="relative w-full max-w-[280px] mx-auto">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <PieChart>
+                        <Pie
+                          data={stats.boardReferrals}
+                          dataKey="count"
+                          nameKey="boardMemberName"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={62}
+                          outerRadius={104}
+                          paddingAngle={2}
+                          stroke="#FFFFFF"
+                          strokeWidth={2}
+                          onClick={(data: unknown) => {
+                            const row = (data as { payload?: BoardReferralRow })?.payload
+                            if (row?.boardMemberId) {
+                              router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
+                            }
+                          }}
+                        >
+                          {stats.boardReferrals.map((_, i) => (
+                            <Cell key={i} fill={REFERRER_PALETTE[i % REFERRER_PALETTE.length]} cursor="pointer" />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]}
+                          labelStyle={{ color: '#1E3A5F' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <p className="text-3xl font-medium text-brand leading-none">
+                        {stats.boardReferrals.reduce((s, r) => s + r.count, 0)}
+                      </p>
+                      <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1">Attributed</p>
+                    </div>
+                  </div>
+
+                  {/* Legend rows — color swatch + name + count, all clickable */}
+                  <div>
+                    <div className="border-b border-ivory-200 pb-1.5 mb-1 flex items-center justify-between text-[0.65rem] font-medium uppercase tracking-wide text-hint">
+                      <span>Board member</span>
+                      <span>Brought in</span>
+                    </div>
+                    <div className="divide-y divide-ivory-200">
+                      {stats.boardReferrals.map((r, i) => (
+                        <button
+                          key={r.boardMemberId}
+                          type="button"
+                          onClick={() => router.push(`/admin/members?referredBy=${encodeURIComponent(r.boardMemberId)}&referredByName=${encodeURIComponent(r.boardMemberName)}`)}
+                          className="w-full flex items-center gap-3 py-2 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group"
+                        >
+                          <span
+                            className="w-3 h-3 rounded-sm flex-shrink-0"
+                            style={{ background: REFERRER_PALETTE[i % REFERRER_PALETTE.length] }}
                           />
-                        </div>
-                      </button>
-                    ))
-                  })()}
+                          <span className="text-sm text-brand flex-1 group-hover:underline">{r.boardMemberName}</span>
+                          <span className="text-sm text-brand font-medium tabular-nums">{r.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Desktop: recharts bar chart */}
-                <div className="hidden lg:block">
-                  <ResponsiveContainer width="100%" height={Math.max(180, stats.boardReferrals.length * 42)}>
-                    <BarChart data={stats.boardReferrals} layout="vertical" margin={{ top: 5, right: 20, left: 120, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#EDE6D3" horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: 11, fill: '#5A6A7A' }} allowDecimals={false} />
-                      <YAxis
-                        type="category"
-                        dataKey="boardMemberName"
-                        tick={{ fontSize: 11, fill: '#1E3A5F', cursor: 'pointer' }}
-                        width={120}
-                        onClick={(evt: unknown) => {
-                          const e = evt as { value?: string; index?: number }
-                          const row = typeof e?.index === 'number' ? stats.boardReferrals[e.index] : null
-                          if (row) {
-                            router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
-                          }
-                        }}
-                      />
-                      <Tooltip formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]} labelStyle={{ color: '#1E3A5F' }} />
-                      <Bar
-                        dataKey="count"
-                        fill="#D4A830"
-                        radius={[0, 4, 4, 0]}
-                        style={{ cursor: 'pointer' }}
-                        onClick={(data: unknown) => {
-                          const row = data as BoardReferralRow | undefined
-                          if (row?.boardMemberId) {
-                            router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
-                          }
-                        }}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <p className="text-[0.65rem] text-hint mt-2">
-                  Tap any name to see the members that referrer brought in.
+                <p className="text-[0.65rem] text-hint mt-3">
+                  Tap a name or slice to see the members that referrer brought in.
                 </p>
               </>
             )}
