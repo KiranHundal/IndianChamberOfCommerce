@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   CartesianGrid, Legend, LineChart, Line, PieChart, Pie, Cell,
@@ -15,7 +16,7 @@ import {
 const REFERRER_PALETTE = ['#1E3A5F', '#D4A830', '#059669', '#DC2626', '#7C3AED', '#0891B2', '#DB2777', '#B45309']
 import {
   Users, TrendingUp, Receipt, Wallet, Send, Plus,
-  RefreshCw, Loader2, DollarSign, UserPlus, Award, CreditCard,
+  RefreshCw, Loader2, DollarSign, UserPlus, Award, CreditCard, Calendar,
 } from 'lucide-react'
 import { useEffectiveRole } from '@/lib/use-effective-role'
 import AdminShell from '@/components/admin/AdminShell'
@@ -51,6 +52,19 @@ interface HomeSummary {
     orphanPayments: number
     unverifiedApproved: number
   }
+  nextEvent: {
+    id: string
+    slug: string
+    title: string
+    startAt: string
+    location: string | null
+    coverImageUrl: string | null
+    priceCents: number | null
+    capacity: number | null
+    rsvpCount: number
+    seats: number
+    collectedCents: number
+  } | null
   lastSync: { finishedAt: string | number | null; status: string } | null
 }
 
@@ -239,6 +253,67 @@ export default function AdminHomePage() {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Next event — one-glance card. Hidden when there's no upcoming
+          event published, so a quiet season doesn't leave a blank box. */}
+      {summary.nextEvent && !isReviewer && (
+        <div className="bg-white border border-ivory-200 rounded-lg mb-4 overflow-hidden">
+          <Link href="/admin/events" className="flex flex-col sm:flex-row hover:bg-page-bg/40 transition-colors">
+            <div className="relative w-full sm:w-56 h-32 sm:h-auto bg-navy-100 flex-shrink-0">
+              {summary.nextEvent.coverImageUrl ? (
+                <Image
+                  src={summary.nextEvent.coverImageUrl}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Calendar className="w-8 h-8 text-brand/30" />
+                </div>
+              )}
+              <div className="absolute top-2 left-2 bg-white/95 backdrop-blur px-2.5 py-1 flex items-baseline gap-1.5 rounded">
+                <span className="text-[0.6rem] font-medium uppercase tracking-wide text-brand/60">
+                  {new Date(summary.nextEvent.startAt).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
+                </span>
+                <span className="font-medium text-brand text-base leading-none">
+                  {new Date(summary.nextEvent.startAt).getDate()}
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+              <div className="min-w-0 flex-1">
+                <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-1">Next event</p>
+                <h3 className="text-sm font-medium text-brand truncate">{summary.nextEvent.title}</h3>
+                <p className="text-xs text-hint mt-0.5">
+                  {new Date(summary.nextEvent.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  {summary.nextEvent.location ? ` · ${summary.nextEvent.location}` : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-5 text-xs">
+                <div>
+                  <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid">Confirmed</p>
+                  <p className="text-brand font-medium text-lg leading-tight">
+                    {summary.nextEvent.rsvpCount}
+                    {summary.nextEvent.capacity ? <span className="text-hint text-xs font-normal"> / {summary.nextEvent.capacity}</span> : null}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid">Seats</p>
+                  <p className="text-brand font-medium text-lg leading-tight">{summary.nextEvent.seats}</p>
+                </div>
+                {(summary.nextEvent.priceCents ?? 0) > 0 && (
+                  <div>
+                    <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid">Collected</p>
+                    <p className="text-brand font-medium text-lg leading-tight">{money(summary.nextEvent.collectedCents / 100)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Link>
         </div>
       )}
 

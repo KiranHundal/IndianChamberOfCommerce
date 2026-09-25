@@ -5,12 +5,23 @@ import { and, eq, sql } from 'drizzle-orm'
 import { ensureEventsSchema } from '@/lib/ensure-events-schema'
 import { sendEventRsvpConfirmationEmail, sendEventRsvpAdminNotificationEmail } from '@/lib/email'
 import { createEventCheckoutLink } from '@/lib/square'
+import { rateLimit } from '@/lib/rate-limit'
 
 const ADMIN_FALLBACK = 'info@indianchamberofcommerce.org'
 const DOOR_SURCHARGE_CENTS = 500
+// 5 attempts per hour per IP. Matches the shape /join and /contact use.
+const rsvpLimiter = rateLimit({ interval: 60 * 60 * 1000, limit: 5 })
 
 export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
+    const rl = rsvpLimiter(req)
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please wait a bit and try again.' },
+        { status: 429, headers: { 'Retry-After': '3600' } }
+      )
+    }
+
     await ensureEventsSchema()
     const body = await req.json()
     const name = typeof body.name === 'string' ? body.name.trim() : ''

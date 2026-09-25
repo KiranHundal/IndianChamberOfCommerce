@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { members, expenses, invitations, squarePayments, squareSync } from '@/lib/schema'
+import { members, expenses, invitations, squarePayments, squareSync, events, eventRsvps } from '@/lib/schema'
 import { desc } from 'drizzle-orm'
 import { nameSimilarity } from '@/lib/name-match'
+import { ensureEventsSchema } from '@/lib/ensure-events-schema'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -30,11 +31,21 @@ export async function GET() {
     .from(invitations)
     .orderBy(desc(invitations.sentAt))
     .catch(() => [] as (typeof invitations.$inferSelect)[])
-  const allSquarePayments = await db
+  await ensureEventsSchema().catch(() => {})
+  const allSquarePaymentsRaw = await db
     .select()
     .from(squarePayments)
     .orderBy(desc(squarePayments.paidAt))
     .catch(() => [] as (typeof squarePayments.$inferSelect)[])
+  // Split by kind. Legacy rows have paymentKind = null; treat them as
+  // membership so historical numbers stay identical until the next sync
+  // reclassifies them.
+  const membershipSquarePayments = allSquarePaymentsRaw.filter((p) => p.paymentKind !== 'event')
+  const eventSquarePayments = allSquarePaymentsRaw.filter((p) => p.paymentKind === 'event')
+  const allSquarePayments = membershipSquarePayments
+
+  const allEvents = await db.select().from(events).catch(() => [] as (typeof events.$inferSelect)[])
+  const allEventRsvps = await db.select().from(eventRsvps).catch(() => [] as (typeof eventRsvps.$inferSelect)[])
   const [lastSyncRow] = await db
     .select()
     .from(squareSync)
@@ -348,6 +359,49 @@ export async function GET() {
       byCategory: expensesByCategory,
       recent: recentExpenses,
     },
+    events: (() => {
+      const completedSquare = eventSquarePayments.filter((p) => p.status === 'COMPLETED')
+      const squareGrossCents = completedSquare.reduce((s, p) => s + (p.amountCents - p.refundedCents), 0)
+      const squareFeeCents = completedSquare.reduce((s, p) => s + p.feeCents, 0)
+      // Offline event payments = RSVPs marked paid with a non-square method.
+      const offlineRsvps = allEventRsvps.filter((r) => r.paidAt && r.paymentMethod && r.paymentMethod !== 'square')
+      const offlineCents = offlineRsvps.reduce((s, r) => s + (r.paidAmount || 0), 0)
+      const perEvent = allEvents.map((e) => {
+        const rsvps = allEventRsvps.filter((r) => r.eventId === e.id)
+        const paidRsvps = rsvps.filter((r) => r.paidAt)
+        const collectedCents = paidRsvps.reduce((s, r) => s + (r.paidAmount || 0), 0)
+        const seats = rsvps.reduce((s, r) => s + 1 + r.guests, 0)
+        const paidSeats = paidRsvps.reduce((s, r) => s + 1 + r.guests, 0)
+        return {
+          id: e.id,
+          slug: e.slug,
+          title: e.title,
+          startAt: e.startAt,
+          published: e.published,
+          rsvpCount: rsvps.length,
+          seats,
+          paidSeats,
+          collectedCents,
+        }
+      }).sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime())
+
+      const byMethod = allEventRsvps.reduce<Record<string, number>>((acc, r) => {
+        if (!r.paidAt || !r.paymentMethod) return acc
+        acc[r.paymentMethod] = (acc[r.paymentMethod] || 0) + (r.paidAmount || 0)
+        return acc
+      }, {})
+
+      return {
+        squareGrossCents,
+        squareFeeCents,
+        squareTransactionCount: completedSquare.length,
+        offlineCents,
+        offlineRsvpCount: offlineRsvps.length,
+        totalCollectedCents: squareGrossCents + offlineCents,
+        byMethod,
+        perEvent,
+      }
+    })(),
     invitations: {
       sent: invitationsSent,
       converted: invitationsConverted,

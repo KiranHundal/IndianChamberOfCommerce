@@ -2,14 +2,22 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { members, squarePayments, squareSync } from '@/lib/schema'
+import { members, squarePayments, squareSync, eventRsvps } from '@/lib/schema'
 import { eq, desc } from 'drizzle-orm'
 import {
   fetchAllSquarePayments,
   resolvePaymentEmail,
   resolvePaymentName,
   sumProcessingFees,
+  fetchSquareOrder,
 } from '@/lib/square'
+import { ensureEventsSchema } from '@/lib/ensure-events-schema'
+
+// Payment notes on event checkout links look like `event:<eventId>:<rsvpId>`.
+// We embed them on the checkout link's payment_note; the order's fulfillment
+// text also carries the same string in case Square drops the note on
+// downstream payments.
+const EVENT_NOTE = /event:([^:\s]+):([^:\s]+)/
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions)
@@ -37,6 +45,7 @@ export async function POST() {
   })
 
   try {
+    await ensureEventsSchema()
     const payments = await fetchAllSquarePayments()
 
     // Load all members once for email lookup
@@ -46,12 +55,24 @@ export async function POST() {
       membersByEmail.set(m.email.toLowerCase(), m)
     }
 
+    // Same trick for RSVPs — we consult this map before deciding a Square
+    // payment is a membership payment.
+    const allRsvps = await db.select().from(eventRsvps)
+    const rsvpsByOrderId = new Map<string, typeof allRsvps[number]>()
+    const rsvpsById = new Map<string, typeof allRsvps[number]>()
+    for (const r of allRsvps) {
+      if (r.squareOrderId) rsvpsByOrderId.set(r.squareOrderId, r)
+      rsvpsById.set(r.id, r)
+    }
+
     let newCount = 0
     let updatedCount = 0
     let completedCount = 0
     let matchedCount = 0
     let unmatchedCount = 0
     let nonCompletedCount = 0
+
+    let eventTaggedCount = 0
 
     for (const p of payments) {
       const email = await resolvePaymentEmail(p)
@@ -61,7 +82,37 @@ export async function POST() {
       const refundedCents = p.refunded_money?.amount ?? 0
       const paidAt = new Date(p.created_at)
 
-      const matched = email ? membersByEmail.get(email) : undefined
+      // Event tag detection — the checkout link put `event:<eventId>:<rsvpId>`
+      // in the payment note. On resale/refund the note can drop off, so
+      // also check the linked order's fulfillment text and reference_id,
+      // plus our own by-order-id RSVP index for a hard link.
+      let eventId: string | null = null
+      let eventRsvpId: string | null = null
+      const noteBucket: string[] = [p.note || '']
+      if (p.order_id) {
+        const rsvpByOrder = rsvpsByOrderId.get(p.order_id)
+        if (rsvpByOrder) {
+          eventId = rsvpByOrder.eventId
+          eventRsvpId = rsvpByOrder.id
+        } else {
+          const order = await fetchSquareOrder(p.order_id)
+          if (order?.reference_id) noteBucket.push(order.reference_id)
+          for (const t of order?.tenders || []) if (t.note) noteBucket.push(t.note)
+        }
+      }
+      if (!eventRsvpId) {
+        for (const s of noteBucket) {
+          const m = s.match(EVENT_NOTE)
+          if (m) { eventId = m[1]; eventRsvpId = m[2]; break }
+        }
+      }
+
+      const paymentKind: 'event' | 'membership' = eventRsvpId ? 'event' : 'membership'
+
+      // Membership matching only runs when this isn't an event payment —
+      // an event ticket buyer might also happen to be a member, and we'd
+      // wrongly credit their ticket toward their dues.
+      const matched = paymentKind === 'membership' && email ? membersByEmail.get(email) : undefined
 
       const [existing] = await db
         .select({ id: squarePayments.id, matchedMemberId: squarePayments.matchedMemberId })
@@ -69,16 +120,17 @@ export async function POST() {
         .where(eq(squarePayments.id, p.id))
         .limit(1)
 
-      // Preserve any existing manual match — sync should never un-link a
-      // payment that was linked by the Match button.
       const preservedMatchedMemberId = existing?.matchedMemberId || matched?.id || null
 
-      // Only tally match/orphan against COMPLETED payments — the finances
-      // table also filters to COMPLETED, so the numbers line up.
       if (p.status === 'COMPLETED') {
         completedCount++
-        if (preservedMatchedMemberId) matchedCount++
-        else unmatchedCount++
+        if (paymentKind === 'event') {
+          eventTaggedCount++
+        } else if (preservedMatchedMemberId) {
+          matchedCount++
+        } else {
+          unmatchedCount++
+        }
       } else {
         nonCompletedCount++
       }
@@ -100,6 +152,9 @@ export async function POST() {
         paidAt,
         syncedAt: new Date(),
         matchedMemberId: preservedMatchedMemberId,
+        paymentKind,
+        eventId,
+        eventRsvpId,
       }
 
       if (existing) {
@@ -121,6 +176,24 @@ export async function POST() {
             paymentDate: matched.paymentDate || paidAt,
           })
           .where(eq(members.id, matched.id))
+      }
+
+      // Reconcile the RSVP — mark paid with the definitive amount from
+      // Square. Happens for BOTH new inserts (webhook or direct visit
+      // race) and updates (backfill after the redirect path already set
+      // paidAt with an approximate amount).
+      if (eventRsvpId && p.status === 'COMPLETED') {
+        const netCents = totalCents - refundedCents
+        const rsvp = rsvpsById.get(eventRsvpId)
+        if (rsvp) {
+          await db.update(eventRsvps).set({
+            paidAt: rsvp.paidAt || paidAt,
+            paidAmount: netCents,
+            paymentMethod: 'square',
+            paymentReference: p.id,
+            squareOrderId: p.order_id || rsvp.squareOrderId,
+          }).where(eq(eventRsvps.id, eventRsvpId))
+        }
       }
     }
 
@@ -147,6 +220,7 @@ export async function POST() {
       updatedCount,
       matchedCount,
       unmatchedCount,
+      eventTaggedCount,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Sync failed'

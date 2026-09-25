@@ -15,6 +15,7 @@ import {
   Send,
   UserPlus,
   Receipt,
+  Calendar,
 } from 'lucide-react'
 import { useEffectiveRole } from '@/lib/use-effective-role'
 import AdminShell from '@/components/admin/AdminShell'
@@ -144,6 +145,26 @@ interface Summary {
       suggestedTier: string | null
       sentAt: string | number
       convertedAt: string | number | null
+    }>
+  }
+  events?: {
+    squareGrossCents: number
+    squareFeeCents: number
+    squareTransactionCount: number
+    offlineCents: number
+    offlineRsvpCount: number
+    totalCollectedCents: number
+    byMethod: Record<string, number>
+    perEvent: Array<{
+      id: string
+      slug: string
+      title: string
+      startAt: string | number
+      published: boolean
+      rsvpCount: number
+      seats: number
+      paidSeats: number
+      collectedCents: number
     }>
   }
   memberList: MemberRow[]
@@ -504,6 +525,85 @@ export default function AdminFinancesPage() {
             }`}>
               <span className="flex-1">{notice.text}</span>
               <button onClick={() => setNotice(null)} className="opacity-60 hover:opacity-100"><X className="w-4 h-4" /></button>
+            </div>
+          )}
+
+          {/* Events revenue — separated from membership so the dues numbers
+              above aren't inflated by ticket sales. */}
+          {summary.events && (summary.events.totalCollectedCents > 0 || summary.events.perEvent.length > 0) && (
+            <div className="bg-white border border-ivory-200 rounded-xl p-6 mb-8">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-accent" />
+                  <h3 className="font-label text-label tracking-widest uppercase text-brand">
+                    Events Revenue
+                  </h3>
+                </div>
+                <a href="/admin/events" className="text-xs text-accent hover:underline">Open events →</a>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                <div>
+                  <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-1">Total collected</p>
+                  <p className="text-2xl font-medium text-brand">{money(summary.events.totalCollectedCents / 100)}</p>
+                </div>
+                <div>
+                  <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-1">Square (tickets)</p>
+                  <p className="text-2xl font-medium text-brand">{money(summary.events.squareGrossCents / 100)}</p>
+                  <p className="text-[0.65rem] text-hint">{summary.events.squareTransactionCount} charges</p>
+                </div>
+                <div>
+                  <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-1">Offline (logged)</p>
+                  <p className="text-2xl font-medium text-brand">{money(summary.events.offlineCents / 100)}</p>
+                  <p className="text-[0.65rem] text-hint">{summary.events.offlineRsvpCount} RSVPs</p>
+                </div>
+                <div>
+                  <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-1">Square fees</p>
+                  <p className="text-2xl font-medium text-brand">−{money(summary.events.squareFeeCents / 100)}</p>
+                </div>
+              </div>
+              {Object.keys(summary.events.byMethod).length > 0 && (
+                <div className="mb-5 pb-4 border-b border-ivory-200">
+                  <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-2">Collected by method</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(summary.events.byMethod).sort((a, b) => b[1] - a[1]).map(([method, cents]) => (
+                      <span key={method} className="inline-flex items-center gap-1.5 bg-page-bg border border-ivory-200 rounded px-2.5 py-1 text-xs">
+                        <span className="capitalize text-brand">{method}</span>
+                        <span className="text-hint">·</span>
+                        <span className="text-brand font-medium">{money(cents / 100)}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {summary.events.perEvent.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-[0.65rem] font-medium uppercase tracking-wide text-hint border-b border-ivory-200">
+                      <tr>
+                        <th className="text-left py-2 pr-3">Event</th>
+                        <th className="text-left py-2 pr-3">Date</th>
+                        <th className="text-right py-2 pr-3">Paid seats</th>
+                        <th className="text-right py-2 pr-3">Total seats</th>
+                        <th className="text-right py-2">Collected</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ivory-200">
+                      {summary.events.perEvent.map((ev) => (
+                        <tr key={ev.id}>
+                          <td className="py-2 pr-3">
+                            <a href={`/admin/events`} className="text-brand hover:text-accent">{ev.title}</a>
+                            {!ev.published && <span className="ml-2 text-[0.6rem] text-hint uppercase">Draft</span>}
+                          </td>
+                          <td className="py-2 pr-3 text-hint text-xs">{new Date(ev.startAt).toLocaleDateString()}</td>
+                          <td className="py-2 pr-3 text-right text-brand">{ev.paidSeats}</td>
+                          <td className="py-2 pr-3 text-right text-mid">{ev.seats}</td>
+                          <td className="py-2 text-right text-brand font-medium">{money(ev.collectedCents / 100)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

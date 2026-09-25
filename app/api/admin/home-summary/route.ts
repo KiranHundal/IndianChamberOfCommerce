@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { members, expenses, invitations, squarePayments, squareSync } from '@/lib/schema'
-import { desc, isNull } from 'drizzle-orm'
+import { members, expenses, invitations, squarePayments, squareSync, events, eventRsvps } from '@/lib/schema'
+import { desc, isNull, and, gte, eq } from 'drizzle-orm'
+import { ensureEventsSchema } from '@/lib/ensure-events-schema'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -138,6 +139,52 @@ export async function GET() {
     .slice(0, 10)
     .map((a) => ({ ...a, at: a.at.toISOString() }))
 
+  // Next event tile — one glance at the closest upcoming published event
+  // plus its RSVP count and revenue-so-far.
+  let nextEvent: {
+    id: string
+    slug: string
+    title: string
+    startAt: string
+    location: string | null
+    coverImageUrl: string | null
+    priceCents: number | null
+    capacity: number | null
+    rsvpCount: number
+    seats: number
+    collectedCents: number
+  } | null = null
+  try {
+    await ensureEventsSchema()
+    const now = new Date()
+    const [ne] = await db
+      .select()
+      .from(events)
+      .where(and(eq(events.published, true), gte(events.startAt, now)))
+      .orderBy(events.startAt)
+      .limit(1)
+    if (ne) {
+      const rsvps = await db.select().from(eventRsvps).where(eq(eventRsvps.eventId, ne.id))
+      const seats = rsvps.reduce((s, r) => s + 1 + r.guests, 0)
+      const collectedCents = rsvps.reduce((s, r) => s + (r.paidAmount || 0), 0)
+      nextEvent = {
+        id: ne.id,
+        slug: ne.slug,
+        title: ne.title,
+        startAt: new Date(ne.startAt).toISOString(),
+        location: ne.location,
+        coverImageUrl: ne.coverImageUrl,
+        priceCents: ne.priceCents,
+        capacity: ne.capacity,
+        rsvpCount: rsvps.length,
+        seats,
+        collectedCents,
+      }
+    }
+  } catch (e) {
+    console.error('home-summary next event lookup failed:', e)
+  }
+
   return NextResponse.json({
     role,
     alerts: {
@@ -152,6 +199,7 @@ export async function GET() {
       netPosition: Math.round((revenueYtd - expensesYtd) * 100) / 100,
       totalMembers: nonStaffMembers.length,
     },
+    nextEvent,
     recentActivity,
     lastSync: lastSync[0]
       ? { finishedAt: lastSync[0].finishedAt, status: lastSync[0].status }
