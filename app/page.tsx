@@ -1,12 +1,16 @@
 import Hero from '@/components/sections/Hero'
 import StatsBar from '@/components/sections/StatsBar'
 import AboutPreview from '@/components/sections/AboutPreview'
+import UpcomingEvents from '@/components/sections/UpcomingEvents'
 import Testimonials from '@/components/sections/Testimonials'
-// import UpcomingEvents from '@/components/sections/UpcomingEvents'
 import SocialStrip from '@/components/layout/SocialStrip'
 // import SectorGrid from '@/components/sections/SectorGrid'
 // import SocialFeed from '@/components/sections/SocialFeed'
 import JoinCTA from '@/components/sections/JoinCTA'
+
+// UpcomingEvents pulls from Turso — revalidate every minute so newly
+// published events surface without waiting for a redeploy.
+export const revalidate = 60
 
 const organizationJsonLd = {
   '@context': 'https://schema.org',
@@ -34,8 +38,8 @@ export default function HomePage() {
       <Hero />
       <StatsBar />
       <AboutPreview />
+      <UpcomingEvents />
       <Testimonials />
-      {/* <UpcomingEvents /> */}
       <SocialStrip />
       {/* <SectorGrid /> */}
       {/* <SocialFeed /> */}
