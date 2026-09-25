@@ -56,6 +56,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const rsvpMode = (formData.get('rsvpMode')?.toString() || existing.rsvpMode) as 'none' | 'external' | 'internal'
     const rsvpUrl = formData.get('rsvpUrl')?.toString()?.trim() ?? existing.rsvpUrl
     const capacityStr = formData.get('capacity')?.toString()
+    const priceCentsStr = formData.get('priceCents')?.toString()
+    const notifyEmailRaw = formData.get('notifyEmail')?.toString()?.trim().toLowerCase()
     const publishedRaw = formData.get('published')
     const published = publishedRaw === null ? existing.published : publishedRaw === 'true'
     const cover = formData.get('cover') as File | null
@@ -89,6 +91,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     const capacity = capacityStr === '' ? null : capacityStr && Number.isFinite(parseInt(capacityStr, 10)) ? parseInt(capacityStr, 10) : existing.capacity
+    const priceCents = priceCentsStr === '' ? null : priceCentsStr !== undefined && Number.isFinite(parseInt(priceCentsStr, 10)) ? Math.max(0, parseInt(priceCentsStr, 10)) : existing.priceCents
+    const ALLOWED_NOTIFY = new Set([
+      'info@indianchamberofcommerce.org',
+      'sonia@indianchamberofcommerce.org',
+      'raj@indianchamberofcommerce.org',
+    ])
+    const notifyEmail = notifyEmailRaw === '' ? null : notifyEmailRaw !== undefined && ALLOWED_NOTIFY.has(notifyEmailRaw) ? notifyEmailRaw : existing.notifyEmail
 
     await db.update(events).set({
       title,
@@ -103,6 +112,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       rsvpMode,
       rsvpUrl,
       capacity,
+      priceCents,
+      notifyEmail,
       published,
       updatedAt: new Date(),
     }).where(eq(events.id, params.id))

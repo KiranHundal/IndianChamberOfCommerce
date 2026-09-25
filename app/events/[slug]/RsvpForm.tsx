@@ -6,10 +6,17 @@ import { CheckCircle2, Loader2 } from 'lucide-react'
 const inputClass =
   'w-full bg-white border border-ivory-200 rounded-md px-4 py-3 text-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
 
-export default function RsvpForm({ slug, title }: { slug: string; title: string }) {
+function priceLabel(cents: number | null): string {
+  if (cents == null) return ''
+  if (cents === 0) return 'Free'
+  return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 === 0 ? 0 : 2 })}`
+}
+
+export default function RsvpForm({ slug, title, priceCents }: { slug: string; title: string; priceCents: number | null }) {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+  const [guests, setGuests] = useState(0)
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -55,10 +62,13 @@ export default function RsvpForm({ slug, title }: { slug: string; title: string 
     )
   }
 
+  const seats = 1 + guests
+  const totalCents = priceCents != null ? priceCents * seats : null
+
   return (
     <div>
       <h2 className="font-display text-2xl text-brand mb-2 text-center">RSVP</h2>
-      <p className="text-mid text-center mb-6">Reserve your spot — we&apos;ll be in touch closer to the date.</p>
+      <p className="text-mid text-center mb-6">Reserve your spot — we&apos;ll email a confirmation and be in touch closer to the date.</p>
 
       <form onSubmit={handleSubmit} className="space-y-4 max-w-lg mx-auto">
         {error && (
@@ -72,10 +82,31 @@ export default function RsvpForm({ slug, title }: { slug: string; title: string 
           <input name="phone" placeholder="Phone (optional)" className={inputClass} />
           <div className="flex items-center gap-3">
             <label className="text-sm text-mid whitespace-nowrap">Extra guests</label>
-            <input name="guests" type="number" min={0} max={10} defaultValue={0} className={inputClass} />
+            <input
+              name="guests"
+              type="number"
+              min={0}
+              max={10}
+              value={guests}
+              onChange={(e) => setGuests(Math.max(0, Math.min(10, parseInt(e.target.value) || 0)))}
+              className={inputClass}
+            />
           </div>
         </div>
         <textarea name="note" rows={3} placeholder="Anything we should know? (dietary needs, questions…)" className={inputClass} />
+
+        {priceCents != null && priceCents > 0 && (
+          <div className="bg-page-alt border border-ivory-200 rounded px-4 py-3 text-sm text-brand flex items-center justify-between">
+            <span>
+              Ticket: <strong>{priceLabel(priceCents)}</strong>
+              {seats > 1 ? <> × {seats} seats</> : null}
+            </span>
+            <span className="font-medium">Total: {priceLabel(totalCents)}</span>
+          </div>
+        )}
+        {priceCents != null && priceCents > 0 && (
+          <p className="text-xs text-hint text-center">Payment collected at check-in unless you receive a separate payment link.</p>
+        )}
 
         <button
           type="submit"

@@ -124,6 +124,12 @@ export const events = sqliteTable('events', {
   rsvpMode: text('rsvp_mode').notNull().default('none'),
   rsvpUrl: text('rsvp_url'),
   capacity: integer('capacity'),
+  // Ticket price in cents. NULL = not set / free. Admin picks from
+  // presets ($20/$40/$60/$100) or enters a custom value.
+  priceCents: integer('price_cents'),
+  // Where admin notifications for internal RSVPs go. Falls back to info@
+  // when empty. Must be one of the Resend whitelist reply-tos.
+  notifyEmail: text('notify_email'),
   published: integer('published', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   createdBy: text('created_by'),
@@ -138,6 +144,7 @@ export const eventRsvps = sqliteTable('event_rsvps', {
   phone: text('phone'),
   guests: integer('guests').notNull().default(0),
   note: text('note'),
+  paidAt: integer('paid_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 

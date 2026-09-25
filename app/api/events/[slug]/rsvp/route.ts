@@ -3,6 +3,9 @@ import { db } from '@/lib/db'
 import { events, eventRsvps } from '@/lib/schema'
 import { and, eq, sql } from 'drizzle-orm'
 import { ensureEventsSchema } from '@/lib/ensure-events-schema'
+import { sendEventRsvpConfirmationEmail, sendEventRsvpAdminNotificationEmail } from '@/lib/email'
+
+const ADMIN_FALLBACK = 'info@indianchamberofcommerce.org'
 
 export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
   await ensureEventsSchema()
@@ -26,13 +29,14 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       return NextResponse.json({ error: 'This event is not accepting online RSVPs.' }, { status: 400 })
     }
 
+    // Seat check happens BEFORE the insert so we don't oversell. Sum
+    // includes each RSVP's own seat (1) plus its guests.
+    const [{ seats: seatsUsed }] = await db
+      .select({ seats: sql<number>`coalesce(sum(1 + guests), 0)` })
+      .from(eventRsvps)
+      .where(eq(eventRsvps.eventId, event.id))
     if (event.capacity != null) {
-      const [{ count }] = await db
-        .select({ count: sql<number>`coalesce(sum(1 + guests), 0)` })
-        .from(eventRsvps)
-        .where(eq(eventRsvps.eventId, event.id))
-      const seatsUsed = Number(count) || 0
-      if (seatsUsed + 1 + guests > event.capacity) {
+      if ((Number(seatsUsed) || 0) + 1 + guests > event.capacity) {
         return NextResponse.json({ error: 'This event is full.' }, { status: 409 })
       }
     }
@@ -47,6 +51,47 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       note,
       createdAt: new Date(),
     })
+
+    // Recount after insert for the admin notification (running totals).
+    const [{ rsvpCount }] = await db
+      .select({ rsvpCount: sql<number>`count(*)` })
+      .from(eventRsvps)
+      .where(eq(eventRsvps.eventId, event.id))
+    const totalRsvps = Number(rsvpCount) || 0
+    const totalSeats = (Number(seatsUsed) || 0) + 1 + guests
+
+    // Emails are fire-and-forget from the visitor's perspective — we
+    // don't want a Resend hiccup to fail their RSVP after the row is in.
+    const eventPayload = {
+      slug: event.slug,
+      title: event.title,
+      location: event.location,
+      address: event.address,
+      startAt: new Date(event.startAt),
+      endAt: event.endAt ? new Date(event.endAt) : null,
+      priceCents: event.priceCents,
+    }
+    try {
+      await sendEventRsvpConfirmationEmail({ to: email, name, guests, event: eventPayload })
+    } catch (e) {
+      console.error('RSVP confirmation email failed:', e)
+    }
+    try {
+      await sendEventRsvpAdminNotificationEmail({
+        to: event.notifyEmail || ADMIN_FALLBACK,
+        attendeeName: name,
+        attendeeEmail: email,
+        attendeePhone: phone,
+        guests,
+        note,
+        event: { title: event.title, startAt: eventPayload.startAt, priceCents: event.priceCents, slug: event.slug },
+        totalRsvps,
+        totalSeats,
+        capacity: event.capacity,
+      })
+    } catch (e) {
+      console.error('RSVP admin notification email failed:', e)
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -117,6 +117,11 @@ function EventCard({ ev, isPast = false }: {
           <Badge variant="navy">{ev.eventType}</Badge>
           {isPast && <Badge variant="outline">Past Event</Badge>}
           {ev.membersOnly && <Badge variant="gold">Members Only</Badge>}
+          {ev.priceCents != null && (
+            <Badge variant="outline">
+              {ev.priceCents === 0 ? 'Free' : `$${(ev.priceCents / 100).toLocaleString('en-US', { minimumFractionDigits: ev.priceCents % 100 === 0 ? 0 : 2 })}`}
+            </Badge>
+          )}
         </div>
         {ev.description && (
           <p className="text-small text-mid mt-3 line-clamp-2">{ev.description}</p>

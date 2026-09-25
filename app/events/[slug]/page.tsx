@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Calendar, MapPin, Clock, Users } from 'lucide-react'
+import { Calendar, MapPin, Clock, Users, DollarSign } from 'lucide-react'
 import { db } from '@/lib/db'
 import { events } from '@/lib/schema'
 import { and, eq } from 'drizzle-orm'
@@ -73,6 +73,13 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
                 {ev.location}{ev.address ? ` · ${ev.address}` : ''}
               </p>
             )}
+            {ev.priceCents != null && (
+              <p className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-gold-400" />
+                {ev.priceCents === 0
+                  ? 'Free to attend'
+                  : `$${(ev.priceCents / 100).toLocaleString('en-US', { minimumFractionDigits: ev.priceCents % 100 === 0 ? 0 : 2 })} per person`}
+              </p>
+            )}
             {ev.capacity && (
               <p className="flex items-center gap-2 text-white/70"><Users className="w-4 h-4 text-gold-400" />Capacity: {ev.capacity}</p>
             )}
@@ -105,7 +112,7 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
                 </div>
               )}
               {ev.rsvpMode === 'internal' && (
-                <RsvpForm slug={ev.slug} title={ev.title} />
+                <RsvpForm slug={ev.slug} title={ev.title} priceCents={ev.priceCents} />
               )}
               {ev.rsvpMode === 'none' && (
                 <p className="text-mid text-center">Questions? <Link href="/contact" className="text-accent hover:underline">Reach out</Link>.</p>

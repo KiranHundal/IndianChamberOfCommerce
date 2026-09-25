@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { events } from '@/lib/schema'
-import { desc } from 'drizzle-orm'
+import { events, eventRsvps } from '@/lib/schema'
+import { desc, sql } from 'drizzle-orm'
 import { put } from '@vercel/blob'
 import { ensureEventsSchema } from '@/lib/ensure-events-schema'
 
@@ -29,7 +29,42 @@ export async function GET() {
   }
   await ensureEventsSchema()
   const rows = await db.select().from(events).orderBy(desc(events.startAt))
-  return NextResponse.json({ events: rows })
+
+  // One aggregate query builds a per-event summary the dashboard cards
+  // and the Overview feed both consume — cheaper than N+1 lookups.
+  const summaryRows = await db
+    .select({
+      eventId: eventRsvps.eventId,
+      rsvpCount: sql<number>`count(*)`,
+      seats: sql<number>`coalesce(sum(1 + guests), 0)`,
+      paid: sql<number>`sum(case when paid_at is not null then 1 else 0 end)`,
+      paidSeats: sql<number>`coalesce(sum(case when paid_at is not null then 1 + guests else 0 end), 0)`,
+    })
+    .from(eventRsvps)
+    .groupBy(eventRsvps.eventId)
+
+  const summaryMap = new Map(
+    summaryRows.map((s) => [
+      s.eventId,
+      { rsvpCount: Number(s.rsvpCount) || 0, seats: Number(s.seats) || 0, paid: Number(s.paid) || 0, paidSeats: Number(s.paidSeats) || 0 },
+    ])
+  )
+
+  const withSummary = rows.map((r) => {
+    const s = summaryMap.get(r.id) || { rsvpCount: 0, seats: 0, paid: 0, paidSeats: 0 }
+    return {
+      ...r,
+      summary: {
+        rsvpCount: s.rsvpCount,
+        seats: s.seats,
+        paid: s.paid,
+        owedCents: s.seats * (r.priceCents || 0),
+        collectedCents: s.paidSeats * (r.priceCents || 0),
+      },
+    }
+  })
+
+  return NextResponse.json({ events: withSummary })
 }
 
 export async function POST(req: NextRequest) {
@@ -52,6 +87,8 @@ export async function POST(req: NextRequest) {
     const rsvpMode = (formData.get('rsvpMode')?.toString() || 'none') as 'none' | 'external' | 'internal'
     const rsvpUrl = formData.get('rsvpUrl')?.toString()?.trim() || null
     const capacityStr = formData.get('capacity')?.toString() || ''
+    const priceCentsStr = formData.get('priceCents')?.toString() || ''
+    const notifyEmailRaw = formData.get('notifyEmail')?.toString()?.trim().toLowerCase() || ''
     const published = formData.get('published') === 'true'
     const cover = formData.get('cover') as File | null
 
@@ -87,6 +124,13 @@ export async function POST(req: NextRequest) {
     const slug = `${slugify(title)}-${startAt.toISOString().slice(0, 10)}`
     const id = crypto.randomUUID()
     const capacity = capacityStr && Number.isFinite(parseInt(capacityStr, 10)) ? parseInt(capacityStr, 10) : null
+    const priceCents = priceCentsStr && Number.isFinite(parseInt(priceCentsStr, 10)) ? Math.max(0, parseInt(priceCentsStr, 10)) : null
+    const ALLOWED_NOTIFY = new Set([
+      'info@indianchamberofcommerce.org',
+      'sonia@indianchamberofcommerce.org',
+      'raj@indianchamberofcommerce.org',
+    ])
+    const notifyEmail = notifyEmailRaw && ALLOWED_NOTIFY.has(notifyEmailRaw) ? notifyEmailRaw : null
 
     await db.insert(events).values({
       id,
@@ -103,6 +147,8 @@ export async function POST(req: NextRequest) {
       rsvpMode,
       rsvpUrl,
       capacity,
+      priceCents,
+      notifyEmail,
       published,
       createdAt: new Date(),
       createdBy: session.user?.email || null,

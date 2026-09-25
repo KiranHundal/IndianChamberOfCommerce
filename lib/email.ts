@@ -675,3 +675,140 @@ export async function sendMembershipInvitationEmail(invite: {
     `,
   })
 }
+
+function moneyFromCents(cents: number | null | undefined): string {
+  if (cents == null || cents === 0) return 'Free'
+  return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`
+}
+
+function eventWhen(startAt: Date, endAt: Date | null): string {
+  const day = startAt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  const startT = startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const endT = endAt ? endAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null
+  return endT ? `${day} · ${startT} – ${endT}` : `${day} · ${startT}`
+}
+
+export async function sendEventRsvpConfirmationEmail(input: {
+  to: string
+  name: string
+  guests: number
+  event: {
+    slug: string
+    title: string
+    location: string | null
+    address: string | null
+    startAt: Date
+    endAt: Date | null
+    priceCents: number | null
+  }
+}) {
+  const resend = getResend()
+  if (!resend) return
+
+  const { fromEmail, siteUrl } = getConfig()
+  const seats = 1 + input.guests
+  const price = moneyFromCents(input.event.priceCents)
+  const totalCents = (input.event.priceCents || 0) * seats
+  const total = moneyFromCents(totalCents)
+
+  return resend.emails.send({
+    from: `CVICC <${fromEmail}>`,
+    to: input.to,
+    subject: `You're confirmed: ${input.event.title}`,
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
+        <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
+          <h1 style="color: #D4A830; font-size: 22px; margin: 0; font-weight: 300; letter-spacing: 2px;">
+            CENTRAL VALLEY INDIAN<br/>CHAMBER OF COMMERCE
+          </h1>
+        </div>
+        <div style="padding: 40px 32px; background: #FAFAF7;">
+          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">You&rsquo;re confirmed</p>
+          <h2 style="color: #1E3A5F; font-size: 24px; font-weight: 300; margin: 0 0 20px;">${input.event.title}</h2>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 20px;">
+            Hi ${input.name}, thanks for RSVPing. Here are the details — save this email and we&rsquo;ll see you there.
+          </p>
+          <div style="background: #FFFFFF; border: 1px solid #EDE6D3; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse; color: #1E3A5F; font-size: 14px;">
+              <tr><td style="padding: 6px 0; color: #8a8a8a; width: 90px;">When</td><td style="padding: 6px 0;">${eventWhen(input.event.startAt, input.event.endAt)}</td></tr>
+              ${input.event.location ? `<tr><td style="padding: 6px 0; color: #8a8a8a;">Where</td><td style="padding: 6px 0;">${input.event.location}${input.event.address ? `<br/><span style="color: #8a8a8a;">${input.event.address}</span>` : ''}</td></tr>` : ''}
+              <tr><td style="padding: 6px 0; color: #8a8a8a;">Seats</td><td style="padding: 6px 0;">${seats}${input.guests > 0 ? ` (you + ${input.guests} guest${input.guests === 1 ? '' : 's'})` : ''}</td></tr>
+              <tr><td style="padding: 6px 0; color: #8a8a8a;">Ticket</td><td style="padding: 6px 0;">${price}${seats > 1 && (input.event.priceCents || 0) > 0 ? ` × ${seats} = <strong>${total}</strong>` : ''}</td></tr>
+            </table>
+          </div>
+          ${(input.event.priceCents || 0) > 0 ? `
+          <div style="background: #FEF9E7; border: 1px solid #F0DCA0; border-radius: 8px; padding: 16px 20px; margin: 20px 0;">
+            <p style="color: #92700C; margin: 0; font-size: 13px; line-height: 1.6;">
+              Payment of <strong>${total}</strong> will be collected at check-in unless a separate payment link is sent. Reply to this email if you&rsquo;d like to pay in advance.
+            </p>
+          </div>` : ''}
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 24px 0 0;">
+            Need to change your RSVP or bring more guests? Just reply and we&rsquo;ll update it.
+          </p>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0;">
+            Warm regards,<br/>
+            <strong style="color: #1E3A5F;">The CVICC Team</strong><br/>
+            <a href="${siteUrl}" style="color: #5A6A7A; font-size: 13px; text-decoration: none;">www.indianchamberofcommerce.org</a>
+          </p>
+        </div>
+        <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
+          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+            Central Valley Indian Chamber of Commerce, Inc.<br/>
+            4610 W Jacquelyn Ave, Fresno, CA 93722
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
+
+export async function sendEventRsvpAdminNotificationEmail(input: {
+  to: string
+  attendeeName: string
+  attendeeEmail: string
+  attendeePhone: string | null
+  guests: number
+  note: string | null
+  event: { title: string; startAt: Date; priceCents: number | null; slug: string }
+  totalRsvps: number
+  totalSeats: number
+  capacity: number | null
+}) {
+  const resend = getResend()
+  if (!resend) return
+
+  const { fromEmail, siteUrl } = getConfig()
+  const seats = 1 + input.guests
+  const revenueCents = (input.event.priceCents || 0) * seats
+  const capacityLine = input.capacity != null ? `${input.totalSeats}/${input.capacity} seats booked` : `${input.totalSeats} seats booked`
+
+  return resend.emails.send({
+    from: `CVICC <${fromEmail}>`,
+    to: input.to,
+    replyTo: input.attendeeEmail,
+    subject: `New RSVP: ${input.attendeeName} — ${input.event.title}`,
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
+        <div style="padding: 24px 28px; background: #FAFAF7; border: 1px solid #EDE6D3; border-radius: 8px;">
+          <p style="color: #D4A830; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 8px;">New RSVP</p>
+          <h2 style="color: #1E3A5F; font-size: 20px; font-weight: 400; margin: 0 0 4px;">${input.attendeeName}</h2>
+          <p style="color: #5A6A7A; margin: 0 0 16px; font-size: 14px;">
+            <a href="mailto:${input.attendeeEmail}" style="color: #1E3A5F;">${input.attendeeEmail}</a>
+            ${input.attendeePhone ? ` · ${input.attendeePhone}` : ''}
+          </p>
+          <table style="width: 100%; border-collapse: collapse; color: #1E3A5F; font-size: 14px;">
+            <tr><td style="padding: 4px 0; color: #8a8a8a; width: 100px;">Event</td><td style="padding: 4px 0;"><strong>${input.event.title}</strong></td></tr>
+            <tr><td style="padding: 4px 0; color: #8a8a8a;">When</td><td style="padding: 4px 0;">${input.event.startAt.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</td></tr>
+            <tr><td style="padding: 4px 0; color: #8a8a8a;">Seats</td><td style="padding: 4px 0;">${seats}${input.guests > 0 ? ` (${input.guests} extra guest${input.guests === 1 ? '' : 's'})` : ''}</td></tr>
+            ${revenueCents > 0 ? `<tr><td style="padding: 4px 0; color: #8a8a8a;">Owed</td><td style="padding: 4px 0;"><strong>${moneyFromCents(revenueCents)}</strong> at door</td></tr>` : ''}
+            <tr><td style="padding: 4px 0; color: #8a8a8a;">Running</td><td style="padding: 4px 0;">${input.totalRsvps} RSVPs · ${capacityLine}</td></tr>
+          </table>
+          ${input.note ? `<div style="background: #FFFFFF; border-left: 3px solid #D4A830; padding: 12px 16px; margin: 16px 0 0; color: #5A6A7A; font-style: italic; font-size: 13px;">${input.note}</div>` : ''}
+          <p style="margin: 20px 0 0;">
+            <a href="${siteUrl}/admin/events" style="color: #1E3A5F; font-size: 13px;">Open in dashboard →</a>
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}
