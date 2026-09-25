@@ -80,8 +80,21 @@ export async function ensureEventsSchema() {
     await tryRun(`ALTER TABLE square_payments ADD COLUMN event_id TEXT`)
     await tryRun(`ALTER TABLE square_payments ADD COLUMN event_rsvp_id TEXT`)
 
+    await tryRun(`
+      CREATE TABLE IF NOT EXISTS event_photos (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL,
+        url TEXT NOT NULL,
+        caption TEXT,
+        display_order INTEGER NOT NULL DEFAULT 100,
+        uploaded_at INTEGER NOT NULL,
+        uploaded_by TEXT
+      )
+    `)
+
     await tryRun(`CREATE INDEX IF NOT EXISTS idx_events_start_at ON events(start_at)`)
     await tryRun(`CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_id ON event_rsvps(event_id)`)
+    await tryRun(`CREATE INDEX IF NOT EXISTS idx_event_photos_event_id ON event_photos(event_id)`)
     await tryRun(`CREATE INDEX IF NOT EXISTS idx_square_payments_kind ON square_payments(payment_kind)`)
     ensured = true
   } catch (e) {

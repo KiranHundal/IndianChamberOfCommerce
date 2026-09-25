@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { members, expenses, invitations, squarePayments, squareSync, events, eventRsvps } from '@/lib/schema'
 import { desc, isNull, and, gte, eq } from 'drizzle-orm'
 import { ensureEventsSchema } from '@/lib/ensure-events-schema'
+import { ensureMembersRenewalSchema } from '@/lib/ensure-members-schema'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -78,6 +79,23 @@ export async function GET() {
   const unverifiedApproved = nonStaffMembers.filter(
     (m) => m.status === 'approved' && !hasSquareReceipt(m) && (!m.paymentMethod || !OFFLINE_METHODS.includes(m.paymentMethod))
   ).length
+
+  // Renewal alerts. Expiring soon = approved members whose expires_at
+  // falls in the next 30 days; expired = approved members already past
+  // due. We backfill the schema first so freshly-migrated deployments
+  // populate expires_at before we read it.
+  await ensureMembersRenewalSchema().catch(() => {})
+  const nowMs = Date.now()
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000
+  const expiringSoon = nonStaffMembers.filter((m) => {
+    if (m.status !== 'approved' || !m.expiresAt) return false
+    const t = new Date(m.expiresAt).getTime()
+    return t >= nowMs && t <= nowMs + THIRTY_DAYS
+  }).length
+  const expired = nonStaffMembers.filter((m) => {
+    if (m.status !== 'approved' || !m.expiresAt) return false
+    return new Date(m.expiresAt).getTime() < nowMs
+  }).length
 
   // Recent activity (last ~10)
   const activityCandidates: Array<{
@@ -192,6 +210,8 @@ export async function GET() {
       unpaidMembers,
       orphanPayments,
       unverifiedApproved,
+      expiringSoon,
+      expired,
     },
     kpis: {
       revenueYtd,

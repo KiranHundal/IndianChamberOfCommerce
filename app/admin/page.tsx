@@ -50,6 +50,8 @@ interface HomeSummary {
     pendingMembers: number
     unpaidMembers: number
     orphanPayments: number
+    expiringSoon: number
+    expired: number
     unverifiedApproved: number
   }
   nextEvent: {

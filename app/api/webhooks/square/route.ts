@@ -15,6 +15,7 @@ import { sendEventRsvpConfirmationEmail } from '@/lib/email'
 import { events } from '@/lib/schema'
 
 const EVENT_NOTE = /event:([^:\s]+):([^:\s]+)/
+const RENEW_NOTE = /renew:([^:\s]+)/
 
 // Square signs webhooks with HMAC-SHA256 over `notification_url + body`.
 // See https://developer.squareup.com/docs/webhooks/step3validate for details.
@@ -78,9 +79,10 @@ export async function POST(req: NextRequest) {
     const p = await fetchSquarePayment(paymentStub.id)
     if (!p) return NextResponse.json({ ignored: true, reason: 'payment fetch returned nothing' })
 
-    // Event tag detection (same as sync).
+    // Event/renewal tag detection (same as sync).
     let eventId: string | null = null
     let eventRsvpId: string | null = null
+    let renewalMemberId: string | null = null
     if (p.order_id) {
       const [rsvpByOrder] = await db.select().from(eventRsvps).where(eq(eventRsvps.squareOrderId, p.order_id)).limit(1)
       if (rsvpByOrder) {
@@ -88,17 +90,21 @@ export async function POST(req: NextRequest) {
         eventRsvpId = rsvpByOrder.id
       }
     }
+    const noteBucket = [p.note || '']
+    if (p.order_id) {
+      const order = await fetchSquareOrder(p.order_id)
+      if (order?.reference_id) noteBucket.push(order.reference_id)
+      for (const t of order?.tenders || []) if (t.note) noteBucket.push(t.note)
+    }
     if (!eventRsvpId) {
-      const noteBucket = [p.note || '']
-      if (p.order_id) {
-        const order = await fetchSquareOrder(p.order_id)
-        if (order?.reference_id) noteBucket.push(order.reference_id)
-        for (const t of order?.tenders || []) if (t.note) noteBucket.push(t.note)
-      }
       for (const s of noteBucket) {
         const m = s.match(EVENT_NOTE)
         if (m) { eventId = m[1]; eventRsvpId = m[2]; break }
       }
+    }
+    for (const s of noteBucket) {
+      const m = s.match(RENEW_NOTE)
+      if (m) { renewalMemberId = m[1]; break }
     }
     const paymentKind: 'event' | 'membership' = eventRsvpId ? 'event' : 'membership'
 
@@ -110,11 +116,17 @@ export async function POST(req: NextRequest) {
     const refundedCents = p.refunded_money?.amount ?? 0
     const paidAt = new Date(p.created_at)
 
-    // Membership match — only when this isn't an event ticket.
+    // Membership match — only when this isn't an event ticket. Renewal
+    // notes give us a hard id; fall back to email lookup otherwise.
     let matchedMemberId: string | null = null
-    if (paymentKind === 'membership' && email) {
-      const [m] = await db.select().from(members).where(eq(members.email, email)).limit(1)
-      if (m) matchedMemberId = m.id
+    if (paymentKind === 'membership') {
+      if (renewalMemberId) {
+        const [m] = await db.select().from(members).where(eq(members.id, renewalMemberId)).limit(1)
+        if (m) matchedMemberId = m.id
+      } else if (email) {
+        const [m] = await db.select().from(members).where(eq(members.email, email)).limit(1)
+        if (m) matchedMemberId = m.id
+      }
     }
 
     const [existing] = await db
@@ -160,11 +172,20 @@ export async function POST(req: NextRequest) {
       const [m] = await db.select().from(members).where(eq(members.id, preservedMatchedMemberId)).limit(1)
       if (m) {
         const dollars = Math.round((totalCents - refundedCents) / 100)
-        await db.update(members).set({
+        const patch: Record<string, unknown> = {
           paymentMethod: 'square',
           amountPaid: dollars > 0 ? dollars : m.amountPaid,
           paymentDate: m.paymentDate || paidAt,
-        }).where(eq(members.id, m.id))
+        }
+        if (renewalMemberId) {
+          const now = paidAt
+          const base = m.expiresAt && new Date(m.expiresAt) > now ? new Date(m.expiresAt) : now
+          const bumped = new Date(base)
+          bumped.setFullYear(bumped.getFullYear() + 1)
+          patch.expiresAt = bumped
+          patch.renewalReminderSentAt = null
+        }
+        await db.update(members).set(patch).where(eq(members.id, m.id))
       }
     }
 

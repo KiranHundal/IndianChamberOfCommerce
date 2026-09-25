@@ -18,6 +18,8 @@ import { ensureEventsSchema } from '@/lib/ensure-events-schema'
 // text also carries the same string in case Square drops the note on
 // downstream payments.
 const EVENT_NOTE = /event:([^:\s]+):([^:\s]+)/
+// Membership renewal notes: `renew:<memberId>`. Same pattern.
+const RENEW_NOTE = /renew:([^:\s]+)/
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions)
@@ -107,12 +109,22 @@ export async function POST() {
         }
       }
 
+      // Renewal detection lives alongside the event detection so it can
+      // benefit from the same order/note lookup we already did.
+      let renewalMemberId: string | null = null
+      for (const s of noteBucket) {
+        const m = s.match(RENEW_NOTE)
+        if (m) { renewalMemberId = m[1]; break }
+      }
+
       const paymentKind: 'event' | 'membership' = eventRsvpId ? 'event' : 'membership'
 
-      // Membership matching only runs when this isn't an event payment —
-      // an event ticket buyer might also happen to be a member, and we'd
-      // wrongly credit their ticket toward their dues.
-      const matched = paymentKind === 'membership' && email ? membersByEmail.get(email) : undefined
+      // Membership matching. Prefer explicit renewal id when present —
+      // that's a hard signal from our own checkout link. Fall back to
+      // email lookup for legacy Square payments.
+      const matched = paymentKind === 'membership'
+        ? (renewalMemberId ? allMembers.find((m) => m.id === renewalMemberId) : email ? membersByEmail.get(email) : undefined)
+        : undefined
 
       const [existing] = await db
         .select({ id: squarePayments.id, matchedMemberId: squarePayments.matchedMemberId })
@@ -168,14 +180,23 @@ export async function POST() {
       // Enrich matched member with actual amount/fee/method if we have better data
       if (matched && p.status === 'COMPLETED') {
         const dollars = Math.round((totalCents - refundedCents) / 100)
-        await db
-          .update(members)
-          .set({
-            paymentMethod: 'square',
-            amountPaid: dollars > 0 ? dollars : matched.amountPaid,
-            paymentDate: matched.paymentDate || paidAt,
-          })
-          .where(eq(members.id, matched.id))
+        const patch: Record<string, unknown> = {
+          paymentMethod: 'square',
+          amountPaid: dollars > 0 ? dollars : matched.amountPaid,
+          paymentDate: matched.paymentDate || paidAt,
+        }
+        // Renewal payments push expires_at forward by one year from
+        // whichever is later: current expiration or today. Also clears
+        // the reminder timestamp so the next cycle can trigger fresh.
+        if (renewalMemberId) {
+          const now = paidAt
+          const base = matched.expiresAt && new Date(matched.expiresAt) > now ? new Date(matched.expiresAt) : now
+          const bumped = new Date(base)
+          bumped.setFullYear(bumped.getFullYear() + 1)
+          patch.expiresAt = bumped
+          patch.renewalReminderSentAt = null
+        }
+        await db.update(members).set(patch).where(eq(members.id, matched.id))
       }
 
       // Reconcile the RSVP — mark paid with the definitive amount from

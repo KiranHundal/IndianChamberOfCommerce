@@ -812,3 +812,91 @@ export async function sendEventRsvpAdminNotificationEmail(input: {
     `,
   })
 }
+
+export async function sendRenewalReminderEmail(input: {
+  to: string
+  name: string
+  membershipTier: 'individual' | 'corporate' | string
+  expiresAt: Date
+  daysLeft: number
+}) {
+  const resend = getResend()
+  if (!resend) return
+
+  const { fromEmail, siteUrl } = getConfig()
+  const tierLabel = input.membershipTier === 'corporate' ? 'Corporate' : 'Individual'
+  const amount = input.membershipTier === 'corporate' ? '$395' : '$95'
+  const expiresStr = input.expiresAt.toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  })
+
+  // Copy adapts to timing without three separate templates: gentle before
+  // expiration, direct on the day, warm-but-clear when overdue.
+  const isPast = input.daysLeft < 0
+  const isSoon = input.daysLeft <= 7 && input.daysLeft >= 0
+  const eyebrow = isPast
+    ? 'Renewal overdue'
+    : isSoon
+    ? 'Renewal due soon'
+    : 'Renewal coming up'
+  const headline = isPast
+    ? `Your membership expired ${Math.abs(input.daysLeft)} ${Math.abs(input.daysLeft) === 1 ? 'day' : 'days'} ago`
+    : isSoon
+    ? `Your membership renews in ${input.daysLeft} ${input.daysLeft === 1 ? 'day' : 'days'}`
+    : `Your membership renews on ${expiresStr}`
+
+  return resend.emails.send({
+    from: `CVICC <${fromEmail}>`,
+    to: input.to,
+    subject: isPast
+      ? `Your CVICC membership has lapsed — renew in one click`
+      : isSoon
+      ? `Renew your CVICC membership by ${expiresStr}`
+      : `Your CVICC membership renews soon`,
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
+        <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
+          <h1 style="color: #D4A830; font-size: 22px; margin: 0; font-weight: 300; letter-spacing: 2px;">
+            CENTRAL VALLEY INDIAN<br/>CHAMBER OF COMMERCE
+          </h1>
+        </div>
+        <div style="padding: 40px 32px; background: #FAFAF7;">
+          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">${eyebrow}</p>
+          <h2 style="color: #1E3A5F; font-size: 22px; font-weight: 300; margin: 0 0 16px;">${headline}</h2>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
+            Hi ${input.name}, thank you for being part of CVICC. Your <strong>${tierLabel}</strong> membership is up for renewal — one click and you&rsquo;re set for another year of events, mentorship, and the growing chamber network.
+          </p>
+          <div style="background: #FFFFFF; border: 1px solid #EDE6D3; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse; color: #1E3A5F; font-size: 14px;">
+              <tr><td style="padding: 6px 0; color: #8a8a8a; width: 110px;">Tier</td><td style="padding: 6px 0;">${tierLabel}</td></tr>
+              <tr><td style="padding: 6px 0; color: #8a8a8a;">Renewal</td><td style="padding: 6px 0;"><strong>${amount}</strong> · one year</td></tr>
+              <tr><td style="padding: 6px 0; color: #8a8a8a;">${isPast ? 'Expired' : 'Expires'}</td><td style="padding: 6px 0;">${expiresStr}</td></tr>
+            </table>
+          </div>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${siteUrl}/portal" style="display: inline-block; background: #D4A830; color: #FFFFFF; text-decoration: none; padding: 14px 40px; border-radius: 4px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500;">
+              Renew Membership
+            </a>
+            <p style="margin: 12px 0 0; color: #8a8a8a; font-size: 12px;">
+              <a href="${siteUrl}/portal" style="color: #8a8a8a; text-decoration: underline;">${siteUrl}/portal</a>
+            </p>
+          </div>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 24px 0 0; font-size: 14px;">
+            Prefer to pay another way, or have questions? Just reply to this email — we&rsquo;ll take care of it.
+          </p>
+          <p style="color: #5A6A7A; line-height: 1.7; margin: 20px 0 0;">
+            Warm regards,<br/>
+            <strong style="color: #1E3A5F;">The CVICC Team</strong><br/>
+            <a href="${siteUrl}" style="color: #5A6A7A; font-size: 13px; text-decoration: none;">www.indianchamberofcommerce.org</a>
+          </p>
+        </div>
+        <div style="background: #1E3A5F; padding: 24px 32px; text-align: center;">
+          <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin: 0;">
+            Central Valley Indian Chamber of Commerce, Inc.<br/>
+            4610 W Jacquelyn Ave, Fresno, CA 93722
+          </p>
+        </div>
+      </div>
+    `,
+  })
+}

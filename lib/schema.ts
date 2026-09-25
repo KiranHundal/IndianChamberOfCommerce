@@ -26,6 +26,12 @@ export const members = sqliteTable('members', {
   // Nullable in the DB so historical rows survive the migration; the seed
   // + admin backfill fill in older ones.
   referredBy: text('referred_by'),
+  // Annual membership expiration. Backfilled from paymentDate + 1 year for
+  // existing approved members. Renewal payments push it forward.
+  expiresAt: integer('expires_at', { mode: 'timestamp' }),
+  // Timestamp of the most recent renewal reminder email — used to prevent
+  // re-spamming within a 21-day window.
+  renewalReminderSentAt: integer('renewal_reminder_sent_at', { mode: 'timestamp' }),
 })
 
 export const leaderVideos = sqliteTable('leader_videos', {
@@ -143,6 +149,16 @@ export const events = sqliteTable('events', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }),
 })
 
+export const eventPhotos = sqliteTable('event_photos', {
+  id: text('id').primaryKey(),
+  eventId: text('event_id').notNull(),
+  url: text('url').notNull(),
+  caption: text('caption'),
+  displayOrder: integer('display_order').notNull().default(100),
+  uploadedAt: integer('uploaded_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  uploadedBy: text('uploaded_by'),
+})
+
 export const eventRsvps = sqliteTable('event_rsvps', {
   id: text('id').primaryKey(),
   eventId: text('event_id').notNull(),
@@ -186,3 +202,5 @@ export type Event = typeof events.$inferSelect
 export type NewEvent = typeof events.$inferInsert
 export type EventRsvp = typeof eventRsvps.$inferSelect
 export type NewEventRsvp = typeof eventRsvps.$inferInsert
+export type EventPhoto = typeof eventPhotos.$inferSelect
+export type NewEventPhoto = typeof eventPhotos.$inferInsert

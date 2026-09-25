@@ -299,6 +299,38 @@ async function resolveLocationId(): Promise<string> {
 }
 
 /**
+ * Create a Square Checkout Link for a membership renewal. The note carries
+ * `renew:<memberId>` so sync/webhook can extend expires_at on match.
+ */
+export async function createRenewalCheckoutLink(input: {
+  memberName: string
+  memberEmail: string
+  memberId: string
+  amountCents: number
+  redirectUrl: string
+}): Promise<SquarePaymentLink> {
+  const locationId = await resolveLocationId()
+  const body = {
+    idempotency_key: `renew-${input.memberId}-${Date.now()}`,
+    quick_pay: {
+      name: `CVICC Membership Renewal — ${input.memberName}`.slice(0, 255),
+      price_money: { amount: input.amountCents, currency: 'USD' },
+      location_id: locationId,
+    },
+    checkout_options: {
+      redirect_url: input.redirectUrl,
+      ask_for_shipping_address: false,
+    },
+    pre_populated_data: { buyer_email: input.memberEmail },
+    payment_note: `renew:${input.memberId}`,
+  }
+  const res = await squarePost<CreatePaymentLinkResponse>('/v2/online-checkout/payment-links', body)
+  if (res.errors?.length) throw new Error(`Square: ${res.errors.map((e) => e.detail).join('; ')}`)
+  if (!res.payment_link) throw new Error('Square did not return a payment link.')
+  return res.payment_link
+}
+
+/**
  * Create a Square Checkout Link for a single ticket purchase. The order
  * `reference_id` embeds `event:<eventId>:<rsvpId>` so the Square-sync
  * job can tag the resulting payment as an event purchase.

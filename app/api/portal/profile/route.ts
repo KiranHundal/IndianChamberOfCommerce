@@ -4,12 +4,14 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { ensureMembersRenewalSchema } from '@/lib/ensure-members-schema'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  await ensureMembersRenewalSchema()
 
   const [member] = await db
     .select({
@@ -26,6 +28,8 @@ export async function GET() {
       membershipNumber: members.membershipNumber,
       createdAt: members.createdAt,
       approvedAt: members.approvedAt,
+      expiresAt: members.expiresAt,
+      paymentDate: members.paymentDate,
     })
     .from(members)
     .where(eq(members.email, session.user.email.toLowerCase()))
@@ -35,8 +39,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Member not found' }, { status: 404 })
   }
 
-  const approvedDate = member.approvedAt || member.createdAt
-  const renewalDate = approvedDate ? new Date(new Date(approvedDate).getTime() + 365 * 24 * 60 * 60 * 1000) : null
+  // Prefer the authoritative expires_at column; fall back to computed
+  // date for pre-backfill rows (approvedAt + 1y) so the portal still
+  // shows something useful.
+  const fallback = member.approvedAt
+    ? new Date(new Date(member.approvedAt).getTime() + 365 * 24 * 60 * 60 * 1000)
+    : null
+  const renewalDate = member.expiresAt ? new Date(member.expiresAt) : fallback
 
   return NextResponse.json({
     ...member,

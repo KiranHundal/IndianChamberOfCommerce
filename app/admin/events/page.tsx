@@ -8,6 +8,7 @@ import Link from 'next/link'
 import {
   Calendar, Plus, Pencil, Trash2, X, Save, Loader2, MapPin,
   Users, Eye, EyeOff, ExternalLink, ImagePlus, DollarSign, CheckCircle2,
+  Image as ImageIcon,
 } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'
 
@@ -106,6 +107,7 @@ export default function AdminEventsPage() {
   const [editing, setEditing] = useState<EventRow | null>(null)
   const [rsvpFor, setRsvpFor] = useState<EventRow | null>(null)
   const [rsvps, setRsvps] = useState<RsvpRow[]>([])
+  const [photosFor, setPhotosFor] = useState<EventRow | null>(null)
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const coverRef = useRef<HTMLInputElement>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
@@ -336,7 +338,7 @@ export default function AdminEventsPage() {
           <h2 className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-2">Upcoming · {upcoming.length}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {upcoming.map((ev) => (
-              <EventCard key={ev.id} ev={ev} onEdit={openEdit} onDelete={handleDelete} onToggle={togglePublished} onRsvps={openRsvps} />
+              <EventCard key={ev.id} ev={ev} onEdit={openEdit} onDelete={handleDelete} onToggle={togglePublished} onRsvps={openRsvps} onPhotos={setPhotosFor} />
             ))}
           </div>
         </section>
@@ -347,7 +349,7 @@ export default function AdminEventsPage() {
           <h2 className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-2">Past · {past.length}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {past.map((ev) => (
-              <EventCard key={ev.id} ev={ev} onEdit={openEdit} onDelete={handleDelete} onToggle={togglePublished} onRsvps={openRsvps} isPast />
+              <EventCard key={ev.id} ev={ev} onEdit={openEdit} onDelete={handleDelete} onToggle={togglePublished} onRsvps={openRsvps} onPhotos={setPhotosFor} isPast />
             ))}
           </div>
         </section>
@@ -564,6 +566,11 @@ export default function AdminEventsPage() {
         </div>
       )}
 
+      {/* Photos modal */}
+      {photosFor && (
+        <PhotosModal event={photosFor} onClose={() => setPhotosFor(null)} />
+      )}
+
       {/* RSVP list modal */}
       {rsvpFor && (
         <RsvpModal
@@ -615,12 +622,13 @@ export default function AdminEventsPage() {
   )
 }
 
-function EventCard({ ev, onEdit, onDelete, onToggle, onRsvps, isPast = false }: {
+function EventCard({ ev, onEdit, onDelete, onToggle, onRsvps, onPhotos, isPast = false }: {
   ev: EventRow
   onEdit: (e: EventRow) => void
   onDelete: (e: EventRow) => void
   onToggle: (e: EventRow) => void
   onRsvps: (e: EventRow) => void
+  onPhotos: (e: EventRow) => void
   isPast?: boolean
 }) {
   return (
@@ -680,10 +688,95 @@ function EventCard({ ev, onEdit, onDelete, onToggle, onRsvps, isPast = false }: 
           {ev.rsvpMode === 'internal' && (
             <button type="button" onClick={() => onRsvps(ev)} className="text-xs text-brand hover:text-accent inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-page-bg"><Users className="w-3 h-3" />RSVPs</button>
           )}
+          {isPast && (
+            <button type="button" onClick={() => onPhotos(ev)} className="text-xs text-brand hover:text-accent inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-page-bg"><ImageIcon className="w-3 h-3" />Photos</button>
+          )}
           {ev.published && (
             <Link href={`/events/${ev.slug}`} target="_blank" className="text-xs text-brand hover:text-accent inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-page-bg"><ExternalLink className="w-3 h-3" />View</Link>
           )}
           <button type="button" onClick={() => onDelete(ev)} className="text-xs text-red-600 hover:text-red-700 inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-red-50 ml-auto"><Trash2 className="w-3 h-3" /></button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PhotosModal({ event, onClose }: { event: EventRow; onClose: () => void }) {
+  const [photos, setPhotos] = useState<{ id: string; url: string; caption: string | null }[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/events/${event.id}/photos`)
+      const data = await res.json()
+      setPhotos(data.photos || [])
+    } catch {}
+  }, [event.id])
+
+  useEffect(() => { load() }, [load])
+
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setUploading(true)
+    setError('')
+    const fd = new FormData()
+    for (const f of files) fd.append('photos', f)
+    try {
+      const res = await fetch(`/api/admin/events/${event.id}/photos`, { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) setError(data.error || 'Upload failed.')
+      else await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error.')
+    }
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this photo? This cannot be undone.')) return
+    const res = await fetch(`/api/admin/events/${event.id}/photos/${id}`, { method: 'DELETE' })
+    if (res.ok) setPhotos((p) => p.filter((x) => x.id !== id))
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-hover w-full max-w-3xl my-8">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-ivory-200">
+          <div>
+            <h2 className="text-sm font-medium text-brand">Photos · {event.title}</h2>
+            <p className="text-xs text-hint">{photos.length} uploaded · shown on the public event page</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-mid hover:text-brand"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-sm">{error}</div>}
+          <label className="flex items-center justify-center gap-2 border-2 border-dashed border-ivory-200 rounded p-6 cursor-pointer hover:border-accent/40 text-sm text-mid">
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+            {uploading ? 'Uploading…' : 'Add photos (multiple, up to 8MB each)'}
+            <input type="file" accept="image/*" multiple onChange={handleFiles} className="hidden" />
+          </label>
+          {photos.length === 0 ? (
+            <p className="text-sm text-hint text-center py-4">No photos yet. Add a few to build the recap gallery.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {photos.map((p) => (
+                <div key={p.id} className="relative aspect-square bg-page-bg rounded overflow-hidden group">
+                  <Image src={p.url} alt={p.caption || ''} fill className="object-cover" unoptimized />
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(p.id)}
+                    className="absolute top-1 right-1 bg-white/95 text-red-600 rounded p-1 opacity-0 group-hover:opacity-100 transition"
+                    title="Delete photo"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

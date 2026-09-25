@@ -99,10 +99,31 @@ function daysUntilRenewal(renewalDate: string | null): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
 }
 
+interface MyRsvpRow {
+  rsvpId: string
+  seats: number
+  paidAt: string | number | null
+  paidAmount: number | null
+  paymentMethod: string | null
+  payMode: string | null
+  event: {
+    id: string
+    slug: string
+    title: string
+    startAt: string | number
+    endAt: string | number | null
+    location: string | null
+    coverImageUrl: string | null
+    priceCents: number | null
+    eventType: string
+  }
+}
+
 export default function PortalPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [profile, setProfile] = useState<MemberProfile | null>(null)
+  const [rsvps, setRsvps] = useState<{ upcoming: MyRsvpRow[]; past: MyRsvpRow[] }>({ upcoming: [], past: [] })
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -128,6 +149,11 @@ export default function PortalPage() {
           setLoading(false)
         })
         .catch(() => setLoading(false))
+      // My RSVPs run in parallel; failures degrade to empty lists.
+      fetch('/api/portal/my-rsvps')
+        .then((r) => r.json())
+        .then((data) => setRsvps({ upcoming: data.upcoming || [], past: data.past || [] }))
+        .catch(() => {})
     }
   }, [status])
 
@@ -315,14 +341,7 @@ export default function PortalPage() {
                     </p>
 
                     {(isExpiringSoon || isExpired) && (
-                      <a
-                        href={membershipTier === 'corporate' ? 'https://square.link/u/9opDARDg' : 'https://square.link/u/Av93qe4Z'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block mt-4 bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2.5 rounded-sm hover:bg-gold-900 transition-all"
-                      >
-                        Renew Now
-                      </a>
+                      <RenewButton />
                     )}
                   </>
                 ) : (
@@ -468,6 +487,45 @@ export default function PortalPage() {
               </div>
             </AnimatedSection>
           </div>
+
+          {/* My RSVPs — only shown when the member has any events on file. */}
+          {(rsvps.upcoming.length > 0 || rsvps.past.length > 0) && (
+            <AnimatedSection delay={4}>
+              <div className="mt-8 leadership-card bg-white border border-ivory-200 rounded-xl p-8 relative">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-navy-100 flex items-center justify-center text-brand">
+                    <CalendarDays className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-label text-label tracking-label uppercase text-brand">
+                    My Events
+                  </h3>
+                </div>
+
+                {rsvps.upcoming.length > 0 && (
+                  <div className="mb-8">
+                    <p className="font-label text-[0.65rem] tracking-widest uppercase text-brand/60 mb-3">Upcoming</p>
+                    <div className="divide-y divide-ivory-200">
+                      {rsvps.upcoming.map((r) => (
+                        <PortalRsvpRow key={r.rsvpId} r={r} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {rsvps.past.length > 0 && (
+                  <div>
+                    <p className="font-label text-[0.65rem] tracking-widest uppercase text-brand/60 mb-3">Past</p>
+                    <div className="divide-y divide-ivory-200 opacity-80">
+                      {rsvps.past.slice(0, 6).map((r) => (
+                        <PortalRsvpRow key={r.rsvpId} r={r} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="gold-accent-line" />
+              </div>
+            </AnimatedSection>
+          )}
 
           {/* Membership Benefits */}
           <AnimatedSection delay={5}>
@@ -722,5 +780,81 @@ export default function PortalPage() {
         </div>
       </section>
     </>
+  )
+}
+
+function PortalRsvpRow({ r }: { r: MyRsvpRow }) {
+  const start = new Date(r.event.startAt)
+  const month = start.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+  const day = start.getDate().toString()
+  const time = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  return (
+    <a href={`/events/${r.event.slug}`} className="flex items-center gap-4 py-3 group">
+      <div className="flex flex-col items-center justify-center min-w-[3.5rem] py-2 px-3 bg-page-bg rounded text-center">
+        <span className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">{month}</span>
+        <span className="font-display text-h5 text-brand leading-none mt-0.5">{day}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-body text-brand group-hover:text-accent transition-colors truncate">{r.event.title}</p>
+        <p className="text-small text-mid mt-0.5">
+          {time}
+          {r.event.location ? ` · ${r.event.location}` : ''}
+          {r.seats > 1 ? ` · ${r.seats} seats` : ''}
+        </p>
+      </div>
+      <div className="text-right text-xs flex-shrink-0">
+        {r.paidAt ? (
+          <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+            <CheckCircle className="w-3.5 h-3.5" />
+            Paid
+          </span>
+        ) : r.event.priceCents ? (
+          <span className="text-mid">
+            {r.payMode === 'door' ? 'Pay at door' : 'Pending'}
+          </span>
+        ) : (
+          <span className="text-hint">Free</span>
+        )}
+      </div>
+    </a>
+  )
+}
+
+function RenewButton() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handle() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/portal/renew', { method: 'POST' })
+      const raw = await res.text()
+      let body: { paymentUrl?: string; error?: string } = {}
+      try { body = raw ? JSON.parse(raw) : {} } catch { /* not JSON */ }
+      if (!res.ok || !body.paymentUrl) {
+        setError(body.error || `Renewal failed (${res.status}).`)
+        setLoading(false)
+        return
+      }
+      window.location.href = body.paymentUrl
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Network error.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="mt-4">
+      <button
+        type="button"
+        onClick={handle}
+        disabled={loading}
+        className="inline-flex items-center gap-2 bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2.5 rounded-sm hover:bg-gold-900 disabled:opacity-60 transition-all"
+      >
+        {loading ? 'Preparing checkout…' : 'Renew Now'}
+      </button>
+      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+    </div>
   )
 }

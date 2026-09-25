@@ -338,6 +338,25 @@ export default function AdminPage() {
   ]
   const exportFilename = `cvicc-members-${filter}-${new Date().toISOString().slice(0, 10)}.csv`
 
+  async function handleSendRenewals() {
+    if (!confirm('Send renewal reminder emails to members expiring in the next 30 days (skipping any sent in the last 21 days)?')) return
+    setNotice(null)
+    try {
+      const res = await fetch('/api/admin/renewals/send-reminders', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Failed to send reminders.' })
+      } else {
+        setNotice({
+          type: 'success',
+          text: `Sent ${data.sent} reminder${data.sent === 1 ? '' : 's'}. Skipped ${data.skippedCooldown} in cooldown, ${data.skippedOutOfWindow} out of window.${data.errors?.length ? ` ${data.errors.length} failed.` : ''}`,
+        })
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+  }
+
   const headerActions = (
     <>
       <ExportCsvButton
@@ -346,14 +365,25 @@ export default function AdminPage() {
         columns={exportColumns}
       />
       {canFinanceActions && (
-        <button
-          type="button"
-          onClick={() => { setPaymentError(''); setShowPaymentModal(true) }}
-          className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
-        >
-          <DollarSign className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Log Offline Payment</span>
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={handleSendRenewals}
+            className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
+            title="Send renewal reminder emails to members expiring in the next 30 days"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-gold-500" />
+            <span className="hidden sm:inline">Send Renewals</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setPaymentError(''); setShowPaymentModal(true) }}
+            className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-gold-900"
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Log Offline Payment</span>
+          </button>
+        </>
       )}
     </>
   )

@@ -4,8 +4,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Calendar, MapPin, Clock, Users, DollarSign } from 'lucide-react'
 import { db } from '@/lib/db'
-import { events } from '@/lib/schema'
-import { and, eq } from 'drizzle-orm'
+import { events, eventPhotos } from '@/lib/schema'
+import { and, eq, asc } from 'drizzle-orm'
 import { ensureEventsSchema } from '@/lib/ensure-events-schema'
 import Badge from '@/components/ui/Badge'
 import RsvpForm from './RsvpForm'
@@ -45,6 +45,17 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
   const start = new Date(ev.startAt)
   const end = ev.endAt ? new Date(ev.endAt) : null
   const isPast = start.getTime() < Date.now()
+
+  // Photos load only for past events since that's where they earn their
+  // place — recap galleries.
+  const photos = isPast
+    ? await db
+        .select()
+        .from(eventPhotos)
+        .where(eq(eventPhotos.eventId, ev.id))
+        .orderBy(asc(eventPhotos.displayOrder), asc(eventPhotos.uploadedAt))
+        .catch(() => [])
+    : []
 
   return (
     <>
@@ -121,6 +132,41 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
           )}
         </div>
       </section>
+
+      {isPast && photos.length > 0 && (
+        <section className="bg-page-alt py-16">
+          <div className="max-w-[75rem] mx-auto px-8">
+            <div className="text-center mb-10">
+              <p className="font-label text-[0.65rem] tracking-widest uppercase text-accent">Looking back</p>
+              <h2 className="font-display text-2xl md:text-3xl text-brand mt-2">Moments from the evening</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {photos.map((p) => (
+                <a
+                  key={p.id}
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative aspect-square overflow-hidden bg-navy-100 group"
+                >
+                  <Image
+                    src={p.url}
+                    alt={p.caption || ''}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    unoptimized
+                  />
+                  {p.caption && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                      {p.caption}
+                    </div>
+                  )}
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </>
   )
 }
