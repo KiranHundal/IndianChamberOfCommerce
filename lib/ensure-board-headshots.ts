@@ -88,12 +88,98 @@ async function seedRole(role: string, nameLike: string) {
   `)
 }
 
+// Seed a row only when nobody matching exists. The id is deterministic
+// so a re-run after a conflict doesn't accidentally create a second row.
+async function insertIfMissing(input: {
+  seedId: string
+  name: string
+  role: string
+  bio: string
+  photoUrl: string
+  category: 'executive' | 'officer' | 'board'
+  sector: string | null
+  displayOrder: number
+  nameLike: string
+}) {
+  const sectorValue = input.sector === null ? 'NULL' : `'${esc(input.sector)}'`
+  await tryRun(`
+    INSERT INTO board_members (id, name, role, bio, photo_url, category, sector, display_order, created_at)
+    SELECT '${esc(input.seedId)}', '${esc(input.name)}', '${esc(input.role)}', '${esc(input.bio)}',
+           '${esc(input.photoUrl)}', '${input.category}', ${sectorValue}, ${input.displayOrder},
+           strftime('%s', 'now')
+    WHERE NOT EXISTS (
+      SELECT 1 FROM board_members WHERE lower(trim(name)) LIKE '${input.nameLike}'
+    )
+  `)
+}
+
 export async function ensureBoardHeadshots() {
   if (ensured) return
   try {
     // Category column — safe to re-add; the error is swallowed by tryRun.
     await tryRun(`ALTER TABLE board_members ADD COLUMN category TEXT NOT NULL DEFAULT 'board'`)
     await tryRun(`ALTER TABLE board_members ADD COLUMN sector TEXT`)
+
+    // Seed the four known exec/officer rows if they're not already in the
+    // DB. Kiran Hundal was previously hardcoded in mockLeadership only, so
+    // she needs an INSERT. The others usually exist already from the
+    // admin; the guard means re-runs are safe.
+    await insertIfMissing({
+      seedId: 'seed-sonia-heer',
+      name: 'Sonia Heer',
+      role: 'Chairwoman · Founder · Spokeswoman',
+      sector: 'Real Estate',
+      category: 'executive',
+      displayOrder: 1,
+      photoUrl: '/headshots/sonia1.png',
+      bio: [
+        'Sonia Heer is a dynamic entrepreneur.',
+        "She serves as the Broker/Owner of Golden State Realty, Founder of Lavish Eventz and Fresno's annual Teeyan Festival, Owner of Spark Media, President of Aasra Foundation, and host of the Rise with Sonia podcast.",
+        'As the Chairwoman, Founder, and Spokeswoman of CVICC, Sonia is committed to fostering business growth, cultural connections, and community engagement throughout the Central Valley and beyond.',
+        'Passionate about real estate, culture, business, and community impact, she is dedicated to connecting people, empowering entrepreneurs, and creating opportunities that inspire growth.',
+        'Building communities. Elevating businesses. Inspiring lives.',
+      ].join('\n\n'),
+      nameLike: '%sonia%heer%',
+    })
+    await insertIfMissing({
+      seedId: 'seed-surdeep-singh',
+      name: 'Dr. Surdeep Singh',
+      role: 'President · Founder',
+      sector: 'Healthcare',
+      category: 'executive',
+      displayOrder: 2,
+      photoUrl: '/headshots/surdeep1.png',
+      bio: [
+        'Dr. Surdeep Singh is a dentist, entrepreneur, and community leader with a strong passion for business growth, innovation, and community development.',
+        'As Chamber of Commerce President, Dr. Singh is committed to supporting local businesses, strengthening community connections, encouraging collaboration, and creating opportunities for both business owners and community members to grow together.',
+      ].join('\n\n'),
+      nameLike: '%surdeep%singh%',
+    })
+    await insertIfMissing({
+      seedId: 'seed-rajinder-kumar',
+      name: 'Rajinder Kumar',
+      role: 'Executive Director · Founder',
+      sector: 'Finance',
+      category: 'executive',
+      displayOrder: 3,
+      photoUrl: '/headshots/RajK.jpeg',
+      bio: [
+        'Rajinder Kumar — CPFA, CRPC, SE-AWMA — is a Financial Advisor and Senior Portfolio Advisor, community advocate, and multilingual literary contributor based in Fresno.',
+        'He has personally assisted more than 5,500 Punjabi and Hindi-speaking individuals at the bank and brings decades of community-development experience from his years in Australia.',
+      ].join('\n\n'),
+      nameLike: '%rajinder%kumar%',
+    })
+    await insertIfMissing({
+      seedId: 'seed-kiran-hundal',
+      name: 'Kiran Hundal',
+      role: 'Treasurer & Chief Financial Officer',
+      sector: null,
+      category: 'officer',
+      displayOrder: 5,
+      photoUrl: '/headshots/KiranH.jpg',
+      bio: "Kiran Hundal serves as Treasurer & Chief Financial Officer of CVICC, overseeing the chamber's financial operations, budget planning, and fiscal reporting. Her attention to detail and financial acumen ensure every resource is directed toward member empowerment and community growth.",
+      nameLike: '%kiran%hundal%',
+    })
 
     await categorize('executive', '%sonia%heer%')
     await categorize('executive', '%surdeep%singh%')
