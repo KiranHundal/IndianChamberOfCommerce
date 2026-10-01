@@ -55,6 +55,31 @@ export async function ensureMembersRenewalSchema() {
         AND created_at >= strftime('%s', '${POLICY_CUTOFF_DATE}')
         AND (payment_date IS NOT NULL OR approved_at IS NOT NULL)
     `)
+
+    // One-time seed: Steve G. Luna (VP, Mechanics Bank). His corporate
+    // bank-issued device blocked the public join form; we're creating his
+    // record manually so the Square payment he receives via email links
+    // to a real member row. INSERT guarded by email uniqueness — safe to
+    // re-run.
+    await tryRun(`
+      INSERT INTO members (id, email, name, phone, business_name, city, sector, membership_tier, status, role, created_at)
+      SELECT
+        'seed-steve-luna-mechanics',
+        'stephen_luna@mechanicsbank.com',
+        'Steve G. Luna',
+        '209-793-1900',
+        'Mechanics Bank',
+        'Fresno',
+        'Finance',
+        'corporate',
+        'pending',
+        'member',
+        strftime('%s', 'now')
+      WHERE NOT EXISTS (
+        SELECT 1 FROM members WHERE email = 'stephen_luna@mechanicsbank.com'
+      )
+    `)
+
     ensured = true
   } catch (e) {
     console.error('ensureMembersRenewalSchema fatal:', e)
