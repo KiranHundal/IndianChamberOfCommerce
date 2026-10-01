@@ -10,6 +10,7 @@ import { mockLeadership } from "@/lib/mock-data";
 import { db } from "@/lib/db";
 import { leaderVideos, boardMembers as boardMembersTable } from "@/lib/schema";
 import { asc } from "drizzle-orm";
+import { ensureBoardHeadshots } from "@/lib/ensure-board-headshots";
 
 export const revalidate = 60;
 
@@ -72,6 +73,10 @@ async function getVideoMap(): Promise<Map<string, string>> {
 
 async function getDbBoardMembers(): Promise<DisplayBoardMember[]> {
   try {
+    // One-time backfill: wires /headshots/* photos onto any board_members
+    // row that doesn't have a photo of its own. See the file for how the
+    // name matching stays loose enough to catch common variants.
+    await ensureBoardHeadshots()
     const rows = await db.select().from(boardMembersTable).orderBy(asc(boardMembersTable.displayOrder))
     return rows.map((r) => ({
       key: `db-${r.id}`,
