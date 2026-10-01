@@ -36,6 +36,8 @@ export async function POST(req: NextRequest) {
     const role = formData.get('role')?.toString()?.trim() || 'Board Member'
     const bio = formData.get('bio')?.toString()?.trim() || null
     const email = formData.get('email')?.toString()?.trim()?.toLowerCase() || null
+    const categoryRaw = formData.get('category')?.toString()?.trim().toLowerCase() || 'board'
+    const category = ['executive', 'officer', 'board'].includes(categoryRaw) ? categoryRaw : 'board'
     const sendWelcome = formData.get('sendWelcome') === 'true'
     const displayOrder = parseInt(formData.get('displayOrder')?.toString() || '100', 10)
     const photo = formData.get('photo') as File | null
@@ -72,6 +74,7 @@ export async function POST(req: NextRequest) {
       bio,
       photoUrl,
       email,
+      category,
       displayOrder: Number.isFinite(displayOrder) ? displayOrder : 100,
       createdAt: new Date(),
     })

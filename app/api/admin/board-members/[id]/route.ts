@@ -46,6 +46,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const parsed = parseInt(displayOrderRaw, 10)
       if (Number.isFinite(parsed)) updates.displayOrder = parsed
     }
+    const categoryRaw = formData.get('category')?.toString()?.trim().toLowerCase()
+    if (categoryRaw && ['executive', 'officer', 'board'].includes(categoryRaw)) {
+      updates.category = categoryRaw
+    }
 
     const photo = formData.get('photo') as File | null
     if (photo && photo.size > 0) {

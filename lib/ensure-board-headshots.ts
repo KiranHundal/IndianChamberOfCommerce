@@ -41,9 +41,27 @@ async function repoint(fromUrl: string, toUrl: string) {
   await tryRun(`UPDATE board_members SET photo_url = '${toUrl}' WHERE photo_url = '${fromUrl}'`)
 }
 
+// One-time backfill: classify known exec/officer names so the public
+// Board Members grid stops showing them. New rows default to 'board'.
+async function categorize(category: 'executive' | 'officer', nameLike: string) {
+  await tryRun(`
+    UPDATE board_members
+    SET category = '${category}'
+    WHERE category = 'board'
+      AND lower(trim(name)) LIKE '${nameLike}'
+  `)
+}
+
 export async function ensureBoardHeadshots() {
   if (ensured) return
   try {
+    // Category column — safe to re-add; the error is swallowed by tryRun.
+    await tryRun(`ALTER TABLE board_members ADD COLUMN category TEXT NOT NULL DEFAULT 'board'`)
+    await categorize('executive', '%sonia%heer%')
+    await categorize('executive', '%surdeep%singh%')
+    await categorize('executive', '%rajinder%kumar%')
+    await categorize('officer',   '%kiran%hundal%')
+
     // Fix anyone my earlier backfill left on the stale placeholder path
     // before we knew the real headshot lived at /headshots/RajK.jpeg.
     await repoint('/headshots/rajinder-kumar.jpg', '/headshots/RajK.jpeg')

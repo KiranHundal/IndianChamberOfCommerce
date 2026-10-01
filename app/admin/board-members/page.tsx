@@ -27,6 +27,7 @@ interface BoardMemberRow {
   bio: string | null
   photoUrl: string | null
   email: string | null
+  category: 'executive' | 'officer' | 'board' | string
   displayOrder: number
   createdAt: string | number
   welcomeEmailSentAt: string | number | null
@@ -240,6 +241,22 @@ export default function AdminBoardMembersPage() {
                     className={inputClass}
                     placeholder="Board Member"
                   />
+                  <p className="text-[0.7rem] text-hint mt-1">Position title shown under the name (e.g. &ldquo;Treasurer&rdquo;, &ldquo;CPA&rdquo;).</p>
+                </div>
+                <div>
+                  <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Category
+                  </label>
+                  <select
+                    name="category"
+                    defaultValue={editingRow?.category || 'board'}
+                    className={inputClass}
+                  >
+                    <option value="board">Board Member — grid on /about/leadership</option>
+                    <option value="executive">Executive — rich card at top of /about/leadership</option>
+                    <option value="officer">Officer — in the Officers section</option>
+                  </select>
+                  <p className="text-[0.7rem] text-hint mt-1">Where this person renders on the public leadership page. Only one source of truth now.</p>
                 </div>
                 <div>
                   <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
@@ -387,7 +404,15 @@ export default function AdminBoardMembersPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-display text-h5 text-brand">{row.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-display text-h5 text-brand">{row.name}</p>
+                      {row.category === 'executive' && (
+                        <span className="inline-flex items-center text-[0.6rem] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-gold-100 text-gold-900">Exec</span>
+                      )}
+                      {row.category === 'officer' && (
+                        <span className="inline-flex items-center text-[0.6rem] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-navy-100 text-navy-900">Officer</span>
+                      )}
+                    </div>
                     <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/70 mt-0.5">{row.role}</p>
                     {row.email && (
                       <p className="text-small text-mid mt-1 flex items-center gap-1.5">

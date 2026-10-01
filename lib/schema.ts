@@ -115,6 +115,14 @@ export const boardMembers = sqliteTable('board_members', {
   bio: text('bio'),
   photoUrl: text('photo_url'),
   email: text('email'),
+  // Where this person is rendered on /about/leadership. The hardcoded
+  // Executive Leadership and Officers sections used to control this via
+  // mockLeadership name matching, which produced duplicates when the same
+  // name was added via the Board Members admin. Now a single DB column
+  // decides: 'executive' | 'officer' | 'board' (default 'board').
+  // Public page excludes execs/officers from the board grid; admin treats
+  // them all equally for CRUD purposes.
+  category: text('category').notNull().default('board'),
   displayOrder: integer('display_order').notNull().default(100),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   welcomeEmailSentAt: integer('welcome_email_sent_at', { mode: 'timestamp' }),

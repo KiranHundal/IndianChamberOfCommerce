@@ -71,37 +71,17 @@ async function getVideoMap(): Promise<Map<string, string>> {
   }
 }
 
-// Everyone already featured in the Executive Leadership + Officers
-// sections above should NOT appear again in the Board Members grid.
-// Normalized to loose "first last" so variants ("Dr. Surdeep Singh",
-// "Rajinder K Kumar", "Kiran Hundal, CPA") all hit.
-const EXCLUDED_FROM_BOARD_GRID = new Set([
-  "sonia heer",
-  "surdeep singh",
-  "rajinder kumar",
-  "kiran hundal",
-])
-
-function normalizeForExclusion(name: string): string {
-  const tokens = name
-    .toLowerCase()
-    .trim()
-    .replace(/[.,]/g, "")
-    .split(/\s+/)
-    .filter((t) => !["dr", "mr", "mrs", "ms", "prof", "jr", "sr"].includes(t))
-  if (tokens.length <= 2) return tokens.join(" ")
-  return `${tokens[0]} ${tokens[tokens.length - 1]}`
-}
-
 async function getDbBoardMembers(): Promise<DisplayBoardMember[]> {
   try {
     // One-time backfill: wires /headshots/* photos onto any board_members
-    // row that doesn't have a photo of its own. See the file for how the
-    // name matching stays loose enough to catch common variants.
+    // row that doesn't have a photo of its own and classifies the four
+    // known exec/officer names so they're excluded from the grid below.
     await ensureBoardHeadshots()
     const rows = await db.select().from(boardMembersTable).orderBy(asc(boardMembersTable.displayOrder))
+    // Only `category = 'board'` renders in this grid. Execs and officers
+    // appear in their own hardcoded sections above (richer card design).
     return rows
-      .filter((r) => !EXCLUDED_FROM_BOARD_GRID.has(normalizeForExclusion(r.name)))
+      .filter((r) => (r.category || 'board') === 'board')
       .map((r) => ({
         key: `db-${r.id}`,
         name: r.name,
