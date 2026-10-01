@@ -34,11 +34,22 @@ async function fill(photoUrl: string, nameLike: string) {
   `)
 }
 
+// Repoint any rows that previously pointed at a stale placeholder path.
+// Separate from `fill()` because this intentionally overwrites a
+// non-null photo_url when it matches a known-bad URL.
+async function repoint(fromUrl: string, toUrl: string) {
+  await tryRun(`UPDATE board_members SET photo_url = '${toUrl}' WHERE photo_url = '${fromUrl}'`)
+}
+
 export async function ensureBoardHeadshots() {
   if (ensured) return
   try {
-    await fill('/headshots/rajinder-kumar.jpg', '%rajinder%kumar%')
-    await fill('/headshots/manreet-sandhu.jpg', '%manreet%sandhu%')
+    // Fix anyone my earlier backfill left on the stale placeholder path
+    // before we knew the real headshot lived at /headshots/RajK.jpeg.
+    await repoint('/headshots/rajinder-kumar.jpg', '/headshots/RajK.jpeg')
+
+    await fill('/headshots/RajK.jpeg',           '%rajinder%kumar%')
+    await fill('/headshots/manreet-sandhu.jpg',  '%manreet%sandhu%')
     await fill('/headshots/sonia1.png',          '%sonia%heer%')
     await fill('/headshots/surdeep1.png',        '%surdeep%singh%')
     await fill('/headshots/Roken1.png',          '%roken%bhatt%')

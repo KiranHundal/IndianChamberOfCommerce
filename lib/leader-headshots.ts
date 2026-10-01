@@ -17,7 +17,7 @@
 const HEADSHOTS: Record<string, string> = {
   'sonia heer': '/headshots/sonia1.png',
   'surdeep singh': '/headshots/surdeep1.png',
-  'rajinder kumar': '/headshots/rajinder-kumar.jpg',
+  'rajinder kumar': '/headshots/RajK.jpeg',
   'kiran hundal': '/headshots/KiranH.jpg',
   'roken bhatt': '/headshots/Roken1.png',
   'manreet sandhu': '/headshots/manreet-sandhu.jpg',
