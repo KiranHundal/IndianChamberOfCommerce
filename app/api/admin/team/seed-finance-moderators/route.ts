@@ -13,7 +13,7 @@ import { sendTeamAccessEmail } from '@/lib/email'
 const TARGETS = [
   { name: 'Sonia Heer', email: 'sonniaheer@yahoo.com' },
   { name: 'Roken Bhatt', email: 'roken@bhattcpa.org' },
-  { name: 'Surdeep Singh', email: 'dentist.singh95@gmail.com' },
+  { name: 'Dr. Surdeep Singh', email: 'dentist.singh95@gmail.com' },
   { name: 'Rajinder Kumar', email: 'rk.aususa@gmail.com' },
 ] as const
 

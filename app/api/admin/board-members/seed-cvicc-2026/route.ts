@@ -15,7 +15,7 @@ const SEED = [
   { name: 'Manreet Singh Sandhu', role: 'Board Member', email: 'manreet.singh.sandhu@gmail.com' },
   { name: 'Sonia Heer', role: 'Board Member', email: 'sonniaheer@yahoo.com' },
   { name: 'Roken Bhatt', role: 'Treasurer / CPA', email: 'roken@bhattcpa.org' },
-  { name: 'Surdeep Singh', role: 'Board Member', email: 'dentist.singh95@gmail.com' },
+  { name: 'Dr. Surdeep Singh', role: 'Board Member', email: 'dentist.singh95@gmail.com' },
   { name: 'R. Sidhu Buttar', role: 'Board Member', email: 'rsidhu.buttar@gmail.com' },
 ] as const
 

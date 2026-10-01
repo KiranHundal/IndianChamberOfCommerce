@@ -10,7 +10,7 @@ import { eq, isNull } from 'drizzle-orm'
  *
  * Distribution — of every non-staff member without a referredBy set:
  *   - 60% attributed to Sonia Heer
- *   - 10% attributed to Surdeep Singh (Dr.)
+ *   - 10% attributed to Dr. Surdeep Singh
  *   - remaining 30% split roughly evenly among the other board members
  *
  * This is idempotent — it only touches members with referredBy == null,
@@ -50,7 +50,7 @@ async function runSeed() {
   const others = allBoard.filter((b) => b.id !== sonia?.id && b.id !== surdeep?.id)
 
   if (!sonia) return NextResponse.json({ error: 'Sonia Heer not found in board_members.' }, { status: 400 })
-  if (!surdeep) return NextResponse.json({ error: 'Surdeep Singh not found in board_members.' }, { status: 400 })
+  if (!surdeep) return NextResponse.json({ error: 'Dr. Surdeep Singh not found in board_members.' }, { status: 400 })
   if (others.length === 0) return NextResponse.json({ error: 'No other board members to distribute the remaining share to.' }, { status: 400 })
 
   const total = nonStaff.length
