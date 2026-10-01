@@ -33,8 +33,6 @@ export const metadata: Metadata = {
 // photoUrl of its own. See headshotFor() there for the normalization rules.
 import { headshotFor } from "@/lib/leader-headshots";
 
-const PLACEHOLDER_MEMBERS = new Set(["Manreet Sandhu"]);
-
 const HEADSHOT_POSITION: Record<string, string> = {
   "Sonia Heer": "center 10%",
   "Dr. Surdeep Singh": "center 10%",
@@ -58,13 +56,10 @@ const executives = mockLeadership.filter((l) =>
 const officers = mockLeadership.filter((l) =>
   ["Kiran Hundal"].includes(l.name)
 );
-const boardMembers = mockLeadership.filter((l) =>
-  [
-    "Roken Bhatt",
-    "Manreet Sandhu",
-    "Akash Singal",
-  ].includes(l.name)
-);
+// Board members are now fully DB-driven via /admin/board-members.
+// The hardcoded mock list that used to merge in here caused duplicates
+// whenever an admin re-added one of those names, and left Manreet Sandhu
+// forced into a placeholder state. One source of truth = fewer surprises.
 
 async function getVideoMap(): Promise<Map<string, string>> {
   try {
@@ -95,19 +90,8 @@ export default async function LeadershipPage() {
   const videoMap = await getVideoMap();
   const dbBoardMembers = await getDbBoardMembers();
 
-  const hardcodedBoardMembers: DisplayBoardMember[] = boardMembers.map((leader, i) => ({
-    key: leader._id,
-    name: leader.name,
-    role: leader.role,
-    photoUrl: headshotFor(leader.name) || "/headshots/placeholder.jpg",
-    isPlaceholder: PLACEHOLDER_MEMBERS.has(leader.name),
-    displayOrder: i,
-  }));
-
-  const allBoardMembers: DisplayBoardMember[] = [
-    ...hardcodedBoardMembers,
-    ...dbBoardMembers,
-  ].sort((a, b) => a.displayOrder - b.displayOrder);
+  const allBoardMembers: DisplayBoardMember[] = [...dbBoardMembers]
+    .sort((a, b) => a.displayOrder - b.displayOrder);
   return (
     <>
       {/* Hero */}
