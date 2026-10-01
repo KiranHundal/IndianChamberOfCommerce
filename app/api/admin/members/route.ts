@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq, desc, isNotNull, count } from 'drizzle-orm'
 import { sendMemberApprovedEmail } from '@/lib/email'
+import { ensureMembersRenewalSchema } from '@/lib/ensure-members-schema'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -27,6 +28,10 @@ export async function GET(req: NextRequest) {
   if (!session?.user || (role !== 'admin' && role !== 'moderator' && role !== 'reviewer')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  // Catches members-side migrations + seeds on first admin load of the
+  // list, not just /portal or Overview.
+  await ensureMembersRenewalSchema().catch(() => {})
 
   const { searchParams } = new URL(req.url)
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
