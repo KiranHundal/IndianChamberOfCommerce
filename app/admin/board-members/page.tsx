@@ -28,6 +28,7 @@ interface BoardMemberRow {
   photoUrl: string | null
   email: string | null
   category: 'executive' | 'officer' | 'board' | string
+  sector: string | null
   displayOrder: number
   createdAt: string | number
   welcomeEmailSentAt: string | number | null
@@ -257,6 +258,19 @@ export default function AdminBoardMembersPage() {
                     <option value="officer">Officer — in the Officers section</option>
                   </select>
                   <p className="text-[0.7rem] text-hint mt-1">Where this person renders on the public leadership page. Only one source of truth now.</p>
+                </div>
+                <div>
+                  <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">
+                    Industry Sector (optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="sector"
+                    defaultValue={editingRow?.sector || ''}
+                    className={inputClass}
+                    placeholder="e.g. Finance, Healthcare, Real Estate"
+                  />
+                  <p className="text-[0.7rem] text-hint mt-1">Shown as a navy badge on the Executive card. Leave blank for board/officer rows.</p>
                 </div>
                 <div>
                   <label className="font-label text-micro tracking-widest uppercase text-brand block mb-2">

@@ -123,6 +123,10 @@ export const boardMembers = sqliteTable('board_members', {
   // Public page excludes execs/officers from the board grid; admin treats
   // them all equally for CRUD purposes.
   category: text('category').notNull().default('board'),
+  // Industry badge shown on the rich exec card (e.g. "Finance",
+  // "Healthcare", "Real Estate"). Optional — board rows usually leave
+  // this null.
+  sector: text('sector'),
   displayOrder: integer('display_order').notNull().default(100),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   welcomeEmailSentAt: integer('welcome_email_sent_at', { mode: 'timestamp' }),

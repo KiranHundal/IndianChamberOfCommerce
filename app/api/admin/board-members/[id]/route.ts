@@ -50,6 +50,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (categoryRaw && ['executive', 'officer', 'board'].includes(categoryRaw)) {
       updates.category = categoryRaw
     }
+    const sectorRaw = formData.get('sector')
+    if (sectorRaw !== null) {
+      const trimmed = sectorRaw.toString().trim()
+      updates.sector = trimmed === '' ? null : trimmed
+    }
 
     const photo = formData.get('photo') as File | null
     if (photo && photo.size > 0) {

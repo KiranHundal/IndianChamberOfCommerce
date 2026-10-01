@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     const email = formData.get('email')?.toString()?.trim()?.toLowerCase() || null
     const categoryRaw = formData.get('category')?.toString()?.trim().toLowerCase() || 'board'
     const category = ['executive', 'officer', 'board'].includes(categoryRaw) ? categoryRaw : 'board'
+    const sector = formData.get('sector')?.toString()?.trim() || null
     const sendWelcome = formData.get('sendWelcome') === 'true'
     const displayOrder = parseInt(formData.get('displayOrder')?.toString() || '100', 10)
     const photo = formData.get('photo') as File | null
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
       photoUrl,
       email,
       category,
+      sector,
       displayOrder: Number.isFinite(displayOrder) ? displayOrder : 100,
       createdAt: new Date(),
     })

@@ -4,9 +4,7 @@ import SectionLabel from "@/components/ui/SectionLabel";
 import Divider from "@/components/ui/Divider";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import Badge from "@/components/ui/Badge";
-import LeaderBio from "@/components/leadership/LeaderBio";
 import LeaderVideo from "@/components/leadership/LeaderVideo";
-import { mockLeadership } from "@/lib/mock-data";
 import { db } from "@/lib/db";
 import { leaderVideos, boardMembers as boardMembersTable } from "@/lib/schema";
 import { asc } from "drizzle-orm";
@@ -21,6 +19,22 @@ interface DisplayBoardMember {
   photoUrl: string;
   isPlaceholder: boolean;
   displayOrder: number;
+}
+
+interface DisplayLeader {
+  key: string;
+  name: string;
+  role: string;
+  sector: string | null;
+  bio: string | null;
+  photoUrl: string;
+}
+
+// Split a bio text block into paragraphs. Admins type bios in the
+// board-members form as plain text with blank lines between paragraphs.
+function bioParagraphs(bio: string | null): string[] {
+  if (!bio) return [];
+  return bio.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
 }
 
 export const metadata: Metadata = {
@@ -51,16 +65,9 @@ const EXEC_TRANSFORM: Record<string, string> = {
 
 // Board transforms applied via CSS media query (lg+) in globals.css
 
-const executives = mockLeadership.filter((l) =>
-  ["Sonia Heer", "Dr. Surdeep Singh", "Rajinder Kumar"].includes(l.name)
-);
-const officers = mockLeadership.filter((l) =>
-  ["Kiran Hundal"].includes(l.name)
-);
-// Board members are now fully DB-driven via /admin/board-members.
-// The hardcoded mock list that used to merge in here caused duplicates
-// whenever an admin re-added one of those names, and left Manreet Sandhu
-// forced into a placeholder state. One source of truth = fewer surprises.
+// Every section (execs / officers / board) now reads from board_members,
+// classified by the `category` column. Admin promotes/demotes anyone from
+// /admin/board-members with no code change.
 
 async function getVideoMap(): Promise<Map<string, string>> {
   try {
@@ -71,35 +78,53 @@ async function getVideoMap(): Promise<Map<string, string>> {
   }
 }
 
-async function getDbBoardMembers(): Promise<DisplayBoardMember[]> {
+async function getAllRows() {
   try {
-    // One-time backfill: wires /headshots/* photos onto any board_members
-    // row that doesn't have a photo of its own and classifies the four
-    // known exec/officer names so they're excluded from the grid below.
+    // One-time backfill: adds `category` + `sector` columns, backfills
+    // headshots, roles, sectors and bios for the four known exec/officer
+    // names. Idempotent after the first pass.
     await ensureBoardHeadshots()
-    const rows = await db.select().from(boardMembersTable).orderBy(asc(boardMembersTable.displayOrder))
-    // Only `category = 'board'` renders in this grid. Execs and officers
-    // appear in their own hardcoded sections above (richer card design).
-    return rows
-      .filter((r) => (r.category || 'board') === 'board')
-      .map((r) => ({
-        key: `db-${r.id}`,
-        name: r.name,
-        role: r.role,
-        photoUrl: r.photoUrl || headshotFor(r.name) || "/headshots/placeholder.jpg",
-        isPlaceholder: !r.photoUrl && !headshotFor(r.name),
-        displayOrder: r.displayOrder,
-      }))
+    return await db.select().from(boardMembersTable).orderBy(asc(boardMembersTable.displayOrder))
   } catch {
     return []
   }
 }
 
+function toDisplayLeader(r: typeof boardMembersTable.$inferSelect): DisplayLeader {
+  return {
+    key: `db-${r.id}`,
+    name: r.name,
+    role: r.role,
+    sector: r.sector,
+    bio: r.bio,
+    photoUrl: r.photoUrl || headshotFor(r.name) || "/headshots/placeholder.jpg",
+  };
+}
+
+function toDisplayBoard(r: typeof boardMembersTable.$inferSelect): DisplayBoardMember {
+  return {
+    key: `db-${r.id}`,
+    name: r.name,
+    role: r.role,
+    photoUrl: r.photoUrl || headshotFor(r.name) || "/headshots/placeholder.jpg",
+    isPlaceholder: !r.photoUrl && !headshotFor(r.name),
+    displayOrder: r.displayOrder,
+  };
+}
+
 export default async function LeadershipPage() {
   const videoMap = await getVideoMap();
-  const dbBoardMembers = await getDbBoardMembers();
+  const rows = await getAllRows();
 
-  const allBoardMembers: DisplayBoardMember[] = [...dbBoardMembers]
+  const executives: DisplayLeader[] = rows
+    .filter((r) => r.category === "executive")
+    .map(toDisplayLeader);
+  const officers: DisplayLeader[] = rows
+    .filter((r) => r.category === "officer")
+    .map(toDisplayLeader);
+  const allBoardMembers: DisplayBoardMember[] = rows
+    .filter((r) => (r.category || "board") === "board")
+    .map(toDisplayBoard)
     .sort((a, b) => a.displayOrder - b.displayOrder);
   return (
     <>
@@ -133,7 +158,8 @@ export default async function LeadershipPage() {
         </div>
       </section>
 
-      {/* Executive Leadership */}
+      {/* Executive Leadership — hidden when no exec rows exist */}
+      {executives.length > 0 && (
       <section className="bg-page-bg py-24">
         <div className="max-w-6xl mx-auto px-8">
           <div className="text-center mb-14">
@@ -146,15 +172,14 @@ export default async function LeadershipPage() {
           </div>
 
           <div className="space-y-10">
-            {executives.map((leader, i) => (
-              <AnimatedSection key={leader._id} delay={i + 2}>
+            {executives.map((leader, i) => {
+              const paras = bioParagraphs(leader.bio);
+              return (
+              <AnimatedSection key={leader.key} delay={i + 2}>
                 <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col md:flex-row relative">
                   <div className="card-image relative w-full md:w-80 lg:w-96 h-96 md:h-auto md:min-h-[28rem] flex-shrink-0 overflow-hidden">
                     <Image
-                      src={
-                        headshotFor(leader.name) ||
-                        "/headshots/placeholder.jpg"
-                      }
+                      src={leader.photoUrl}
                       alt={leader.name}
                       fill
                       className="object-cover"
@@ -182,10 +207,16 @@ export default async function LeadershipPage() {
                     </p>
                     {leader.sector && (
                       <Badge variant="navy" className="mt-3 self-start">
-                        {leader.sector.name}
+                        {leader.sector}
                       </Badge>
                     )}
-                    <LeaderBio leader={leader} className="mt-5" />
+                    {paras.length > 0 && (
+                      <div className="space-y-3 mt-5">
+                        {paras.map((p, idx) => (
+                          <p key={idx} className="text-small text-mid leading-relaxed">{p}</p>
+                        ))}
+                      </div>
+                    )}
                     {videoMap.get(leader.name) && (
                       <LeaderVideo url={videoMap.get(leader.name)!} name={leader.name} className="mt-6" />
                     )}
@@ -194,12 +225,15 @@ export default async function LeadershipPage() {
                   <div className="gold-accent-line" />
                 </div>
               </AnimatedSection>
-            ))}
+            );
+            })}
           </div>
         </div>
       </section>
+      )}
 
-      {/* Officers */}
+      {/* Officers — hidden when no officer rows exist */}
+      {officers.length > 0 && (
       <section className="bg-page-alt py-20">
         <div className="max-w-6xl mx-auto px-8">
           <div className="text-center mb-12">
@@ -212,15 +246,14 @@ export default async function LeadershipPage() {
           </div>
 
           <div className="flex justify-center">
-            {officers.map((leader, i) => (
-              <AnimatedSection key={leader._id} delay={i + 2}>
+            {officers.map((leader, i) => {
+              const paras = bioParagraphs(leader.bio);
+              return (
+              <AnimatedSection key={leader.key} delay={i + 2}>
                 <div className="officer-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-row min-h-[12rem] w-[28rem] max-w-full relative">
                   <div className="card-image relative w-48 flex-shrink-0 overflow-hidden">
                     <Image
-                      src={
-                        headshotFor(leader.name) ||
-                        "/headshots/placeholder.jpg"
-                      }
+                      src={leader.photoUrl}
                       alt={leader.name}
                       fill
                       className="object-cover transition-transform duration-700"
@@ -239,7 +272,13 @@ export default async function LeadershipPage() {
                     <p className="font-label text-[0.625rem] tracking-widest uppercase text-brand/70 mt-2">
                       {leader.role}
                     </p>
-                    <LeaderBio leader={leader} className="mt-4" />
+                    {paras.length > 0 && (
+                      <div className="space-y-3 mt-4">
+                        {paras.map((p, idx) => (
+                          <p key={idx} className="text-small text-mid leading-relaxed">{p}</p>
+                        ))}
+                      </div>
+                    )}
                     {videoMap.get(leader.name) && (
                       <LeaderVideo url={videoMap.get(leader.name)!} name={leader.name} className="mt-4" />
                     )}
@@ -248,10 +287,12 @@ export default async function LeadershipPage() {
                   <div className="gold-accent-line" />
                 </div>
               </AnimatedSection>
-            ))}
+            );
+            })}
           </div>
         </div>
       </section>
+      )}
 
       {/* Board Members */}
       <section className="bg-page-bg py-24">
