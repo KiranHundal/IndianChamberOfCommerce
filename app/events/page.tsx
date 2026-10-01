@@ -48,7 +48,7 @@ export default async function EventsPage() {
 
   return (
     <>
-      <section className="bg-navy-900 py-20 md:py-24 lg:py-28 text-center">
+      <section className="bg-navy-900 py-14 md:py-16 lg:py-20 text-center">
         <div className="max-w-[75rem] mx-auto px-8">
           <SectionLabel dark>What&apos;s Happening</SectionLabel>
           <SectionTitle dark className="mt-4">Events &amp; Programs</SectionTitle>

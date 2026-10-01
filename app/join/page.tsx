@@ -156,7 +156,7 @@ export default function JoinPage() {
   if (session) {
     return (
       <>
-        <section className="bg-navy-900 py-20 md:py-24 lg:py-28 text-center relative overflow-hidden">
+        <section className="bg-navy-900 py-14 md:py-16 lg:py-20 text-center relative overflow-hidden">
           <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
           <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
           <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
@@ -196,7 +196,7 @@ export default function JoinPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-navy-900 py-20 md:py-24 lg:py-28 text-center relative overflow-hidden">
+      <section className="bg-navy-900 py-14 md:py-16 lg:py-20 text-center relative overflow-hidden">
         <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
         <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
         <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />

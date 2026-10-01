@@ -57,12 +57,6 @@ const HEADSHOT_POSITION: Record<string, string> = {
   "Kiran Hundal": "center 10%",
 };
 
-const EXEC_TRANSFORM: Record<string, string> = {
-  "Sonia Heer": "scale(1.25) translateY(-6%)",
-  "Dr. Surdeep Singh": "scale(1.25) translateY(-1%)",
-  "Rajinder Kumar": "scale(1.25) translateY(-5%)",
-};
-
 // Board transforms applied via CSS media query (lg+) in globals.css
 
 // Every section (execs / officers / board) now reads from board_members,
@@ -129,7 +123,7 @@ export default async function LeadershipPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-navy-900 py-20 md:py-24 lg:py-28 text-center relative overflow-hidden">
+      <section className="bg-navy-900 py-14 md:py-16 lg:py-20 text-center relative overflow-hidden">
         <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30 corner-bracket corner-bracket-tl" />
         <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30 corner-bracket corner-bracket-tr" />
         <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30 corner-bracket corner-bracket-bl" />
@@ -177,7 +171,7 @@ export default async function LeadershipPage() {
               return (
               <AnimatedSection key={leader.key} delay={i + 2}>
                 <div className="leadership-card bg-white border border-ivory-200 rounded-xl overflow-hidden flex flex-col md:flex-row relative">
-                  <div className="card-image relative w-full md:w-80 lg:w-96 h-96 md:h-auto md:min-h-[28rem] flex-shrink-0 overflow-hidden">
+                  <div className="card-image relative w-full md:w-56 lg:w-64 xl:w-72 h-80 md:h-auto md:min-h-[20rem] flex-shrink-0 overflow-hidden">
                     <Image
                       src={leader.photoUrl}
                       alt={leader.name}
@@ -186,8 +180,6 @@ export default async function LeadershipPage() {
                       style={{
                         objectPosition:
                           HEADSHOT_POSITION[leader.name] || "center top",
-                        transform: EXEC_TRANSFORM[leader.name] || undefined,
-                        transformOrigin: "center top",
                       }}
                     />
                     <div className="md:hidden card-overlay absolute inset-0 bg-gradient-to-t from-navy-900/80 via-navy-900/20 to-transparent" />
