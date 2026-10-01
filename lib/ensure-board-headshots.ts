@@ -250,6 +250,16 @@ export async function ensureBoardHeadshots() {
       `UPDATE board_members SET display_order = 5 WHERE lower(trim(name)) LIKE '%kiran%hundal%'`)
     await markMigrationApplied(EXEC_ORDER_V2)
 
+    // One-time: honorific-fy Surdeep's name. The admin added him as
+    // "Surdeep Singh" but the correct public-facing name is
+    // "Dr. Surdeep Singh" — matches the role title and his video key.
+    const SURDEEP_DR_V1 = 'surdeep_dr_v1'
+    await runOnceUpdate(SURDEEP_DR_V1,
+      `UPDATE board_members SET name = 'Dr. Surdeep Singh'
+       WHERE lower(trim(name)) LIKE '%surdeep%singh%'
+         AND name != 'Dr. Surdeep Singh'`)
+    await markMigrationApplied(SURDEEP_DR_V1)
+
     // Industry badges.
     await seedSector('Real Estate', '%sonia%heer%')
     await seedSector('Healthcare',  '%surdeep%singh%')
