@@ -88,6 +88,17 @@ async function seedRole(role: string, nameLike: string) {
   `)
 }
 
+// Only overwrites when the row is still on the default display_order of
+// 100 — once an admin has edited the order, we never touch it again.
+async function seedDisplayOrder(order: number, nameLike: string) {
+  await tryRun(`
+    UPDATE board_members
+    SET display_order = ${order}
+    WHERE display_order = 100
+      AND lower(trim(name)) LIKE '${nameLike}'
+  `)
+}
+
 // Seed a row only when nobody matching exists. The id is deterministic
 // so a re-run after a conflict doesn't accidentally create a second row.
 async function insertIfMissing(input: {
@@ -191,6 +202,14 @@ export async function ensureBoardHeadshots() {
     await seedRole('President · Founder',                '%surdeep%singh%')
     await seedRole('Executive Director · Founder',       '%rajinder%kumar%')
     await seedRole('Treasurer & Chief Financial Officer', '%kiran%hundal%')
+
+    // Canonical exec order: Sonia (1) → Surdeep (2) → Rajinder (3).
+    // Officers follow (Kiran at 5). Only applies when the row is still
+    // on the default order of 100, so admin tweaks are preserved.
+    await seedDisplayOrder(1, '%sonia%heer%')
+    await seedDisplayOrder(2, '%surdeep%singh%')
+    await seedDisplayOrder(3, '%rajinder%kumar%')
+    await seedDisplayOrder(5, '%kiran%hundal%')
 
     // Industry badges.
     await seedSector('Real Estate', '%sonia%heer%')
