@@ -3,6 +3,28 @@ import { sql } from 'drizzle-orm'
 
 let ensured = false
 
+// Persisted migration marker — a tiny table that lets us run "do this
+// one specific thing once, ever" statements that need to overwrite data
+// (not just add it). Reads survive deploys and cold starts, unlike the
+// in-memory `ensured` flag.
+async function hasMigrationRun(name: string): Promise<boolean> {
+  try {
+    await db.run(sql.raw(`CREATE TABLE IF NOT EXISTS app_migrations (
+      name TEXT PRIMARY KEY,
+      applied_at INTEGER NOT NULL
+    )`))
+    const row = await db.get(sql.raw(`SELECT name FROM app_migrations WHERE name = '${name}'`))
+    return !!row
+  } catch (e) {
+    console.error('hasMigrationRun failed:', e)
+    return true // Safer to skip than to re-run and clobber data on error.
+  }
+}
+
+async function markMigrationApplied(name: string) {
+  await tryRun(`INSERT INTO app_migrations (name, applied_at) VALUES ('${name}', strftime('%s', 'now'))`)
+}
+
 async function tryRun(statement: string) {
   try {
     await db.run(sql.raw(statement))
@@ -210,6 +232,19 @@ export async function ensureBoardHeadshots() {
     await seedDisplayOrder(2, '%surdeep%singh%')
     await seedDisplayOrder(3, '%rajinder%kumar%')
     await seedDisplayOrder(5, '%kiran%hundal%')
+
+    // One-time hard correction: the admin had already set non-default
+    // orders for the execs (so seedDisplayOrder's "= 100" guard skipped
+    // them), leaving Rajinder in the first slot. This forces the
+    // canonical sequence once and never again, so future admin reorders
+    // stick permanently.
+    if (!(await hasMigrationRun('exec_order_v1'))) {
+      await tryRun(`UPDATE board_members SET display_order = 1 WHERE lower(trim(name)) LIKE '%sonia%heer%'`)
+      await tryRun(`UPDATE board_members SET display_order = 2 WHERE lower(trim(name)) LIKE '%surdeep%singh%'`)
+      await tryRun(`UPDATE board_members SET display_order = 3 WHERE lower(trim(name)) LIKE '%rajinder%kumar%'`)
+      await tryRun(`UPDATE board_members SET display_order = 5 WHERE lower(trim(name)) LIKE '%kiran%hundal%'`)
+      await markMigrationApplied('exec_order_v1')
+    }
 
     // Industry badges.
     await seedSector('Real Estate', '%sonia%heer%')
