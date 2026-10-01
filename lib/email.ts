@@ -387,6 +387,9 @@ export async function sendMembershipPaymentLinkEmail(member: {
   name: string
   email: string
   membershipTier: string
+  // Optional CC — typically the board member who referred them, so they
+  // can see the handoff happen and follow up directly.
+  cc?: string | null
 }) {
   const resend = getResend()
   if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
@@ -400,6 +403,7 @@ export async function sendMembershipPaymentLinkEmail(member: {
   return resend.emails.send({
     from: `CVICC <${fromEmail}>`,
     to: member.email,
+    cc: member.cc ? [member.cc] : undefined,
     subject: `CVICC Membership — Complete Your ${tierLabel} Payment`,
     html: `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
