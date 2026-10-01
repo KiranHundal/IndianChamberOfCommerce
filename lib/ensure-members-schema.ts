@@ -59,26 +59,32 @@ export async function ensureMembersRenewalSchema() {
     // One-time seed: Steve G. Luna (VP, Mechanics Bank). His corporate
     // bank-issued device blocked the public join form; we're creating his
     // record manually so the Square payment he receives via email links
-    // to a real member row. INSERT guarded by email uniqueness — safe to
-    // re-run.
-    await tryRun(`
-      INSERT INTO members (id, email, name, phone, business_name, city, sector, membership_tier, status, role, created_at)
-      SELECT
-        'seed-steve-luna-mechanics',
-        'stephen_luna@mechanicsbank.com',
-        'Steve G. Luna',
-        '209-793-1900',
-        'Mechanics Bank',
-        'Fresno',
-        'Finance',
-        'corporate',
-        'pending',
-        'member',
-        strftime('%s', 'now')
-      WHERE NOT EXISTS (
-        SELECT 1 FROM members WHERE email = 'stephen_luna@mechanicsbank.com'
-      )
-    `)
+    // to a real member row. INSERT OR IGNORE handles both the email
+    // UNIQUE and the id PRIMARY KEY constraints — safe to re-run.
+    try {
+      await db.run(sql.raw(`
+        INSERT OR IGNORE INTO members
+          (id, email, name, phone, business_name, city, sector, membership_tier, status, role, created_at)
+        VALUES (
+          'seed-steve-luna-mechanics',
+          'stephen_luna@mechanicsbank.com',
+          'Steve G. Luna',
+          '209-793-1900',
+          'Mechanics Bank',
+          'Fresno',
+          'Finance',
+          'corporate',
+          'pending',
+          'member',
+          CAST(strftime('%s', 'now') AS INTEGER)
+        )
+      `))
+      console.log('ensureMembersRenewalSchema: Steve Luna seed row ensured')
+    } catch (e) {
+      // Explicit so the real cause shows up in Vercel logs if the row
+      // still doesn't materialize.
+      console.error('Steve Luna seed INSERT failed:', e instanceof Error ? e.message : e)
+    }
 
     ensured = true
   } catch (e) {
