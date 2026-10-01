@@ -147,46 +147,40 @@ export default async function LeadershipPage() {
     .sort((a, b) => a.displayOrder - b.displayOrder);
   return (
     <>
-      {/* Hero */}
-      <section className="bg-navy-900 py-14 md:py-16 lg:py-20 text-center relative overflow-hidden">
-        <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30 corner-bracket corner-bracket-tl" />
-        <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30 corner-bracket corner-bracket-tr" />
-        <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30 corner-bracket corner-bracket-bl" />
-        <div className="absolute bottom-8 right-8 w-12 h-12 border-b border-r border-gold-600/30 corner-bracket corner-bracket-br" />
-
+      {/* Slim title band — magazine-section-header pattern. Height is
+          intentionally bounded so the first exec card peeks above the
+          fold on any laptop/Dell. Decorative chrome removed. */}
+      <section className="bg-navy-900 py-10 md:py-12 lg:py-14 text-center">
         <div className="max-w-4xl mx-auto px-8">
           <AnimatedSection>
             <SectionLabel dark>Board of Directors</SectionLabel>
           </AnimatedSection>
           <AnimatedSection delay={1}>
-            <h1 className="font-display text-h2 md:text-h1 font-light text-white mt-4">
+            <h1 className="font-display text-4xl md:text-5xl font-light text-white mt-3 leading-tight">
               Our Leadership
             </h1>
           </AnimatedSection>
           <AnimatedSection delay={2}>
-            <p className="text-white/55 text-body max-w-2xl mx-auto mt-6">
-              The CVICC Board of Directors is composed of dedicated
-              professionals who volunteer their time, expertise, and passion to
-              serve the Indian-American business community of the Central
-              Valley.
-            </p>
-          </AnimatedSection>
-          <AnimatedSection delay={3}>
-            <Divider className="mx-auto mt-8" />
+            <Divider className="mx-auto mt-6" />
           </AnimatedSection>
         </div>
       </section>
 
       {/* Executive Leadership — hidden when no exec rows exist */}
       {executives.length > 0 && (
-      <section className="bg-page-bg py-24">
+      <section className="bg-page-bg pt-12 md:pt-16 pb-24">
         <div className="max-w-6xl mx-auto px-8">
-          <div className="text-center mb-14">
+          <div className="text-center mb-10 md:mb-14">
             <AnimatedSection>
               <h2 className="font-label text-label tracking-widest uppercase text-brand">Executive Leadership</h2>
             </AnimatedSection>
             <AnimatedSection delay={1}>
-              <Divider className="mx-auto mt-4" />
+              <p className="text-mid text-body max-w-2xl mx-auto mt-4 leading-relaxed">
+                A board of dedicated professionals who volunteer their time, expertise, and passion to serve the Indian-American business community of the Central Valley.
+              </p>
+            </AnimatedSection>
+            <AnimatedSection delay={2}>
+              <Divider className="mx-auto mt-6" />
             </AnimatedSection>
           </div>
 
