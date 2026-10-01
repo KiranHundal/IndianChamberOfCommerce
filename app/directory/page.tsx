@@ -155,7 +155,7 @@ function MemberDirectoryInner() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-navy-900 py-32 text-center">
+      <section className="bg-navy-900 py-20 md:py-24 lg:py-28 text-center">
         <div className="max-w-[75rem] mx-auto px-8">
           <SectionLabel dark>Our Members</SectionLabel>
           <h1 className="font-display text-hero-sm md:text-hero-md font-light text-white mt-4">
