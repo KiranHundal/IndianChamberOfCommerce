@@ -147,10 +147,12 @@ export default async function LeadershipPage() {
     .sort((a, b) => a.displayOrder - b.displayOrder);
   return (
     <>
-      {/* Slim title band — magazine-section-header pattern. Height is
-          intentionally bounded so the first exec card peeks above the
-          fold on any laptop/Dell. Decorative chrome removed. */}
-      <section className="bg-navy-900 py-10 md:py-12 lg:py-14 text-center">
+      {/* Slim title band — magazine-section-header pattern. Asymmetric
+          padding: generous top to clear the fixed transparent navbar
+          (~80px tall on desktop) so the eyebrow has room to breathe,
+          tight bottom so the band stays compact and the first exec
+          card peeks above the fold on any Dell/laptop. */}
+      <section className="bg-navy-900 pt-28 pb-8 md:pt-32 md:pb-10 lg:pt-36 lg:pb-12 text-center">
         <div className="max-w-4xl mx-auto px-8">
           <AnimatedSection>
             <SectionLabel dark>Board of Directors</SectionLabel>

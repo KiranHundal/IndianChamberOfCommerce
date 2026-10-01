@@ -71,7 +71,7 @@ export default function InitiativesPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-navy-900 py-14 md:py-16 lg:py-20 text-center relative overflow-hidden">
+      <section className="bg-navy-900 pt-28 pb-14 md:pt-32 md:pb-16 lg:pt-36 lg:pb-20 text-center relative overflow-hidden">
         <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-gold-600/30" />
         <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-gold-600/30" />
         <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-gold-600/30" />
