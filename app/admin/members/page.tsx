@@ -16,6 +16,7 @@ import {
   Loader2,
   Send,
   MailCheck,
+  UserPlus,
 } from 'lucide-react'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import { useEffectiveRole } from '@/lib/use-effective-role'
@@ -70,6 +71,9 @@ export default function AdminPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentSaving, setPaymentSaving] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addSaving, setAddSaving] = useState(false)
+  const [addError, setAddError] = useState('')
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [boardOptions, setBoardOptions] = useState<Array<{ id: string; name: string; role: string }>>([])
   const [referredByFilter, setReferredByFilter] = useState<{ id: string; name: string } | null>(null)
@@ -357,6 +361,32 @@ export default function AdminPage() {
     }
   }
 
+  async function handleAddMember(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setAddError('')
+    setAddSaving(true)
+    const form = e.currentTarget
+    const data = Object.fromEntries(new FormData(form).entries())
+    try {
+      const res = await fetch('/api/admin/members/add-pending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        setAddError(body.error || 'Failed to add member.')
+      } else {
+        setShowAddModal(false)
+        setNotice({ type: 'success', text: `Added ${data.name} as pending ${data.membershipTier || 'individual'} member.` })
+        await fetchMembers()
+      }
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Network error.')
+    }
+    setAddSaving(false)
+  }
+
   const headerActions = (
     <>
       <ExportCsvButton
@@ -374,6 +404,15 @@ export default function AdminPage() {
           >
             <RefreshCw className="w-3.5 h-3.5 text-gold-500" />
             <span className="hidden sm:inline">Send Renewals</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setAddError(''); setShowAddModal(true) }}
+            className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
+            title="Create a pending member — useful when their device blocks the public join form"
+          >
+            <UserPlus className="w-3.5 h-3.5 text-accent" />
+            <span className="hidden sm:inline">Add Member</span>
           </button>
           <button
             type="button"
@@ -927,6 +966,144 @@ export default function AdminPage() {
         </div>
 
       {/* Log Manual Payment Modal */}
+      {showAddModal && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto"
+          onClick={() => !addSaving && setShowAddModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-hover w-full max-w-lg my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-ivory-200">
+              <div>
+                <h2 className="text-sm font-medium text-brand">Add member</h2>
+                <p className="text-xs text-hint">
+                  Creates a pending record. Use when their device blocks the public form.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !addSaving && setShowAddModal(false)}
+                className="text-mid hover:text-brand"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleAddMember} className="p-5 space-y-3">
+              {addError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-sm">
+                  {addError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Name *</label>
+                  <input
+                    name="name"
+                    required
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="Steve G. Luna"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Email *</label>
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="stephen_luna@mechanicsbank.com"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Phone</label>
+                  <input
+                    name="phone"
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="209-793-1900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Business name</label>
+                  <input
+                    name="businessName"
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="Mechanics Bank"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">City</label>
+                  <input
+                    name="city"
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="Fresno"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Sector</label>
+                  <input
+                    name="sector"
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="Finance"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Tier</label>
+                  <select
+                    name="membershipTier"
+                    defaultValue="individual"
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  >
+                    <option value="individual">Individual ($95)</option>
+                    <option value="corporate">Corporate ($395)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Referred by (board)</label>
+                  <select
+                    name="referredBy"
+                    defaultValue=""
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  >
+                    <option value="">—</option>
+                    {boardOptions.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <p className="text-[0.7rem] text-hint">
+                Member is created as <strong>Pending</strong>. Email them a Square payment link; the sync will match their payment by email and flip them to Approved.
+              </p>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-ivory-200">
+                <button
+                  type="button"
+                  onClick={() => !addSaving && setShowAddModal(false)}
+                  className="text-sm text-mid px-3 py-2 hover:text-brand"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addSaving}
+                  className="inline-flex items-center gap-1.5 bg-accent text-white text-sm font-medium px-4 py-2 rounded hover:bg-gold-900 disabled:opacity-50"
+                >
+                  {addSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                  Add member
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showPaymentModal && (
         <div
           className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4"
