@@ -71,6 +71,28 @@ async function getVideoMap(): Promise<Map<string, string>> {
   }
 }
 
+// Everyone already featured in the Executive Leadership + Officers
+// sections above should NOT appear again in the Board Members grid.
+// Normalized to loose "first last" so variants ("Dr. Surdeep Singh",
+// "Rajinder K Kumar", "Kiran Hundal, CPA") all hit.
+const EXCLUDED_FROM_BOARD_GRID = new Set([
+  "sonia heer",
+  "surdeep singh",
+  "rajinder kumar",
+  "kiran hundal",
+])
+
+function normalizeForExclusion(name: string): string {
+  const tokens = name
+    .toLowerCase()
+    .trim()
+    .replace(/[.,]/g, "")
+    .split(/\s+/)
+    .filter((t) => !["dr", "mr", "mrs", "ms", "prof", "jr", "sr"].includes(t))
+  if (tokens.length <= 2) return tokens.join(" ")
+  return `${tokens[0]} ${tokens[tokens.length - 1]}`
+}
+
 async function getDbBoardMembers(): Promise<DisplayBoardMember[]> {
   try {
     // One-time backfill: wires /headshots/* photos onto any board_members
@@ -78,14 +100,16 @@ async function getDbBoardMembers(): Promise<DisplayBoardMember[]> {
     // name matching stays loose enough to catch common variants.
     await ensureBoardHeadshots()
     const rows = await db.select().from(boardMembersTable).orderBy(asc(boardMembersTable.displayOrder))
-    return rows.map((r) => ({
-      key: `db-${r.id}`,
-      name: r.name,
-      role: r.role,
-      photoUrl: r.photoUrl || headshotFor(r.name) || "/headshots/placeholder.jpg",
-      isPlaceholder: !r.photoUrl && !headshotFor(r.name),
-      displayOrder: r.displayOrder,
-    }))
+    return rows
+      .filter((r) => !EXCLUDED_FROM_BOARD_GRID.has(normalizeForExclusion(r.name)))
+      .map((r) => ({
+        key: `db-${r.id}`,
+        name: r.name,
+        role: r.role,
+        photoUrl: r.photoUrl || headshotFor(r.name) || "/headshots/placeholder.jpg",
+        isPlaceholder: !r.photoUrl && !headshotFor(r.name),
+        displayOrder: r.displayOrder,
+      }))
   } catch {
     return []
   }
