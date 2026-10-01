@@ -63,13 +63,38 @@ const HEADSHOT_POSITION: Record<string, string> = {
 // classified by the `category` column. Admin promotes/demotes anyone from
 // /admin/board-members with no code change.
 
+// Normalize a leader's name to loose "first last" so videos keyed under
+// "Dr. Surdeep Singh" still match a board_members row named "Surdeep
+// Singh" (and vice versa). Same spirit as the headshots lib.
+function videoKey(name: string): string {
+  const tokens = name
+    .toLowerCase()
+    .trim()
+    .replace(/[.,]/g, "")
+    .split(/\s+/)
+    .filter((t) => !["dr", "mr", "mrs", "ms", "prof", "jr", "sr"].includes(t))
+  if (tokens.length <= 2) return tokens.join(" ")
+  return `${tokens[0]} ${tokens[tokens.length - 1]}`
+}
+
 async function getVideoMap(): Promise<Map<string, string>> {
   try {
     const rows = await db.select().from(leaderVideos)
-    return new Map(rows.map((r) => [r.leaderName, r.url]))
+    const map = new Map<string, string>()
+    for (const r of rows) {
+      // Keep both the raw name key (back-compat) and the normalized one.
+      map.set(r.leaderName, r.url)
+      map.set(videoKey(r.leaderName), r.url)
+    }
+    return map
   } catch {
     return new Map()
   }
+}
+
+// Resolve a video URL for a leader by exact name OR normalized match.
+function videoFor(videoMap: Map<string, string>, name: string): string | undefined {
+  return videoMap.get(name) || videoMap.get(videoKey(name))
 }
 
 async function getAllRows() {
@@ -209,8 +234,8 @@ export default async function LeadershipPage() {
                         ))}
                       </div>
                     )}
-                    {videoMap.get(leader.name) && (
-                      <LeaderVideo url={videoMap.get(leader.name)!} name={leader.name} className="mt-6" />
+                    {videoFor(videoMap, leader.name) && (
+                      <LeaderVideo url={videoFor(videoMap, leader.name)!} name={leader.name} className="mt-6" />
                     )}
                   </div>
 
@@ -271,8 +296,8 @@ export default async function LeadershipPage() {
                         ))}
                       </div>
                     )}
-                    {videoMap.get(leader.name) && (
-                      <LeaderVideo url={videoMap.get(leader.name)!} name={leader.name} className="mt-4" />
+                    {videoFor(videoMap, leader.name) && (
+                      <LeaderVideo url={videoFor(videoMap, leader.name)!} name={leader.name} className="mt-4" />
                     )}
                   </div>
 
