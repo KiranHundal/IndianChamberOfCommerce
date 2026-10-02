@@ -68,9 +68,7 @@ const tierBenefits: Record<string, string[]> = {
     'Monthly newsletter & updates',
     'Voting rights at general meetings',
     'Featured directory placement',
-    'Logo on partners page',
     'Priority event sponsorship access',
-    'Up to 5 employee profiles',
     'Social media promotion',
   ],
 }

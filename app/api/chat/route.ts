@@ -16,7 +16,7 @@ KEY FACTS:
 
 MEMBERSHIP:
 - Individual Membership: $95/year (founding member price, normally $195). Includes: business directory listing, access to all networking events, mentorship program eligibility, monthly newsletter, voting rights.
-- Corporate Membership: $395/year (founding member price, normally $495). Includes everything in Individual plus: featured directory placement, logo on partners page, priority event sponsorship, up to 5 employee profiles, social media promotion.
+- Corporate Membership: $395/year (founding member price, normally $495). Includes everything in Individual plus: featured directory placement, priority event sponsorship, social media promotion.
 - To join, visit the Join page at /join on the website.
 
 CONTACT:

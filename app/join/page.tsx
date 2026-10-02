@@ -60,9 +60,7 @@ const tiers = [
     features: [
       'Everything in Individual, plus:',
       'Featured directory placement',
-      'Logo on partners page',
       'Priority event sponsorship access',
-      'Up to 5 employee profiles',
       'Social media promotion',
     ],
   },
