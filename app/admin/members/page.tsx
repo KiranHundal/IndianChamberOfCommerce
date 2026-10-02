@@ -164,6 +164,27 @@ export default function AdminPage() {
     setActionLoading(null)
   }
 
+  async function handleResetPassword(member: Member) {
+    if (!confirm(`Clear ${member.name}'s password? They'll need to go back to /register and pick a new one.`)) return
+    setActionLoading(`${member.id}-pwreset`)
+    try {
+      const res = await fetch('/api/admin/members/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: member.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Failed to reset password.' })
+      } else {
+        setNotice({ type: 'success', text: `Password cleared for ${member.email}. Send them back to /register to pick a new one.` })
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setActionLoading(null)
+  }
+
   async function handleSetReferrer(member: Member, referredBy: string) {
     if (!referredBy) return
     setActionLoading(`${member.id}-referrer`)
@@ -728,6 +749,20 @@ export default function AdminPage() {
                               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               : <Send className="w-3.5 h-3.5" />}
                             Send Invite
+                          </button>
+                        )}
+                        {isAdmin && member.status === 'approved' && !isStaff && (
+                          <button
+                            type="button"
+                            onClick={() => handleResetPassword(member)}
+                            disabled={actionLoading === `${member.id}-pwreset`}
+                            className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-2 rounded hover:border-accent/40 disabled:opacity-50"
+                            title="Clear their password so they can re-register with a new one"
+                          >
+                            {actionLoading === `${member.id}-pwreset`
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <RefreshCw className="w-3.5 h-3.5 text-gold-500" />}
+                            Reset Password
                           </button>
                         )}
                         {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
