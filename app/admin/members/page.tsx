@@ -17,6 +17,8 @@ import {
   Send,
   MailCheck,
   UserPlus,
+  KeyRound,
+  Copy,
 } from 'lucide-react'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import { useEffectiveRole } from '@/lib/use-effective-role'
@@ -74,6 +76,7 @@ export default function AdminPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState('')
+  const [tempPasswordInfo, setTempPasswordInfo] = useState<{ name: string; email: string; tempPassword: string } | null>(null)
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [boardOptions, setBoardOptions] = useState<Array<{ id: string; name: string; role: string }>>([])
   const [referredByFilter, setReferredByFilter] = useState<{ id: string; name: string } | null>(null)
@@ -178,6 +181,27 @@ export default function AdminPage() {
         setNotice({ type: 'error', text: data.error || 'Failed to reset password.' })
       } else {
         setNotice({ type: 'success', text: `Password cleared for ${member.email}. Send them back to /register to pick a new one.` })
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setActionLoading(null)
+  }
+
+  async function handleCreateTempPassword(member: Member) {
+    if (!confirm(`Generate a temporary password for ${member.name}? Their current password (if any) will be replaced immediately.`)) return
+    setActionLoading(`${member.id}-tempPw`)
+    try {
+      const res = await fetch('/api/admin/members/set-temp-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: member.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Failed to create temp password.' })
+      } else {
+        setTempPasswordInfo({ name: data.name, email: data.email, tempPassword: data.tempPassword })
       }
     } catch (err) {
       setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
@@ -752,18 +776,32 @@ export default function AdminPage() {
                           </button>
                         )}
                         {isAdmin && member.status === 'approved' && !isStaff && (
-                          <button
-                            type="button"
-                            onClick={() => handleResetPassword(member)}
-                            disabled={actionLoading === `${member.id}-pwreset`}
-                            className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-2 rounded hover:border-accent/40 disabled:opacity-50"
-                            title="Clear their password so they can re-register with a new one"
-                          >
-                            {actionLoading === `${member.id}-pwreset`
-                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              : <RefreshCw className="w-3.5 h-3.5 text-gold-500" />}
-                            Reset Password
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleCreateTempPassword(member)}
+                              disabled={actionLoading === `${member.id}-tempPw`}
+                              className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-navy-900 text-white text-xs font-medium px-3 py-2 rounded hover:bg-navy-800 disabled:opacity-50"
+                              title="Generate a temp password you can send them so they can sign in"
+                            >
+                              {actionLoading === `${member.id}-tempPw`
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : <KeyRound className="w-3.5 h-3.5 text-gold-400" />}
+                              Temp Password
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleResetPassword(member)}
+                              disabled={actionLoading === `${member.id}-pwreset`}
+                              className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-2 rounded hover:border-accent/40 disabled:opacity-50"
+                              title="Clear their password so they can re-register with a new one"
+                            >
+                              {actionLoading === `${member.id}-pwreset`
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : <RefreshCw className="w-3.5 h-3.5 text-gold-500" />}
+                              Reset Password
+                            </button>
+                          </>
                         )}
                         {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
                           <button
@@ -953,19 +991,34 @@ export default function AdminPage() {
                                 </button>
                               )}
                               {isAdmin && member.status === 'approved' && !isStaff && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleResetPassword(member)}
-                                  disabled={actionLoading === `${member.id}-pwreset`}
-                                  title={`Clear ${member.name}'s password so they can re-register`}
-                                  className="inline-flex items-center bg-white border border-ivory-200 text-brand p-1 rounded hover:border-accent/40 disabled:opacity-50"
-                                >
-                                  {actionLoading === `${member.id}-pwreset` ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  ) : (
-                                    <RefreshCw className="w-3.5 h-3.5 text-gold-500" />
-                                  )}
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCreateTempPassword(member)}
+                                    disabled={actionLoading === `${member.id}-tempPw`}
+                                    title={`Generate a temp password for ${member.name} to sign in with`}
+                                    className="inline-flex items-center bg-navy-900 text-white p-1 rounded hover:bg-navy-800 disabled:opacity-50"
+                                  >
+                                    {actionLoading === `${member.id}-tempPw` ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <KeyRound className="w-3.5 h-3.5 text-gold-400" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetPassword(member)}
+                                    disabled={actionLoading === `${member.id}-pwreset`}
+                                    title={`Clear ${member.name}'s password so they can re-register`}
+                                    className="inline-flex items-center bg-white border border-ivory-200 text-brand p-1 rounded hover:border-accent/40 disabled:opacity-50"
+                                  >
+                                    {actionLoading === `${member.id}-pwreset` ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="w-3.5 h-3.5 text-gold-500" />
+                                    )}
+                                  </button>
+                                </>
                               )}
                               {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
                                 <button
@@ -1016,6 +1069,88 @@ export default function AdminPage() {
         </div>
 
       {/* Log Manual Payment Modal */}
+      {tempPasswordInfo && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto"
+          onClick={() => setTempPasswordInfo(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-hover w-full max-w-md my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-ivory-200">
+              <h2 className="text-sm font-medium text-brand inline-flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-gold-500" />
+                Temporary password
+              </h2>
+              <button
+                type="button"
+                onClick={() => setTempPasswordInfo(null)}
+                className="text-mid hover:text-brand"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <p className="text-xs text-mid">For</p>
+                <p className="text-sm text-brand font-medium">{tempPasswordInfo.name}</p>
+                <p className="text-xs text-hint">{tempPasswordInfo.email}</p>
+              </div>
+
+              <div className="bg-page-bg border border-ivory-200 rounded p-3">
+                <p className="text-[0.65rem] font-medium uppercase tracking-wide text-mid mb-1">Password (one-time view)</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-white border border-ivory-200 rounded px-3 py-2 text-sm font-mono text-brand select-all break-all">
+                    {tempPasswordInfo.tempPassword}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(tempPasswordInfo.tempPassword)
+                        setNotice({ type: 'success', text: 'Password copied to clipboard.' })
+                      } catch {
+                        setNotice({ type: 'error', text: 'Copy failed — select the text and copy manually.' })
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 bg-accent text-white text-xs font-medium px-3 py-2 rounded hover:bg-gold-900"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy
+                  </button>
+                </div>
+                <p className="text-[0.65rem] text-hint mt-2">
+                  This is shown ONCE. Close this box and you&apos;ll need to generate a new one if you lose it.
+                </p>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded p-3 text-xs text-amber-900 leading-relaxed">
+                <strong>Send this to {tempPasswordInfo.name.split(' ')[0]}:</strong>
+                <br />
+                Hi {tempPasswordInfo.name.split(' ')[0]}, your login credentials are:
+                <br />
+                <strong>Email:</strong> {tempPasswordInfo.email}
+                <br />
+                <strong>Temporary password:</strong> <code className="bg-white px-1 rounded">{tempPasswordInfo.tempPassword}</code>
+                <br />
+                Sign in at <a href="https://www.indianchamberofcommerce.org/login" className="underline">indianchamberofcommerce.org/login</a> and change your password from the portal once you&apos;re in.
+              </div>
+
+              <div className="flex items-center justify-end pt-2 border-t border-ivory-200">
+                <button
+                  type="button"
+                  onClick={() => setTempPasswordInfo(null)}
+                  className="text-sm text-brand bg-page-bg px-4 py-2 rounded hover:bg-ivory-200"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddModal && (
         <div
           className="fixed inset-0 bg-black/40 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto"
