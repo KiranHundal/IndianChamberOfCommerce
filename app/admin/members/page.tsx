@@ -77,6 +77,13 @@ export default function AdminPage() {
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState('')
   const [tempPasswordInfo, setTempPasswordInfo] = useState<{ name: string; email: string; tempPassword: string } | null>(null)
+  // In-app confirm — replaces native browser confirm() for the password
+  // actions so we don't flash a system alert over the admin UI.
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    title: string
+    body: string
+    onConfirm: () => void | Promise<void>
+  } | null>(null)
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [boardOptions, setBoardOptions] = useState<Array<{ id: string; name: string; role: string }>>([])
   const [referredByFilter, setReferredByFilter] = useState<{ id: string; name: string } | null>(null)
@@ -167,8 +174,15 @@ export default function AdminPage() {
     setActionLoading(null)
   }
 
-  async function handleResetPassword(member: Member) {
-    if (!confirm(`Clear ${member.name}'s password? They'll need to go back to /register and pick a new one.`)) return
+  function handleResetPassword(member: Member) {
+    setPendingConfirm({
+      title: 'Clear password?',
+      body: `${member.name} will need to go back to /register and pick a new one.`,
+      onConfirm: () => runResetPassword(member),
+    })
+  }
+
+  async function runResetPassword(member: Member) {
     setActionLoading(`${member.id}-pwreset`)
     try {
       const res = await fetch('/api/admin/members/reset-password', {
@@ -188,8 +202,15 @@ export default function AdminPage() {
     setActionLoading(null)
   }
 
-  async function handleCreateTempPassword(member: Member) {
-    if (!confirm(`Generate a temporary password for ${member.name}? Their current password (if any) will be replaced immediately.`)) return
+  function handleCreateTempPassword(member: Member) {
+    setPendingConfirm({
+      title: 'Generate temporary password?',
+      body: `${member.name}'s current password (if any) will be replaced immediately. You'll get a one-time view to copy and share.`,
+      onConfirm: () => runCreateTempPassword(member),
+    })
+  }
+
+  async function runCreateTempPassword(member: Member) {
     setActionLoading(`${member.id}-tempPw`)
     try {
       const res = await fetch('/api/admin/members/set-temp-password', {
@@ -1069,6 +1090,43 @@ export default function AdminPage() {
         </div>
 
       {/* Log Manual Payment Modal */}
+      {pendingConfirm && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onClick={() => setPendingConfirm(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-hover w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5">
+              <h3 className="text-sm font-medium text-brand mb-2">{pendingConfirm.title}</h3>
+              <p className="text-sm text-mid">{pendingConfirm.body}</p>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-ivory-200">
+              <button
+                type="button"
+                onClick={() => setPendingConfirm(null)}
+                className="text-sm text-mid px-3 py-2 hover:text-brand"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const action = pendingConfirm.onConfirm
+                  setPendingConfirm(null)
+                  await action()
+                }}
+                className="inline-flex items-center gap-1.5 bg-accent text-white text-sm font-medium px-4 py-2 rounded hover:bg-gold-900"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {tempPasswordInfo && (
         <div
           className="fixed inset-0 bg-black/40 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto"
