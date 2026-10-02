@@ -952,6 +952,21 @@ export default function AdminPage() {
                                   )}
                                 </button>
                               )}
+                              {isAdmin && member.status === 'approved' && !isStaff && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleResetPassword(member)}
+                                  disabled={actionLoading === `${member.id}-pwreset`}
+                                  title={`Clear ${member.name}'s password so they can re-register`}
+                                  className="inline-flex items-center bg-white border border-ivory-200 text-brand p-1 rounded hover:border-accent/40 disabled:opacity-50"
+                                >
+                                  {actionLoading === `${member.id}-pwreset` ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="w-3.5 h-3.5 text-gold-500" />
+                                  )}
+                                </button>
+                              )}
                               {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
                                 <button
                                   type="button"
