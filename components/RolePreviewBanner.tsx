@@ -67,11 +67,6 @@ export default function RolePreviewBanner() {
             Reviewer
           </button>
         </div>
-        {!activeIsAdmin && (
-          <span className="text-[0.6rem] font-label tracking-widest uppercase text-gold-400 whitespace-nowrap">
-            Preview only — full admin server-side
-          </span>
-        )}
       </div>
     </div>
   )
