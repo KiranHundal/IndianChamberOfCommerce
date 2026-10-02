@@ -1129,7 +1129,7 @@ export default function AdminPage() {
 
       {tempPasswordInfo && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto"
           onClick={() => setTempPasswordInfo(null)}
         >
           <div
@@ -1211,7 +1211,7 @@ export default function AdminPage() {
 
       {showAddModal && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto"
           onClick={() => !addSaving && setShowAddModal(false)}
         >
           <div
