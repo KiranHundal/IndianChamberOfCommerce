@@ -261,7 +261,7 @@ export async function GET(req: Request) {
 
   // ---------- Board-member referrals (who brought in whom) ----------
   const boardIdToName = new Map(allBoard.map((b) => [b.id, b.name]))
-  const boardReferralMap: Record<string, { boardMemberId: string; boardMemberName: string; count: number }> = {}
+  const boardReferralMap: Record<string, { boardMemberId: string; boardMemberName: string; count: number; revenue: number }> = {}
   for (const m of nonStaff) {
     if (!m.referredBy) continue
     const ref = m.paymentDate || m.approvedAt || m.createdAt
@@ -273,11 +273,19 @@ export async function GET(req: Request) {
         boardMemberId: key,
         boardMemberName: boardIdToName.get(key) || 'Unknown',
         count: 0,
+        revenue: 0,
       }
     }
     boardReferralMap[key].count += 1
+    // Revenue brought in by this referrer. Use the explicit amountPaid
+    // when present, fall back to the tier price so pending-but-unpaid
+    // sign-ups don't look like zero contribution.
+    const dollars = m.amountPaid && m.amountPaid > 0
+      ? m.amountPaid
+      : m.membershipTier === 'corporate' ? 395 : 95
+    boardReferralMap[key].revenue += dollars
   }
-  const boardReferrals = Object.values(boardReferralMap).sort((a, b) => b.count - a.count)
+  const boardReferrals = Object.values(boardReferralMap).sort((a, b) => b.revenue - a.revenue || b.count - a.count)
   const unattributedCount = nonStaff.filter((m) => {
     if (m.referredBy) return false
     const ref = m.paymentDate || m.approvedAt || m.createdAt

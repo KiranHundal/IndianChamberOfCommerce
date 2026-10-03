@@ -125,8 +125,9 @@ export default function PortalPage() {
   const [referrals, setReferrals] = useState<{
     isBoardMember: boolean
     count: number
-    referrals: Array<{ id: string; name: string; businessName: string | null; membershipTier: string; approvedAt: string | null }>
-  }>({ isBoardMember: false, count: 0, referrals: [] })
+    revenue: number
+    referrals: Array<{ id: string; name: string; businessName: string | null; membershipTier: string; amountPaid: number; approvedAt: string | null }>
+  }>({ isBoardMember: false, count: 0, revenue: 0, referrals: [] })
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -162,6 +163,7 @@ export default function PortalPage() {
         .then((data) => setReferrals({
           isBoardMember: !!data.isBoardMember,
           count: data.count || 0,
+          revenue: data.revenue || 0,
           referrals: data.referrals || [],
         }))
         .catch(() => {})
@@ -556,6 +558,11 @@ export default function PortalPage() {
                   <div className="text-right">
                     <p className="font-display text-h2 text-brand leading-none">{referrals.count}</p>
                     <p className="text-small text-mid mt-1">member{referrals.count === 1 ? '' : 's'} brought in</p>
+                    {referrals.revenue > 0 && (
+                      <p className="text-small text-accent font-medium mt-1">
+                        ${referrals.revenue.toLocaleString()} in dues
+                      </p>
+                    )}
                   </div>
                 </div>
                 {referrals.count === 0 ? (
@@ -574,8 +581,9 @@ export default function PortalPage() {
                           <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">
                             {r.membershipTier === 'corporate' ? 'Corporate' : 'Individual'}
                           </p>
+                          <p className="text-small text-brand font-medium">${r.amountPaid.toLocaleString()}</p>
                           {r.approvedAt && (
-                            <p className="text-small text-hint">
+                            <p className="text-[0.65rem] text-hint">
                               {new Date(r.approvedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                             </p>
                           )}

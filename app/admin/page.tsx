@@ -27,7 +27,7 @@ interface Bucket { bucket: string; label: string }
 interface RevenueBucket extends Bucket { revenue: number; payments: number }
 interface NewMemberBucket extends Bucket { count: number }
 interface AttributionRow { sender: string; converted: number; sent: number; label: string }
-interface BoardReferralRow { boardMemberId: string; boardMemberName: string; count: number }
+interface BoardReferralRow { boardMemberId: string; boardMemberName: string; count: number; revenue: number }
 interface TierSlice { name: string; value: number; color: string }
 
 interface Stats {
@@ -366,7 +366,7 @@ export default function AdminHomePage() {
           {/* Board Referrals — how many members each board sponsor brought in */}
           <ChartCard
             title="Members by Board Referrer"
-            total={`${stats.boardReferrals.reduce((s, r) => s + r.count, 0)} attributed${stats.unattributedCount > 0 ? ` · ${stats.unattributedCount} unattributed` : ''}`}
+            total={`${stats.boardReferrals.reduce((s, r) => s + r.count, 0)} attributed · ${money(stats.boardReferrals.reduce((s, r) => s + r.revenue, 0))}${stats.unattributedCount > 0 ? ` · ${stats.unattributedCount} unattributed` : ''}`}
             className="lg:col-span-2"
           >
             {stats.boardReferrals.length === 0 ? (
@@ -418,11 +418,13 @@ export default function AdminHomePage() {
                   </div>
                 </div>
 
-                {/* Legend rows — big color swatches + names + counts, all clickable */}
-                <div className="max-w-[520px] mx-auto mt-6">
-                  <div className="border-b border-ivory-200 pb-1.5 mb-1 flex items-center justify-between text-[0.65rem] font-medium uppercase tracking-wide text-hint">
+                {/* Legend rows — big color swatches + names + counts + $ brought in, all clickable */}
+                <div className="max-w-[560px] mx-auto mt-6">
+                  <div className="border-b border-ivory-200 pb-1.5 mb-1 grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 text-[0.65rem] font-medium uppercase tracking-wide text-hint">
+                    <span className="w-4" />
                     <span>Board member</span>
-                    <span>Brought in</span>
+                    <span className="text-right">Members</span>
+                    <span className="text-right min-w-[4rem]">Revenue</span>
                   </div>
                   <div className="divide-y divide-ivory-200">
                     {stats.boardReferrals.map((r, i) => (
@@ -430,14 +432,15 @@ export default function AdminHomePage() {
                         key={r.boardMemberId}
                         type="button"
                         onClick={() => router.push(`/admin/members?referredBy=${encodeURIComponent(r.boardMemberId)}&referredByName=${encodeURIComponent(r.boardMemberName)}`)}
-                        className="w-full flex items-center gap-3 py-2.5 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group"
+                        className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 py-2.5 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group"
                       >
                         <span
                           className="w-4 h-4 rounded-sm flex-shrink-0"
                           style={{ background: REFERRER_PALETTE[i % REFERRER_PALETTE.length] }}
                         />
-                        <span className="text-sm text-brand flex-1 group-hover:underline">{r.boardMemberName}</span>
-                        <span className="text-sm text-brand font-medium tabular-nums">{r.count}</span>
+                        <span className="text-sm text-brand group-hover:underline truncate">{r.boardMemberName}</span>
+                        <span className="text-sm text-brand font-medium tabular-nums text-right">{r.count}</span>
+                        <span className="text-sm text-brand font-medium tabular-nums text-right min-w-[4rem]">{money(r.revenue)}</span>
                       </button>
                     ))}
                   </div>

@@ -24,6 +24,7 @@ export async function GET() {
       businessName: members.businessName,
       membershipTier: members.membershipTier,
       status: members.status,
+      amountPaid: members.amountPaid,
       approvedAt: members.approvedAt,
       createdAt: members.createdAt,
     }).from(members).where(eq(members.referredBy, board.id))
@@ -37,15 +38,28 @@ export async function GET() {
       return bd - ad
     })
 
+    // Revenue brought in: explicit amountPaid when present, else fall
+    // back to tier price so pending-but-unpaid rows don't look like zero.
+    const totalRevenue = approved.reduce((sum, m) => {
+      const dollars = m.amountPaid && m.amountPaid > 0
+        ? m.amountPaid
+        : m.membershipTier === 'corporate' ? 395 : 95
+      return sum + dollars
+    }, 0)
+
     return NextResponse.json({
       isBoardMember: true,
       boardName: board.name,
       count: approved.length,
+      revenue: totalRevenue,
       referrals: approved.map((m) => ({
         id: m.id,
         name: m.name,
         businessName: m.businessName,
         membershipTier: m.membershipTier,
+        amountPaid: m.amountPaid && m.amountPaid > 0
+          ? m.amountPaid
+          : m.membershipTier === 'corporate' ? 395 : 95,
         approvedAt: m.approvedAt,
       })),
     })
