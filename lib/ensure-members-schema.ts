@@ -1,5 +1,6 @@
 import { db } from './db'
 import { sql } from 'drizzle-orm'
+import { applyEmailCorrections } from './seed-email-corrections'
 
 let ensured = false
 
@@ -87,6 +88,12 @@ export async function ensureMembersRenewalSchema() {
     }
 
     ensured = true
+
+    // Email corrections for placeholder rows from the chamber batch —
+    // runs AFTER the main schema work. Each UPDATE is idempotent (only
+    // matches rows still on the placeholder email), so re-runs are
+    // no-ops and admin-edited rows are never clobbered.
+    await applyEmailCorrections()
   } catch (e) {
     console.error('ensureMembersRenewalSchema fatal:', e)
   }
