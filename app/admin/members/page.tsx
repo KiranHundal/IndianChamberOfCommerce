@@ -160,7 +160,7 @@ export default function AdminPage() {
           setShowPaymentModal(true)
         }
         const s = params.get('status')
-        if (s && ['all', 'pending', 'unpaid', 'approved', 'rejected', 'deactivated'].includes(s)) {
+        if (s && ['all', 'pending', 'unpaid', 'approved', 'rejected', 'deactivated', 'unreferred'].includes(s)) {
           setFilter(s)
         }
         const rb = params.get('referredBy')
@@ -418,6 +418,8 @@ export default function AdminPage() {
       if (!isUnpaidPending(m)) return false
     } else if (filter === 'pending') {
       if (m.status !== 'pending' || isUnpaidPending(m)) return false
+    } else if (filter === 'unreferred') {
+      if (m.referredBy) return false
     } else if (filter !== 'all' && m.status !== filter) {
       return false
     }
@@ -470,6 +472,7 @@ export default function AdminPage() {
     approved: nonStaff.filter((m) => m.status === 'approved').length,
     rejected: nonStaff.filter((m) => m.status === 'rejected').length,
     deactivated: nonStaff.filter((m) => m.status === 'deactivated').length,
+    unreferred: nonStaff.filter((m) => !m.referredBy).length,
   }
 
   const exportColumns = [
@@ -704,8 +707,8 @@ export default function AdminPage() {
 
           {/* Stats Row */}
           <AnimatedSection>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-2">
-              {(['all', 'pending', 'unpaid', 'approved', 'rejected', 'deactivated'] as const).map((key) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-2">
+              {(['all', 'pending', 'unpaid', 'approved', 'rejected', 'deactivated', 'unreferred'] as const).map((key) => (
                 <button
                   key={key}
                   onClick={() => setFilter(key)}
@@ -713,7 +716,8 @@ export default function AdminPage() {
                     filter === key
                       ? 'bg-navy-900 border-navy-800 text-white'
                       : 'bg-white border-ivory-200 text-brand hover:border-accent/40'
-                  }`}
+                  } ${key === 'unreferred' && counts.unreferred > 0 && filter !== 'unreferred' ? 'ring-1 ring-amber-300' : ''}`}
+                  title={key === 'unreferred' ? 'Members without a board sponsor on record — attribute them from the Referred By column.' : undefined}
                 >
                   <p className="font-display text-h3 font-light">{counts[key]}</p>
                   <p className="font-label text-[0.6rem] tracking-widest uppercase mt-1 opacity-60">
