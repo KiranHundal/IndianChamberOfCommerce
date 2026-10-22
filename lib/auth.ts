@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { ensureMembersRenewalSchema } from '@/lib/ensure-members-schema'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,6 +16,12 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
+
+        // Runs schema migrations and seeds (including the superuser row)
+        // on first auth after a cold start. Idempotent + guarded, so this
+        // is a no-op after the first call. Keeps a cold-boot login
+        // working even before any /admin or /portal route has fired.
+        await ensureMembersRenewalSchema().catch(() => {})
 
         const [member] = await db
           .select()
