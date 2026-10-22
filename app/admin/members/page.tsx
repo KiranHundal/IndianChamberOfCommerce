@@ -17,6 +17,7 @@ import {
   Send,
   MailCheck,
   UserPlus,
+  UserCheck,
   KeyRound,
   Copy,
 } from 'lucide-react'
@@ -888,6 +889,19 @@ export default function AdminPage() {
                             Deactivate
                           </button>
                         )}
+                        {isAdmin && member.status === 'deactivated' && (
+                          <button
+                            type="button"
+                            onClick={() => handleAction(member.id, 'reactivate')}
+                            disabled={actionLoading === `${member.id}-reactivate`}
+                            className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-white border border-emerald-200 text-emerald-700 text-xs font-medium px-3 py-2 rounded hover:bg-emerald-50 disabled:opacity-50"
+                          >
+                            {actionLoading === `${member.id}-reactivate`
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <UserCheck className="w-3.5 h-3.5" />}
+                            Reactivate
+                          </button>
+                        )}
                       </div>
                     </div>
                   )
@@ -1103,6 +1117,19 @@ export default function AdminPage() {
                                   className="inline-flex items-center bg-white border border-gray-200 text-gray-600 p-1 rounded hover:bg-gray-50 disabled:opacity-50"
                                 >
                                   <UserX className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {isAdmin && member.status === 'deactivated' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAction(member.id, 'reactivate')}
+                                  disabled={actionLoading === `${member.id}-reactivate`}
+                                  title="Reactivate this member — restores approved status"
+                                  className="inline-flex items-center bg-white border border-emerald-200 text-emerald-700 p-1 rounded hover:bg-emerald-50 disabled:opacity-50"
+                                >
+                                  {actionLoading === `${member.id}-reactivate`
+                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    : <UserCheck className="w-3.5 h-3.5" />}
                                 </button>
                               )}
                             </div>

@@ -243,5 +243,27 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true, message: 'Member deactivated.' })
   }
 
+  if (action === 'reactivate') {
+    if ((session.user as Record<string, unknown>).role !== 'admin') {
+      return NextResponse.json({ error: 'Only admins can reactivate members.' }, { status: 403 })
+    }
+    const [existing] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
+    if (!existing) {
+      return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+    }
+    if (existing.status !== 'deactivated') {
+      return NextResponse.json({ error: 'Member is not deactivated.' }, { status: 400 })
+    }
+    // Reverse of deactivate: flip status back to approved and clear the
+    // deactivation timestamp. Deliberately does NOT regenerate a membership
+    // number or re-send the approval email — the row keeps the identity
+    // it had before the mistake.
+    await db
+      .update(members)
+      .set({ status: 'approved', deactivatedAt: null })
+      .where(eq(members.id, memberId))
+    return NextResponse.json({ success: true, message: `${existing.name} reactivated.` })
+  }
+
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 }
