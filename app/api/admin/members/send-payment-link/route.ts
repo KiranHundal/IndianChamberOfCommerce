@@ -5,10 +5,12 @@ import { db } from '@/lib/db'
 import { members, boardMembers } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sendMembershipPaymentLinkEmail } from '@/lib/email'
+import { assertModeratorOwnsTarget } from '@/lib/moderator-scope'
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
-  const role = (session?.user as Record<string, unknown> | undefined)?.role
+  const user = session?.user as { role?: string; email?: string } | undefined
+  const role = user?.role
   if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -25,6 +27,8 @@ export async function POST(req: Request) {
   if (member.status !== 'pending') {
     return NextResponse.json({ error: 'Payment link is only for pending members.' }, { status: 400 })
   }
+  const scopeError = await assertModeratorOwnsTarget(role, user?.email, member.referredBy)
+  if (scopeError) return NextResponse.json({ error: scopeError }, { status: 403 })
 
   // Look up the referring board member's email so we can CC them on the
   // payment link — gives the referrer visibility that the handoff

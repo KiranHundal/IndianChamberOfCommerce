@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
+import { getSessionBoardId } from '@/lib/moderator-scope'
 
 /**
  * Create a pending member row — no payment yet. Used when an admin needs
@@ -14,7 +15,8 @@ import { eq } from 'drizzle-orm'
  */
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
-  const role = (session?.user as Record<string, unknown> | undefined)?.role
+  const user = session?.user as { role?: string; email?: string } | undefined
+  const role = user?.role
   if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -31,6 +33,22 @@ export async function POST(req: Request) {
       membershipTier,
       referredBy,
     } = body
+
+    // Moderators can only create members attributed to themselves — we
+    // force referredBy to their own board id regardless of what the
+    // client sent, so a moderator can't quietly credit another board
+    // member for a new signup.
+    let effectiveReferredBy: string | null = referredBy || null
+    if (role === 'moderator') {
+      const myBoardId = await getSessionBoardId(user?.email)
+      if (!myBoardId) {
+        return NextResponse.json(
+          { error: 'Moderator board attribution not found. Contact admin.' },
+          { status: 403 },
+        )
+      }
+      effectiveReferredBy = myBoardId
+    }
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 })
@@ -67,7 +85,7 @@ export async function POST(req: Request) {
       membershipTier: tier,
       status: 'pending',
       role: 'member',
-      referredBy: referredBy || null,
+      referredBy: effectiveReferredBy,
       createdAt: new Date(),
     })
 

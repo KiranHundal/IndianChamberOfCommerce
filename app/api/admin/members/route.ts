@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { members, boardMembers } from '@/lib/schema'
+import { members } from '@/lib/schema'
 import { eq, desc, isNotNull, count } from 'drizzle-orm'
 import { sendMemberApprovedEmail } from '@/lib/email'
 import { ensureMembersRenewalSchema } from '@/lib/ensure-members-schema'
+import { getSessionBoardId, assertModeratorOwnsTarget } from '@/lib/moderator-scope'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -46,7 +47,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
-  const role = (session?.user as Record<string, unknown> | undefined)?.role
+  const sessionUser = session?.user as { role?: string; email?: string } | undefined
+  const role = sessionUser?.role
   // Log Offline Payment stays admin+moderator — reviewers only approve/deny.
   if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -69,6 +71,23 @@ export async function POST(req: Request) {
       sendEmail,
       referredBy,
     } = body
+
+    // Moderators can only create members attributed to themselves. We
+    // force referredBy to their own board id regardless of what the
+    // client sent, so a moderator can't quietly credit another board
+    // member for a new signup.
+    let effectiveReferredBy: string | null =
+      (typeof referredBy === 'string' && referredBy.trim()) ? referredBy.trim() : null
+    if (role === 'moderator') {
+      const myBoardId = await getSessionBoardId(sessionUser?.email)
+      if (!myBoardId) {
+        return NextResponse.json(
+          { error: 'Moderator board attribution not found. Contact admin.' },
+          { status: 403 },
+        )
+      }
+      effectiveReferredBy = myBoardId
+    }
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 })
@@ -119,7 +138,7 @@ export async function POST(req: Request) {
       amountPaid: amount,
       paymentReference: paymentReference || null,
       paymentDate: isNaN(parsedPaymentDate.getTime()) ? now : parsedPaymentDate,
-      referredBy: (typeof referredBy === 'string' && referredBy.trim()) ? referredBy.trim() : null,
+      referredBy: effectiveReferredBy,
     })
 
     let emailStatus: 'sent' | 'failed' | 'skipped' = 'skipped'
@@ -173,13 +192,33 @@ export async function PATCH(req: Request) {
 
   // Set-referrer: admin / moderator / reviewer can all attribute a member to
   // a board sponsor. Existing values are protected — Gigi (reviewer) can
-  // fill blanks but not overwrite what was set at signup.
+  // fill blanks but not overwrite what was set at signup. Moderator is
+  // further scoped: they can only claim members for themselves (can't
+  // attribute to another board member).
   if (action === 'set-referrer') {
-    const referredBy = typeof (body as { referredBy?: unknown }).referredBy === 'string'
+    const sessionUser = session.user as { role?: string; email?: string }
+    const requested = typeof (body as { referredBy?: unknown }).referredBy === 'string'
       ? (body as { referredBy: string }).referredBy.trim()
       : ''
-    if (!referredBy) {
+    if (!requested) {
       return NextResponse.json({ error: 'referredBy is required' }, { status: 400 })
+    }
+    let referredBy = requested
+    if (role === 'moderator') {
+      const myBoardId = await getSessionBoardId(sessionUser.email)
+      if (!myBoardId) {
+        return NextResponse.json(
+          { error: 'Moderator board attribution not found. Contact admin.' },
+          { status: 403 },
+        )
+      }
+      if (requested !== myBoardId) {
+        return NextResponse.json(
+          { error: 'Moderators can only claim members as their own referral.' },
+          { status: 403 },
+        )
+      }
+      referredBy = myBoardId
     }
     const [existing] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
     if (!existing) return NextResponse.json({ error: 'Member not found' }, { status: 404 })
@@ -256,23 +295,8 @@ export async function PATCH(req: Request) {
     if (!target) {
       return NextResponse.json({ error: 'Member not found' }, { status: 404 })
     }
-    if (role === 'moderator') {
-      const sessionEmail = (session.user as { email?: string } | undefined)?.email?.toLowerCase()
-      if (!sessionEmail) {
-        return NextResponse.json({ error: 'Session email missing.' }, { status: 401 })
-      }
-      const [myBoard] = await db
-        .select({ id: boardMembers.id })
-        .from(boardMembers)
-        .where(eq(boardMembers.email, sessionEmail))
-        .limit(1)
-      if (!myBoard || target.referredBy !== myBoard.id) {
-        return NextResponse.json(
-          { error: 'Moderators can only edit members they personally referred.' },
-          { status: 403 },
-        )
-      }
-    }
+    const scopeError = await assertModeratorOwnsTarget(role, (session.user as { email?: string } | undefined)?.email, target.referredBy)
+    if (scopeError) return NextResponse.json({ error: scopeError }, { status: 403 })
 
     const b = body as {
       name?: unknown

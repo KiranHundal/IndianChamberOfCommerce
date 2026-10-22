@@ -390,13 +390,23 @@ export default function AdminPage() {
   }
   const needsEmailTooltip = 'Placeholder email on file — the member can\'t be approved until a real address is added. Click Edit to add one.'
 
-  // Admin edits anyone; moderator only edits members they referred.
-  // Reviewer never edits (canFinanceActions already excludes them).
-  function canEditRow(m: Member): boolean {
+  // Admin acts on anyone; moderator only acts on members they referred.
+  // Reviewer never acts here (canFinanceActions already excludes them).
+  // Covers Edit, Send Payment Link, Resend Welcome, and Set Referrer
+  // (claim) — the whole per-row finance-action surface.
+  function canActOnRow(m: Member): boolean {
     if (!canFinanceActions) return false
     if (isAdmin) return true
     if (uiRole === 'moderator') return !!myBoardId && m.referredBy === myBoardId
     return false
+  }
+  function canClaimRow(m: Member): boolean {
+    // Set-referrer only applies to unreferred rows. Admin can claim any
+    // unreferred member for anyone (dropdown); moderator claims only for
+    // themselves.
+    if (!canFinanceActions) return false
+    if (m.referredBy) return false
+    return isAdmin || uiRole === 'moderator'
   }
 
   const filteredMembers = members.filter((m) => {
@@ -914,7 +924,7 @@ export default function AdminPage() {
                           <span className="text-hint text-[0.65rem] uppercase tracking-wide mr-2">Referred by</span>
                           {member.referredBy ? (
                             <span className="text-charcoal">{boardIdToName.get(member.referredBy) || 'Unknown'}</span>
-                          ) : (
+                          ) : isAdmin ? (
                             <select
                               defaultValue=""
                               disabled={actionLoading === `${member.id}-referrer`}
@@ -926,13 +936,25 @@ export default function AdminPage() {
                                 <option key={b.id} value={b.id}>{b.name}</option>
                               ))}
                             </select>
+                          ) : canClaimRow(member) && myBoardId ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSetReferrer(member, myBoardId)}
+                              disabled={actionLoading === `${member.id}-referrer`}
+                              title="Attribute this member to me"
+                              className="bg-white border border-accent/40 text-accent rounded px-2 py-1 text-[0.65rem] font-label tracking-widest uppercase hover:bg-accent/5 disabled:opacity-50"
+                            >
+                              {actionLoading === `${member.id}-referrer` ? 'Claiming…' : 'Claim as mine'}
+                            </button>
+                          ) : (
+                            <span className="text-hint italic">— Not set —</span>
                           )}
                         </div>
                       )}
 
                       {/* Actions flush at the bottom */}
                       <div className="flex gap-2 flex-wrap pt-2 border-t border-ivory-200/60">
-                        {member.status === 'pending' && unpaid && canFinanceActions && (
+                        {member.status === 'pending' && unpaid && canActOnRow(member) && (
                           <button
                             type="button"
                             onClick={() => handleSendPaymentLink(member)}
@@ -968,7 +990,7 @@ export default function AdminPage() {
                             </button>
                           </>
                         )}
-                        {canFinanceActions && member.status === 'approved' && !isStaff && !!member.membershipNumber && (
+                        {canActOnRow(member) && member.status === 'approved' && !isStaff && !!member.membershipNumber && (
                           <button
                             type="button"
                             onClick={() => handleResendWelcome(member)}
@@ -1009,7 +1031,7 @@ export default function AdminPage() {
                             </button>
                           </>
                         )}
-                        {canEditRow(member) && (
+                        {canActOnRow(member) && (
                           <button
                             type="button"
                             onClick={() => openEdit(member)}
@@ -1099,14 +1121,17 @@ export default function AdminPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-1 max-w-[14rem]">
-                              <p className="text-hint text-[0.65rem] truncate" title={needsEmail(member) ? `${member.email} — ${needsEmailTooltip}` : member.email}>
+                              <p className="text-hint text-[0.65rem] truncate" title={member.email}>
                                 {member.email}
                               </p>
                               {needsEmail(member) && (
-                                <AlertTriangle
-                                  className="w-3 h-3 text-amber-500 flex-shrink-0"
-                                  aria-label="Needs real email"
-                                />
+                                <span
+                                  title={needsEmailTooltip}
+                                  aria-label={needsEmailTooltip}
+                                  className="inline-flex items-center flex-shrink-0 cursor-help"
+                                >
+                                  <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                </span>
                               )}
                             </div>
                             <div className="text-[0.6rem] text-hint mt-0.5 flex gap-1.5">
@@ -1177,7 +1202,7 @@ export default function AdminPage() {
                           </td>
                           <td className="py-2 text-right">
                             <div className="inline-flex gap-1 flex-wrap justify-end">
-                              {member.status === 'pending' && unpaid && canFinanceActions && (
+                              {member.status === 'pending' && unpaid && canActOnRow(member) && (
                                 <button
                                   type="button"
                                   onClick={() => handleSendPaymentLink(member)}
@@ -1214,7 +1239,7 @@ export default function AdminPage() {
                                   </button>
                                 </>
                               )}
-                              {canFinanceActions && member.status === 'approved' && !isStaff && !!member.membershipNumber && (
+                              {canActOnRow(member) && member.status === 'approved' && !isStaff && !!member.membershipNumber && (
                                 <button
                                   type="button"
                                   onClick={() => handleResendWelcome(member)}
@@ -1259,7 +1284,7 @@ export default function AdminPage() {
                                   </button>
                                 </>
                               )}
-                              {canEditRow(member) && (
+                              {canActOnRow(member) && (
                                 <button
                                   type="button"
                                   onClick={() => openEdit(member)}
@@ -1302,7 +1327,7 @@ export default function AdminPage() {
                               <p className="text-[0.7rem] text-charcoal truncate max-w-[8rem]" title={boardIdToName.get(member.referredBy) || member.referredBy}>
                                 {boardIdToName.get(member.referredBy) || 'Unknown'}
                               </p>
-                            ) : (
+                            ) : isAdmin ? (
                               <select
                                 defaultValue=""
                                 disabled={actionLoading === `${member.id}-referrer`}
@@ -1317,6 +1342,18 @@ export default function AdminPage() {
                                   <option key={b.id} value={b.id}>{b.name}</option>
                                 ))}
                               </select>
+                            ) : canClaimRow(member) && myBoardId ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSetReferrer(member, myBoardId)}
+                                disabled={actionLoading === `${member.id}-referrer`}
+                                title="Attribute this member to me"
+                                className="bg-white border border-accent/40 text-accent rounded px-2 py-0.5 text-[0.65rem] font-label tracking-widest uppercase hover:bg-accent/5 disabled:opacity-50"
+                              >
+                                {actionLoading === `${member.id}-referrer` ? '…' : 'Claim'}
+                              </button>
+                            ) : (
+                              <span className="text-hint italic text-[0.7rem]">—</span>
                             )}
                           </td>
                         </tr>
@@ -1683,16 +1720,29 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-mid mb-1">Referred by (board)</label>
-                  <select
-                    name="referredBy"
-                    defaultValue=""
-                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
-                  >
-                    <option value="">—</option>
-                    {boardOptions.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
+                  {isAdmin ? (
+                    <select
+                      name="referredBy"
+                      defaultValue=""
+                      className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    >
+                      <option value="">—</option>
+                      {boardOptions.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <>
+                      <input type="hidden" name="referredBy" value={myBoardId || ''} />
+                      <input
+                        type="text"
+                        value={myBoardId ? (boardIdToName.get(myBoardId) || 'You') : 'You'}
+                        disabled
+                        className="w-full border border-ivory-200 bg-page-bg rounded-md px-3 py-2 text-sm text-mid"
+                        title="Moderators can only attribute new members to themselves."
+                      />
+                    </>
+                  )}
                 </div>
               </div>
               <p className="text-[0.7rem] text-hint">
@@ -1926,12 +1976,25 @@ export default function AdminPage() {
               </div>
               <div className="md:col-span-2">
                 <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Referred By (board member)</label>
-                <select name="referredBy" defaultValue="" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
-                  <option value="">— None on record —</option>
-                  {boardOptions.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
+                {isAdmin ? (
+                  <select name="referredBy" defaultValue="" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                    <option value="">— None on record —</option>
+                    {boardOptions.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <>
+                    <input type="hidden" name="referredBy" value={myBoardId || ''} />
+                    <input
+                      type="text"
+                      value={myBoardId ? (boardIdToName.get(myBoardId) || 'You') : 'You'}
+                      disabled
+                      className="w-full border border-ivory-200 bg-page-bg rounded-md px-3 py-2 text-body text-mid"
+                      title="Moderators can only attribute new members to themselves."
+                    />
+                  </>
+                )}
               </div>
 
               <label className="md:col-span-2 flex items-start gap-3 cursor-pointer select-none bg-page-bg border border-ivory-200 rounded-md p-3 mt-1">

@@ -5,10 +5,12 @@ import { db } from '@/lib/db'
 import { members } from '@/lib/schema'
 import { eq } from 'drizzle-orm'
 import { sendMemberApprovedEmail } from '@/lib/email'
+import { assertModeratorOwnsTarget } from '@/lib/moderator-scope'
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
-  const role = (session?.user as Record<string, unknown> | undefined)?.role
+  const user = session?.user as { role?: string; email?: string } | undefined
+  const role = user?.role
   if (!session?.user || (role !== 'admin' && role !== 'moderator')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -20,6 +22,8 @@ export async function POST(req: Request) {
 
   const [member] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
   if (!member) return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+  const scopeError = await assertModeratorOwnsTarget(role, user?.email, member.referredBy)
+  if (scopeError) return NextResponse.json({ error: scopeError }, { status: 403 })
   if (member.status !== 'approved') {
     return NextResponse.json({ error: 'Only approved members can receive the welcome email.' }, { status: 400 })
   }
