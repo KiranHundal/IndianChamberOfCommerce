@@ -21,6 +21,7 @@ import {
   KeyRound,
   Copy,
   Pencil,
+  AlertTriangle,
 } from 'lucide-react'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import { useEffectiveRole } from '@/lib/use-effective-role'
@@ -380,6 +381,14 @@ export default function AdminPage() {
   function isStaffRole(m: Member): boolean {
     return m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer'
   }
+
+  // Rows seeded from the chamber batch with no real email on file carry
+  // a placeholder address like cb-slug@noemail.cvicc.org. Approve is
+  // blocked server-side on those (/api/admin/members route.ts:201).
+  function needsEmail(m: Member): boolean {
+    return m.email.toLowerCase().endsWith('@noemail.cvicc.org')
+  }
+  const needsEmailTooltip = 'Placeholder email on file — the member can\'t be approved until a real address is added. Click Edit to add one.'
 
   // Admin edits anyone; moderator only edits members they referred.
   // Reviewer never edits (canFinanceActions already excludes them).
@@ -835,7 +844,18 @@ export default function AdminPage() {
                       </div>
 
                       {/* Contact block */}
-                      <div className="text-xs text-charcoal mb-2 break-all">{member.email}</div>
+                      <div className="text-xs text-charcoal mb-2 break-all flex items-center gap-1.5 flex-wrap">
+                        <span>{member.email}</span>
+                        {needsEmail(member) && (
+                          <span
+                            title={needsEmailTooltip}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-amber-300 bg-amber-50 text-amber-700 text-[0.6rem] font-medium"
+                          >
+                            <AlertTriangle className="w-3 h-3" />
+                            Needs email
+                          </span>
+                        )}
+                      </div>
                       {member.phone && <div className="text-xs text-hint mb-2">{member.phone}</div>}
 
                       {/* Business + location */}
@@ -1078,7 +1098,17 @@ export default function AdminPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-hint text-[0.65rem] truncate max-w-[12rem]" title={member.email}>{member.email}</p>
+                            <div className="flex items-center gap-1 max-w-[14rem]">
+                              <p className="text-hint text-[0.65rem] truncate" title={needsEmail(member) ? `${member.email} — ${needsEmailTooltip}` : member.email}>
+                                {member.email}
+                              </p>
+                              {needsEmail(member) && (
+                                <AlertTriangle
+                                  className="w-3 h-3 text-amber-500 flex-shrink-0"
+                                  aria-label="Needs real email"
+                                />
+                              )}
+                            </div>
                             <div className="text-[0.6rem] text-hint mt-0.5 flex gap-1.5">
                               {member.membershipNumber && <span>#{member.membershipNumber}</span>}
                               {member.phone && <span>· {member.phone}</span>}
