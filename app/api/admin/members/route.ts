@@ -243,6 +243,93 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ success: true, message: 'Member deactivated.' })
   }
 
+  if (action === 'update-profile') {
+    // Admin + moderator can edit the contact/profile fields on any member
+    // row. Reviewer is intentionally excluded — their scope is approve /
+    // reject only. Role/status/password/referrer stay out of this action
+    // (they have their own dedicated flows: /admin/team, approve/reject,
+    // reset-password, set-referrer).
+    if (role !== 'admin' && role !== 'moderator') {
+      return NextResponse.json({ error: 'Only admins or moderators can edit members.' }, { status: 403 })
+    }
+    const [target] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
+    if (!target) {
+      return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+    }
+
+    const b = body as {
+      name?: unknown
+      email?: unknown
+      phone?: unknown
+      businessName?: unknown
+      city?: unknown
+      sector?: unknown
+      membershipTier?: unknown
+    }
+    const patch: Partial<typeof members.$inferInsert> = {}
+
+    if (typeof b.name === 'string') {
+      const trimmed = b.name.trim()
+      if (!trimmed) return NextResponse.json({ error: 'Name cannot be blank.' }, { status: 400 })
+      patch.name = trimmed
+    }
+
+    if (typeof b.email === 'string') {
+      const emailTrimmed = b.email.trim().toLowerCase()
+      if (!emailTrimmed) return NextResponse.json({ error: 'Email cannot be blank.' }, { status: 400 })
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+        return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 })
+      }
+      if (emailTrimmed !== target.email.toLowerCase()) {
+        const existing = await db
+          .select({ id: members.id })
+          .from(members)
+          .where(eq(members.email, emailTrimmed))
+          .limit(1)
+        if (existing.length > 0) {
+          return NextResponse.json({ error: 'That email is already on another member.' }, { status: 409 })
+        }
+        patch.email = emailTrimmed
+      }
+    }
+
+    if (typeof b.phone === 'string') {
+      const t = b.phone.trim()
+      patch.phone = t === '' ? null : t
+    }
+    if (typeof b.businessName === 'string') {
+      const t = b.businessName.trim()
+      patch.businessName = t === '' ? null : t
+    }
+    if (typeof b.city === 'string') {
+      const t = b.city.trim()
+      patch.city = t === '' ? null : t
+    }
+    if (typeof b.sector === 'string') {
+      const t = b.sector.trim()
+      patch.sector = t === '' ? null : t
+    }
+    if (typeof b.membershipTier === 'string') {
+      if (b.membershipTier !== 'individual' && b.membershipTier !== 'corporate') {
+        return NextResponse.json({ error: 'Tier must be individual or corporate.' }, { status: 400 })
+      }
+      patch.membershipTier = b.membershipTier
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: 'Nothing to update.' }, { status: 400 })
+    }
+
+    // If an email was supplied, strip the "[NEEDS EMAIL]" marker and any
+    // placeholder reference text so the row stops showing as flagged.
+    if (patch.email && target.paymentReference?.includes('[NEEDS EMAIL]')) {
+      patch.paymentReference = target.paymentReference.replace(' · [NEEDS EMAIL]', '')
+    }
+
+    await db.update(members).set(patch).where(eq(members.id, target.id))
+    return NextResponse.json({ success: true, memberId: target.id })
+  }
+
   if (action === 'reactivate') {
     if ((session.user as Record<string, unknown>).role !== 'admin') {
       return NextResponse.json({ error: 'Only admins can reactivate members.' }, { status: 403 })

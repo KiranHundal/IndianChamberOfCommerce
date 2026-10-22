@@ -20,6 +20,7 @@ import {
   UserCheck,
   KeyRound,
   Copy,
+  Pencil,
 } from 'lucide-react'
 import AnimatedSection from '@/components/ui/AnimatedSection'
 import { useEffectiveRole } from '@/lib/use-effective-role'
@@ -95,6 +96,21 @@ export default function AdminPage() {
   // default — they're already on /admin/board-members or /admin/team.
   // Only admin can flip this on, matching Kiran's "only I see them" ask.
   const [showStaff, setShowStaff] = useState(false)
+  // Edit member modal state. editingMember = full snapshot of the row
+  // being edited; null means closed. editError + editSaving mirror the
+  // existing Add Member modal pattern.
+  const [editingMember, setEditingMember] = useState<null | {
+    id: string
+    name: string
+    email: string
+    phone: string
+    businessName: string
+    city: string
+    sector: string
+    membershipTier: string
+  }>(null)
+  const [editError, setEditError] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
   // In-app confirm — replaces native browser confirm() for the password
   // actions so we don't flash a system alert over the admin UI.
   const [pendingConfirm, setPendingConfirm] = useState<{
@@ -453,6 +469,55 @@ export default function AdminPage() {
     } catch (err) {
       setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
     }
+  }
+
+  function openEdit(m: Member) {
+    setEditError('')
+    setEditingMember({
+      id: m.id,
+      name: m.name,
+      email: m.email,
+      phone: m.phone || '',
+      businessName: m.businessName || '',
+      city: m.city || '',
+      sector: m.sector || '',
+      membershipTier: m.membershipTier,
+    })
+  }
+
+  async function handleEditMember(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!editingMember) return
+    setEditError('')
+    setEditSaving(true)
+    try {
+      const res = await fetch('/api/admin/members', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memberId: editingMember.id,
+          action: 'update-profile',
+          name: editingMember.name,
+          email: editingMember.email,
+          phone: editingMember.phone,
+          businessName: editingMember.businessName,
+          city: editingMember.city,
+          sector: editingMember.sector,
+          membershipTier: editingMember.membershipTier,
+        }),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        setEditError(body.error || `Save failed (${res.status}).`)
+      } else {
+        setEditingMember(null)
+        setNotice({ type: 'success', text: `Updated ${editingMember.name}.` })
+        await fetchMembers()
+      }
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Network error.')
+    }
+    setEditSaving(false)
   }
 
   async function handleAddMember(e: React.FormEvent<HTMLFormElement>) {
@@ -904,6 +969,16 @@ export default function AdminPage() {
                             </button>
                           </>
                         )}
+                        {canFinanceActions && (
+                          <button
+                            type="button"
+                            onClick={() => openEdit(member)}
+                            className="flex-1 min-w-[6rem] inline-flex items-center justify-center gap-1 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-2 rounded hover:border-accent/40"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-accent" />
+                            Edit
+                          </button>
+                        )}
                         {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
                           <button
                             type="button"
@@ -1133,6 +1208,16 @@ export default function AdminPage() {
                                     )}
                                   </button>
                                 </>
+                              )}
+                              {canFinanceActions && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEdit(member)}
+                                  title="Edit name, email, phone, business, city, sector, tier"
+                                  className="inline-flex items-center bg-white border border-ivory-200 text-brand p-1 rounded hover:border-accent/40"
+                                >
+                                  <Pencil className="w-3.5 h-3.5 text-accent" />
+                                </button>
                               )}
                               {isAdmin && member.status === 'approved' && member.role !== 'admin' && (
                                 <button
@@ -1578,6 +1663,132 @@ export default function AdminPage() {
                 >
                   {addSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                   Add member
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingMember && (
+        <div
+          className="fixed inset-0 bg-black/40 z-[500] flex items-start justify-center p-4 overflow-y-auto"
+          onClick={() => !editSaving && setEditingMember(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-hover w-full max-w-lg my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-ivory-200">
+              <div>
+                <h2 className="text-sm font-medium text-brand">Edit {editingMember.name}</h2>
+                <p className="text-xs text-hint">
+                  Contact details and tier. For status / role / password / referrer, use the dedicated buttons on the row.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !editSaving && setEditingMember(null)}
+                className="text-mid hover:text-brand"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleEditMember} className="p-5 space-y-3">
+              {editError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-sm">
+                  {editError}
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Name *</label>
+                  <input
+                    value={editingMember.name}
+                    onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
+                    required
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Email *</label>
+                  <input
+                    type="email"
+                    value={editingMember.email}
+                    onChange={(e) => setEditingMember({ ...editingMember, email: e.target.value })}
+                    required
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Phone</label>
+                  <input
+                    value={editingMember.phone}
+                    onChange={(e) => setEditingMember({ ...editingMember, phone: e.target.value })}
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="559-555-0000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Business name</label>
+                  <input
+                    value={editingMember.businessName}
+                    onChange={(e) => setEditingMember({ ...editingMember, businessName: e.target.value })}
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">City</label>
+                  <input
+                    value={editingMember.city}
+                    onChange={(e) => setEditingMember({ ...editingMember, city: e.target.value })}
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="Fresno"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-mid mb-1">Sector</label>
+                  <input
+                    value={editingMember.sector}
+                    onChange={(e) => setEditingMember({ ...editingMember, sector: e.target.value })}
+                    className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    placeholder="e.g. Healthcare"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-mid mb-1">Tier</label>
+                <select
+                  value={editingMember.membershipTier}
+                  onChange={(e) => setEditingMember({ ...editingMember, membershipTier: e.target.value })}
+                  className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                >
+                  <option value="individual">Individual ($95)</option>
+                  <option value="corporate">Corporate ($395)</option>
+                </select>
+                <p className="text-[0.65rem] text-hint mt-1">
+                  Changing tier here does NOT re-charge or refund — update payment separately if needed.
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-ivory-200">
+                <button
+                  type="button"
+                  onClick={() => !editSaving && setEditingMember(null)}
+                  className="text-sm text-mid px-3 py-2 hover:text-brand"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSaving}
+                  className="inline-flex items-center gap-1.5 bg-accent text-white text-sm font-medium px-4 py-2 rounded hover:bg-gold-900 disabled:opacity-50"
+                >
+                  {editSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+                  Save
                 </button>
               </div>
             </form>
