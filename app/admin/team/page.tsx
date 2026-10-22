@@ -167,6 +167,29 @@ export default function AdminTeamPage() {
     setActionId(null)
   }
 
+  async function handleSendAccess(m: TeamMember) {
+    setActionId(`send-${m.id}`)
+    setNotice(null)
+    try {
+      const res = await fetch(`/api/admin/team/${m.id}/send-access`, { method: 'POST' })
+      const body = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: body.error || 'Failed to send access email.' })
+      } else {
+        const extra = body.alreadyHasPassword
+          ? ' (they already have a password — the email also tells them that; they can just sign in)'
+          : ''
+        setNotice({
+          type: 'success',
+          text: `Access email sent to ${body.email}. They set their password at /register.${extra}`,
+        })
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setActionId(null)
+  }
+
   async function handleRevoke(m: TeamMember) {
     if (!confirm(`Revoke ${m.role} access for ${m.name}?\nTheir member record stays; they just lose the ${m.role} dashboard.`)) return
     setActionId(`revoke-${m.id}`)
@@ -305,6 +328,19 @@ export default function AdminTeamPage() {
                               {actionId === `role-${m.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Make Reviewer'}
                             </button>
                           )}
+                          <button
+                            onClick={() => handleSendAccess(m)}
+                            disabled={actionId === `send-${m.id}`}
+                            title={`Email ${m.name} the /register link so they can set their own password`}
+                            className="inline-flex items-center gap-1.5 bg-white border border-emerald-200 text-emerald-700 font-label text-[0.6rem] tracking-widest uppercase px-3 py-2 rounded-sm hover:bg-emerald-50 disabled:opacity-40"
+                          >
+                            {actionId === `send-${m.id}` ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Mail className="w-3 h-3" />
+                            )}
+                            Send Credentials
+                          </button>
                           <button
                             onClick={() => handleRevoke(m)}
                             disabled={actionId === `revoke-${m.id}` || isSelf}
