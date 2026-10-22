@@ -126,8 +126,31 @@ export default function PortalPage() {
     isBoardMember: boolean
     count: number
     revenue: number
-    referrals: Array<{ id: string; name: string; businessName: string | null; membershipTier: string; amountPaid: number; approvedAt: string | null }>
+    referrals: Array<{
+      id: string
+      name: string
+      email: string
+      phone: string | null
+      businessName: string | null
+      city: string | null
+      sector: string | null
+      membershipTier: string
+      amountPaid: number
+      approvedAt: string | null
+      needsEmail: boolean
+    }>
   }>({ isBoardMember: false, count: 0, revenue: 0, referrals: [] })
+  const [editingReferral, setEditingReferral] = useState<null | {
+    id: string
+    name: string
+    email: string
+    phone: string
+    businessName: string
+    city: string
+    sector: string
+  }>(null)
+  const [referralEditSaving, setReferralEditSaving] = useState(false)
+  const [referralEditError, setReferralEditError] = useState('')
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -572,21 +595,46 @@ export default function PortalPage() {
                 ) : (
                   <ul className="divide-y divide-ivory-200">
                     {referrals.referrals.slice(0, 12).map((r) => (
-                      <li key={r.id} className="py-3 flex items-baseline justify-between gap-4">
-                        <div className="min-w-0">
+                      <li key={r.id} className="py-3 flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
                           <p className="text-body text-brand truncate">{r.name}</p>
                           {r.businessName && <p className="text-small text-mid truncate">{r.businessName}</p>}
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">
-                            {r.membershipTier === 'corporate' ? 'Corporate' : 'Individual'}
-                          </p>
-                          <p className="text-small text-brand font-medium">${r.amountPaid.toLocaleString()}</p>
-                          {r.approvedAt && (
-                            <p className="text-[0.65rem] text-hint">
-                              {new Date(r.approvedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                            </p>
+                          {r.needsEmail ? (
+                            <p className="text-[0.65rem] text-red-600 mt-0.5">⚠ Missing email — click Edit to add</p>
+                          ) : (
+                            <p className="text-[0.65rem] text-hint truncate">{r.email}{r.phone ? ` · ${r.phone}` : ''}</p>
                           )}
+                        </div>
+                        <div className="text-right flex-shrink-0 flex items-start gap-3">
+                          <div>
+                            <p className="font-label text-[0.6rem] tracking-widest uppercase text-brand/60">
+                              {r.membershipTier === 'corporate' ? 'Corporate' : 'Individual'}
+                            </p>
+                            <p className="text-small text-brand font-medium">${r.amountPaid.toLocaleString()}</p>
+                            {r.approvedAt && (
+                              <p className="text-[0.65rem] text-hint">
+                                {new Date(r.approvedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReferralEditError('')
+                              setEditingReferral({
+                                id: r.id,
+                                name: r.name,
+                                email: r.email || '',
+                                phone: r.phone || '',
+                                businessName: r.businessName || '',
+                                city: r.city || '',
+                                sector: r.sector || '',
+                              })
+                            }}
+                            className="text-[0.65rem] font-label tracking-widest uppercase text-accent hover:text-gold-900 border border-accent/40 rounded px-2 py-1 self-start"
+                          >
+                            Edit
+                          </button>
                         </div>
                       </li>
                     ))}
@@ -687,6 +735,157 @@ export default function PortalPage() {
               )}
             </div>
           </AnimatedSection>
+
+          {/* Edit referral modal — board members only; endpoint enforces */}
+          {editingReferral && (
+            <div
+              className="fixed inset-0 bg-black/50 z-[500] flex items-start justify-center p-4 overflow-y-auto"
+              onClick={() => !referralEditSaving && setEditingReferral(null)}
+            >
+              <div
+                className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl my-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-display text-h4 text-brand">Edit {editingReferral.name}</h3>
+                  <button
+                    type="button"
+                    onClick={() => !referralEditSaving && setEditingReferral(null)}
+                    className="text-mid hover:text-brand"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-small text-mid mb-4">
+                  Update their contact details. Changes you can&rsquo;t make here (tier, status, payment) stay with the chamber admin.
+                </p>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    setReferralEditError('')
+                    setReferralEditSaving(true)
+                    try {
+                      const res = await fetch('/api/portal/update-referral', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          memberId: editingReferral.id,
+                          name: editingReferral.name,
+                          email: editingReferral.email,
+                          phone: editingReferral.phone,
+                          businessName: editingReferral.businessName,
+                          city: editingReferral.city,
+                          sector: editingReferral.sector,
+                        }),
+                      })
+                      const body = await res.json()
+                      if (!res.ok) {
+                        setReferralEditError(body.error || `Save failed (${res.status}).`)
+                      } else {
+                        setEditingReferral(null)
+                        // Refetch referrals so the row updates
+                        fetch('/api/portal/my-referrals')
+                          .then((r) => r.json())
+                          .then((data) => setReferrals({
+                            isBoardMember: !!data.isBoardMember,
+                            count: data.count || 0,
+                            revenue: data.revenue || 0,
+                            referrals: data.referrals || [],
+                          }))
+                          .catch(() => {})
+                      }
+                    } catch (err) {
+                      setReferralEditError(err instanceof Error ? err.message : 'Network error.')
+                    }
+                    setReferralEditSaving(false)
+                  }}
+                  className="space-y-3"
+                >
+                  {referralEditError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 text-small">
+                      {referralEditError}
+                    </div>
+                  )}
+                  <div>
+                    <label className="font-label text-micro tracking-widest uppercase text-brand block mb-1">Name *</label>
+                    <input
+                      value={editingReferral.name}
+                      onChange={(e) => setEditingReferral({ ...editingReferral, name: e.target.value })}
+                      required
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-label text-micro tracking-widest uppercase text-brand block mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={editingReferral.email}
+                      onChange={(e) => setEditingReferral({ ...editingReferral, email: e.target.value })}
+                      required
+                      placeholder="their@email.com"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-label text-micro tracking-widest uppercase text-brand block mb-1">Phone</label>
+                    <input
+                      value={editingReferral.phone}
+                      onChange={(e) => setEditingReferral({ ...editingReferral, phone: e.target.value })}
+                      placeholder="559-555-0000"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-label text-micro tracking-widest uppercase text-brand block mb-1">Business</label>
+                    <input
+                      value={editingReferral.businessName}
+                      onChange={(e) => setEditingReferral({ ...editingReferral, businessName: e.target.value })}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-label text-micro tracking-widest uppercase text-brand block mb-1">City</label>
+                      <input
+                        value={editingReferral.city}
+                        onChange={(e) => setEditingReferral({ ...editingReferral, city: e.target.value })}
+                        placeholder="Fresno"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="font-label text-micro tracking-widest uppercase text-brand block mb-1">Sector</label>
+                      <input
+                        value={editingReferral.sector}
+                        onChange={(e) => setEditingReferral({ ...editingReferral, sector: e.target.value })}
+                        placeholder="e.g. Healthcare"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-ivory-200">
+                    <button
+                      type="button"
+                      onClick={() => !referralEditSaving && setEditingReferral(null)}
+                      className="text-small text-mid px-3 py-2 hover:text-brand"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={referralEditSaving}
+                      className="bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 disabled:opacity-60"
+                    >
+                      {referralEditSaving ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Change Password Modal */}
           {showPasswordModal && (

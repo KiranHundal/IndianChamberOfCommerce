@@ -191,6 +191,18 @@ export async function PATCH(req: Request) {
   }
 
   if (action === 'approve') {
+    const [candidate] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
+    if (!candidate) {
+      return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+    }
+    const emailLower = candidate.email.toLowerCase()
+    if (!emailLower || emailLower.endsWith('@noemail.cvicc.org')) {
+      return NextResponse.json(
+        { error: `Cannot approve ${candidate.name} — no real email on file. Add a real address first (Edit on their row), then approve.` },
+        { status: 400 }
+      )
+    }
+
     const membershipNumber = await getNextMembershipNumber()
 
     await db.update(members).set({

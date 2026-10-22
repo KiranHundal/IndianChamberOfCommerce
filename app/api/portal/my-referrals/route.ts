@@ -21,7 +21,11 @@ export async function GET() {
     const referredMembers = await db.select({
       id: members.id,
       name: members.name,
+      email: members.email,
+      phone: members.phone,
       businessName: members.businessName,
+      city: members.city,
+      sector: members.sector,
       membershipTier: members.membershipTier,
       status: members.status,
       amountPaid: members.amountPaid,
@@ -52,16 +56,24 @@ export async function GET() {
       boardName: board.name,
       count: approved.length,
       revenue: totalRevenue,
-      referrals: approved.map((m) => ({
-        id: m.id,
-        name: m.name,
-        businessName: m.businessName,
-        membershipTier: m.membershipTier,
-        amountPaid: m.amountPaid && m.amountPaid > 0
-          ? m.amountPaid
-          : m.membershipTier === 'corporate' ? 395 : 95,
-        approvedAt: m.approvedAt,
-      })),
+      referrals: approved.map((m) => {
+        const isPlaceholder = m.email.toLowerCase().endsWith('@noemail.cvicc.org')
+        return {
+          id: m.id,
+          name: m.name,
+          email: isPlaceholder ? '' : m.email,
+          phone: m.phone,
+          businessName: m.businessName,
+          city: m.city,
+          sector: m.sector,
+          membershipTier: m.membershipTier,
+          amountPaid: m.amountPaid && m.amountPaid > 0
+            ? m.amountPaid
+            : m.membershipTier === 'corporate' ? 395 : 95,
+          approvedAt: m.approvedAt,
+          needsEmail: isPlaceholder,
+        }
+      }),
     })
   } catch (e) {
     console.error('portal my-referrals error:', e)
