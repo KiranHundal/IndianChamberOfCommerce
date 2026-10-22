@@ -62,6 +62,68 @@ const SUPERUSER_DEFAULT_PASSWORD = 'AdminKiran'
 // rebootstrap across both superuser rows.
 const PASSWORD_REBOOTSTRAP_MARKER = 'superuser_pw_rebootstrap_adminkiran_v1'
 
+/**
+ * Board moderators (all 7 CVICC 2026 board members minus Kiran who is
+ * admin and Gigi who is reviewer). Idempotent cold-start seed:
+ *   - Row absent → insert with role=moderator, status=approved, no password
+ *     (admin can later /admin/members → Set Temp Password to issue credentials)
+ *   - Row present with role=admin or reviewer → LEFT ALONE (never downgraded)
+ *   - Row present with role=member → promoted to moderator
+ *   - Row already moderator → no-op
+ *
+ * Mirrors app/api/admin/team/seed-finance-moderators/route.ts for Sonia,
+ * Roken, Surdeep, Rajinder (safe to re-apply) and extends it to the three
+ * remaining board members (Akash, Manreet, R. Sidhu Buttar).
+ */
+const BOARD_MODERATORS = [
+  { name: 'Sonia Heer', email: 'sonniaheer@yahoo.com' },
+  { name: 'Dr. Surdeep Singh', email: 'dentist.singh95@gmail.com' },
+  { name: 'Rajinder Kumar', email: 'rk.aususa@gmail.com' },
+  { name: 'Roken Bhatt', email: 'roken@bhattcpa.org' },
+  { name: 'Akash Singhal', email: 'akashsingel@gmail.com' },
+  { name: 'Manreet Singh Sandhu', email: 'manreet.singh.sandhu@gmail.com' },
+  { name: 'R. Sidhu Buttar', email: 'rsidhu.buttar@gmail.com' },
+]
+
+async function ensureBoardModerators() {
+  try {
+    for (const b of BOARD_MODERATORS) {
+      const email = b.email.toLowerCase().trim()
+      const [existing] = await db
+        .select()
+        .from(members)
+        .where(eq(members.email, email))
+        .limit(1)
+
+      if (!existing) {
+        await db.insert(members).values({
+          id: `seed-moderator-${email.replace(/[^a-z0-9]/g, '-')}`,
+          email,
+          passwordHash: '',
+          name: b.name,
+          membershipTier: 'individual',
+          status: 'approved',
+          role: 'moderator',
+          createdAt: new Date(),
+          approvedAt: new Date(),
+        })
+        console.log(`ensureBoardModerators: created ${email} as moderator`)
+        continue
+      }
+
+      // Never downgrade admin or reviewer. Promote member → moderator.
+      if (existing.role === 'admin' || existing.role === 'reviewer' || existing.role === 'moderator') continue
+      await db
+        .update(members)
+        .set({ role: 'moderator', status: 'approved', approvedAt: existing.approvedAt || new Date() })
+        .where(eq(members.id, existing.id))
+      console.log(`ensureBoardModerators: promoted ${email} to moderator`)
+    }
+  } catch (e) {
+    console.error('ensureBoardModerators failed:', e instanceof Error ? e.message : e)
+  }
+}
+
 async function ensureSuperuserAccounts() {
   try {
     const plain = process.env.BOOTSTRAP_SUPERUSER_PASSWORD || SUPERUSER_DEFAULT_PASSWORD
@@ -233,6 +295,12 @@ export async function ensureMembersRenewalSchema() {
     // Idempotent: creates missing rows, promotes to admin if downgraded,
     // one-time password rebootstrap via marker, then leaves passwords alone.
     await ensureSuperuserAccounts()
+
+    // Board moderator seed — remaining 2026 board members (excluding Kiran=admin
+    // and Gigi=reviewer). Idempotent: never downgrades admin/reviewer, never
+    // touches passwords. Admin uses /admin/members → Set Temp Password to
+    // actually issue sign-in credentials.
+    await ensureBoardModerators()
 
     // Email corrections for placeholder rows from the chamber batch —
     // runs AFTER the main schema work. Each UPDATE is idempotent (only
