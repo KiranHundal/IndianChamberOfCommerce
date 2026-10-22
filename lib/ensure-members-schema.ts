@@ -29,63 +29,93 @@ const POLICY_CUTOFF_DATE = '2026-09-26' // exclusive upper bound on created_at
 const POLICY_TARGET_DATE = '2027-09-01' // the standard renewal for the founding cohort
 
 /**
- * Permanent superuser (Kiran Hundal, Treasurer/CFO & site operator).
+ * Permanent superusers (Kiran Hundal, Treasurer/CFO & site operator).
+ *
+ * Two accounts, both role=admin:
+ *   - hundalkiran6@gmail.com   (primary)
+ *   - kiran.farmers@gmail.com  (secondary)
  *
  * This seed guarantees Kiran can always sign in with admin role, even if
- * his row gets deleted or his role gets accidentally downgraded. It is
- * safe to re-run on every cold start:
- *   - Row absent → insert with role=admin, status=approved, bcrypt(bootstrap pw)
+ * a row gets deleted or a role gets accidentally downgraded. Safe to
+ * re-run on every cold start:
+ *   - Row absent → insert with role=admin, status=approved, bcrypt(bootstrap)
  *   - Row present, role != admin → promote to admin, keep approved
- *   - Row present, admin → no-op, password untouched
+ *   - Row present, admin → no-op (password untouched unless the one-time
+ *     rebootstrap marker below hasn't been applied yet)
  *
- * Password handling: the bootstrap hash is set ONLY on INSERT. Once Kiran
- * signs in and changes his password from /portal, subsequent cold starts
- * never clobber it. If his row later gets deleted entirely, the next cold
- * start re-seeds with the bootstrap password again.
+ * Password handling: the bootstrap password `AdminKiran` is set at INSERT
+ * time, PLUS once-per-database via a migration marker so existing rows
+ * (e.g. previously seeded with an older bootstrap value) get the current
+ * password applied. After the marker is recorded, subsequent cold starts
+ * leave existing passwords alone — so once Kiran changes his password
+ * from /portal, this seed can never clobber it.
  *
- * BOOTSTRAP_SUPERUSER_PASSWORD env var overrides the hardcoded default
- * when present — rotate it there instead of editing this file.
+ * BOOTSTRAP_SUPERUSER_PASSWORD env var overrides the hardcoded value
+ * when present. Change there to rotate without editing this file.
  */
-const SUPERUSER_EMAIL = 'hundalkiran6@gmail.com'
-const SUPERUSER_NAME = 'Kiranjot Hundal'
-const SUPERUSER_ID = 'seed-superuser-kiran-hundal'
-const SUPERUSER_DEFAULT_PASSWORD = 'CVICC-Admin-Change-Me-2026'
+const SUPERUSERS = [
+  { id: 'seed-superuser-kiran-hundal', email: 'hundalkiran6@gmail.com', name: 'Kiranjot Hundal' },
+  { id: 'seed-superuser-kiran-farmers', email: 'kiran.farmers@gmail.com', name: 'Kiran Hundal' },
+]
+const SUPERUSER_DEFAULT_PASSWORD = 'AdminKiran'
+// Bump the suffix if you ever want to force another one-time password
+// rebootstrap across both superuser rows.
+const PASSWORD_REBOOTSTRAP_MARKER = 'superuser_pw_rebootstrap_adminkiran_v1'
 
-async function ensureSuperuserAccount() {
+async function ensureSuperuserAccounts() {
   try {
-    const [existing] = await db
-      .select()
-      .from(members)
-      .where(eq(members.email, SUPERUSER_EMAIL))
-      .limit(1)
+    const plain = process.env.BOOTSTRAP_SUPERUSER_PASSWORD || SUPERUSER_DEFAULT_PASSWORD
+    const passwordHash = await bcrypt.hash(plain, 10)
 
-    if (!existing) {
-      const plain = process.env.BOOTSTRAP_SUPERUSER_PASSWORD || SUPERUSER_DEFAULT_PASSWORD
-      const passwordHash = await bcrypt.hash(plain, 10)
-      await db.insert(members).values({
-        id: SUPERUSER_ID,
-        email: SUPERUSER_EMAIL,
-        passwordHash,
-        name: SUPERUSER_NAME,
-        membershipTier: 'individual',
-        status: 'approved',
-        role: 'admin',
-        createdAt: new Date(),
-        approvedAt: new Date(),
-      })
-      console.log('ensureSuperuserAccount: seeded Kiran Hundal as admin')
-      return
+    for (const u of SUPERUSERS) {
+      const [existing] = await db
+        .select()
+        .from(members)
+        .where(eq(members.email, u.email))
+        .limit(1)
+
+      if (!existing) {
+        await db.insert(members).values({
+          id: u.id,
+          email: u.email,
+          passwordHash,
+          name: u.name,
+          membershipTier: 'individual',
+          status: 'approved',
+          role: 'admin',
+          createdAt: new Date(),
+          approvedAt: new Date(),
+        })
+        console.log(`ensureSuperuserAccounts: seeded ${u.email} as admin`)
+        continue
+      }
+
+      if (existing.role !== 'admin' || existing.status !== 'approved') {
+        await db
+          .update(members)
+          .set({ role: 'admin', status: 'approved' })
+          .where(eq(members.id, existing.id))
+        console.log(`ensureSuperuserAccounts: promoted ${u.email} to admin`)
+      }
     }
 
-    if (existing.role !== 'admin' || existing.status !== 'approved') {
-      await db
-        .update(members)
-        .set({ role: 'admin', status: 'approved' })
-        .where(eq(members.id, existing.id))
-      console.log('ensureSuperuserAccount: promoted Kiran Hundal to admin')
-    }
+    // One-time password rebootstrap. Runs exactly once per database
+    // (gated by app_migrations) so existing rows that were seeded with
+    // an older bootstrap password get the current one applied. After the
+    // marker lands, this UPDATE stops matching — Kiran can change his
+    // password from /portal and nothing here will clobber it.
+    await tryRun(`
+      UPDATE members
+      SET password_hash = '${passwordHash}'
+      WHERE email IN ('${SUPERUSERS.map((s) => s.email).join("','")}')
+        AND NOT EXISTS (SELECT 1 FROM app_migrations WHERE name = '${PASSWORD_REBOOTSTRAP_MARKER}')
+    `)
+    await tryRun(`
+      INSERT OR IGNORE INTO app_migrations (name, applied_at)
+      VALUES ('${PASSWORD_REBOOTSTRAP_MARKER}', CAST(strftime('%s', 'now') AS INTEGER))
+    `)
   } catch (e) {
-    console.error('ensureSuperuserAccount failed:', e instanceof Error ? e.message : e)
+    console.error('ensureSuperuserAccounts failed:', e instanceof Error ? e.message : e)
   }
 }
 
@@ -199,10 +229,10 @@ export async function ensureMembersRenewalSchema() {
       WHERE email = 'cb-riya-sharma@noemail.cvicc.org'
     `)
 
-    // Permanent superuser seed — Kiran Hundal (Treasurer/CFO). Idempotent:
-    // creates the row if missing, promotes to admin if downgraded, never
-    // overwrites a password that's been changed from the portal.
-    await ensureSuperuserAccount()
+    // Permanent superuser seed — Kiran Hundal's two emails (Treasurer/CFO).
+    // Idempotent: creates missing rows, promotes to admin if downgraded,
+    // one-time password rebootstrap via marker, then leaves passwords alone.
+    await ensureSuperuserAccounts()
 
     // Email corrections for placeholder rows from the chamber batch —
     // runs AFTER the main schema work. Each UPDATE is idempotent (only
