@@ -126,6 +126,16 @@ export async function ensureMembersRenewalSchema() {
       WHERE email = 'cb-raja-rani-banquet@noemail.cvicc.org'
     `)
 
+    // Riya Sharma already existed in the members table from her own
+    // website signup (she has a real email on that row). The chamber-
+    // batch seed added a placeholder duplicate under Akash. Delete the
+    // placeholder; the real row stays. If Akash isn't recorded as her
+    // referrer on the real row, use "Set Referrer" from /admin/members.
+    await tryRun(`
+      DELETE FROM members
+      WHERE email = 'cb-riya-sharma@noemail.cvicc.org'
+    `)
+
     // Email corrections for placeholder rows from the chamber batch —
     // runs AFTER the main schema work. Each UPDATE is idempotent (only
     // matches rows still on the placeholder email), so re-runs are
