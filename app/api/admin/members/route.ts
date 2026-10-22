@@ -72,12 +72,10 @@ export async function POST(req: Request) {
       referredBy,
     } = body
 
-    // Moderators can only create members attributed to themselves. We
-    // force referredBy to their own board id regardless of what the
-    // client sent, so a moderator can't quietly credit another board
-    // member for a new signup.
-    let effectiveReferredBy: string | null =
-      (typeof referredBy === 'string' && referredBy.trim()) ? referredBy.trim() : null
+    // Moderators can only create members attributed to themselves. Admin
+    // must pick a referrer explicitly — no more unreferred rows via this
+    // flow.
+    let effectiveReferredBy: string
     if (role === 'moderator') {
       const myBoardId = await getSessionBoardId(sessionUser?.email)
       if (!myBoardId) {
@@ -87,6 +85,14 @@ export async function POST(req: Request) {
         )
       }
       effectiveReferredBy = myBoardId
+    } else {
+      if (typeof referredBy !== 'string' || !referredBy.trim()) {
+        return NextResponse.json(
+          { error: 'Please pick who referred this member — every member needs a board sponsor on record.' },
+          { status: 400 },
+        )
+      }
+      effectiveReferredBy = referredBy.trim()
     }
 
     if (!name || !email) {

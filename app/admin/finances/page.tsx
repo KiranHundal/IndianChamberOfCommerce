@@ -187,6 +187,10 @@ export default function AdminFinancesPage() {
   const [syncing, setSyncing] = useState(false)
   const [squareFilter, setSquareFilter] = useState<'all' | 'matched' | 'orphan'>('all')
   const [invitingOrphan, setInvitingOrphan] = useState<string | null>(null)
+  // Board sponsors + the per-orphan-row selection. Every new member needs
+  // a referrer; the admin picks here before Send Invite enables.
+  const [boardOptions, setBoardOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [orphanReferrer, setOrphanReferrer] = useState<Record<string, string>>({})
   const [showExpense, setShowExpense] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [modalSaving, setModalSaving] = useState(false)
@@ -303,14 +307,27 @@ export default function AdminFinancesPage() {
         if (params.get('openInvite') === '1') setShowInvite(true)
       }
       fetchSummary()
+      fetch('/api/board-members-public')
+        .then((r) => (r.ok ? r.json() : { boardMembers: [] }))
+        .then((d) => setBoardOptions(d.boardMembers || []))
+        .catch(() => {})
     }
   }, [status, session, router, fetchSummary])
 
   async function handleInviteOrphan(paymentId: string, buyerLabel: string) {
+    const referredBy = orphanReferrer[paymentId]
+    if (!referredBy) {
+      setNotice({ type: 'error', text: 'Pick a referrer first — every new member needs a board sponsor on record.' })
+      return
+    }
     setInvitingOrphan(paymentId)
     setNotice(null)
     try {
-      const res = await fetch(`/api/admin/square/orphans/${paymentId}/create-member`, { method: 'POST' })
+      const res = await fetch(`/api/admin/square/orphans/${paymentId}/create-member`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referredBy }),
+      })
       const data = await res.json()
       if (!res.ok) {
         setNotice({ type: 'error', text: data.error || 'Failed to send invite.' })
@@ -752,19 +769,33 @@ export default function AdminFinancesPage() {
                           </td>
                           <td className="px-3 py-2.5 text-right">
                             {!p.matched && p.buyerEmail && (
-                              <button
-                                onClick={() => handleInviteOrphan(p.id, p.buyerName || p.buyerEmail || 'this payment')}
-                                disabled={invitingOrphan === p.id}
-                                title={`Create a member for ${p.buyerName || p.buyerEmail} and email them the /register link`}
-                                className="inline-flex items-center gap-1.5 bg-navy-900 text-white text-[0.6rem] font-label tracking-widest uppercase px-2.5 py-1.5 rounded-sm hover:bg-navy-800 disabled:opacity-50"
-                              >
-                                {invitingOrphan === p.id ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <UserPlus className="w-3 h-3 text-gold-400" />
-                                )}
-                                {invitingOrphan === p.id ? 'Sending' : 'Send Invite'}
-                              </button>
+                              <div className="inline-flex items-center gap-2 flex-wrap justify-end">
+                                <select
+                                  value={orphanReferrer[p.id] || ''}
+                                  onChange={(e) => setOrphanReferrer((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                                  disabled={invitingOrphan === p.id}
+                                  title="Pick who referred this payer — required before sending the invite"
+                                  className="bg-white border border-ivory-200 rounded px-1.5 py-1 text-[0.65rem] max-w-[9rem] focus:outline-none focus:ring-1 focus:ring-brand/30"
+                                >
+                                  <option value="" disabled>— Referred by —</option>
+                                  {boardOptions.map((b) => (
+                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={() => handleInviteOrphan(p.id, p.buyerName || p.buyerEmail || 'this payment')}
+                                  disabled={invitingOrphan === p.id || !orphanReferrer[p.id]}
+                                  title={!orphanReferrer[p.id] ? 'Pick a referrer first' : `Create a member for ${p.buyerName || p.buyerEmail} and email them the /register link`}
+                                  className="inline-flex items-center gap-1.5 bg-navy-900 text-white text-[0.6rem] font-label tracking-widest uppercase px-2.5 py-1.5 rounded-sm hover:bg-navy-800 disabled:opacity-50"
+                                >
+                                  {invitingOrphan === p.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <UserPlus className="w-3 h-3 text-gold-400" />
+                                  )}
+                                  {invitingOrphan === p.id ? 'Sending' : 'Send Invite'}
+                                </button>
+                              </div>
                             )}
                             {!p.matched && !p.buyerEmail && (
                               <span className="text-[0.65rem] text-hint italic">No email on Square</span>

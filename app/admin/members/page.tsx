@@ -1719,14 +1719,15 @@ export default function AdminPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-mid mb-1">Referred by (board)</label>
+                  <label className="block text-xs font-medium text-mid mb-1">Referred by (board) *</label>
                   {isAdmin ? (
                     <select
                       name="referredBy"
+                      required
                       defaultValue=""
                       className="w-full border border-ivory-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                     >
-                      <option value="">—</option>
+                      <option value="" disabled>— Pick a board sponsor —</option>
                       {boardOptions.map((b) => (
                         <option key={b.id} value={b.id}>{b.name}</option>
                       ))}
@@ -1975,10 +1976,10 @@ export default function AdminPage() {
                 <input name="paymentReference" type="text" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30" placeholder="Check #1234 · Combined check · etc." />
               </div>
               <div className="md:col-span-2">
-                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Referred By (board member)</label>
+                <label className="font-label text-[0.6rem] tracking-widest uppercase text-brand block mb-1">Referred By (board member) *</label>
                 {isAdmin ? (
-                  <select name="referredBy" defaultValue="" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
-                    <option value="">— None on record —</option>
+                  <select name="referredBy" required defaultValue="" className="w-full border border-ivory-200 rounded-md px-3 py-2 text-body focus:outline-none focus:ring-2 focus:ring-brand/30">
+                    <option value="" disabled>— Pick a board sponsor —</option>
                     {boardOptions.map((b) => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}

@@ -25,10 +25,23 @@ async function getNextMembershipNumber(): Promise<string> {
   return String(lastNum + 1).padStart(4, '0')
 }
 
-export async function POST(_req: NextRequest, { params }: { params: { paymentId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: { paymentId: string } }) {
   const session = await requireAdmin()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Every created member needs a board sponsor. Orphan payments don't
+  // know who referred the payer, so the admin picks before clicking Send
+  // Invite — the UI puts a dropdown next to the button.
+  const body = await req.json().catch(() => ({})) as { referredBy?: unknown }
+  const referredBy =
+    typeof body.referredBy === 'string' && body.referredBy.trim() ? body.referredBy.trim() : null
+  if (!referredBy) {
+    return NextResponse.json(
+      { error: 'Please pick who referred this member — every member needs a board sponsor on record.' },
+      { status: 400 },
+    )
   }
 
   const [payment] = await db
@@ -74,6 +87,9 @@ export async function POST(_req: NextRequest, { params }: { params: { paymentId:
         amountPaid: amountDollars > 0 ? amountDollars : existing.amountPaid,
         paymentDate: existing.paymentDate || payment.paidAt,
         paymentReference: existing.paymentReference || (payment.receiptNumber ? `Receipt #${payment.receiptNumber}` : null),
+        // Backfill the referrer if the existing row is still unreferred;
+        // never clobber an existing attribution.
+        referredBy: existing.referredBy || referredBy,
       })
       .where(eq(members.id, existing.id))
   } else {
@@ -98,6 +114,7 @@ export async function POST(_req: NextRequest, { params }: { params: { paymentId:
       amountPaid: amountDollars,
       paymentReference: payment.receiptNumber ? `Receipt #${payment.receiptNumber}` : null,
       paymentDate: payment.paidAt,
+      referredBy,
     })
   }
 
