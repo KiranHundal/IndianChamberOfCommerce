@@ -89,6 +89,33 @@ export async function ensureMembersRenewalSchema() {
 
     ensured = true
 
+    // One-off: SMS Construction and Manreet Ladhar share the same email
+    // in the source data. Original seed kept Manreet's row and dropped
+    // SMS Construction via INSERT OR IGNORE. The admin's intent is one
+    // row: Manreet Ladhar as the contact person, SMS Construction as
+    // the business, paid $395 by check (SMS's payment). Guarded by a
+    // migration marker so it only applies once.
+    await tryRun(`
+      CREATE TABLE IF NOT EXISTS app_migrations (
+        name TEXT PRIMARY KEY,
+        applied_at INTEGER NOT NULL
+      )
+    `)
+    await tryRun(`
+      UPDATE members
+      SET
+        business_name = 'SMS Construction',
+        sector = 'Construction',
+        payment_method = 'check',
+        payment_reference = '[seed:chamber-batch-v1 ref:sonia merged:sms-construction]'
+      WHERE email = 'manreetladhar@gmail.com'
+        AND NOT EXISTS (SELECT 1 FROM app_migrations WHERE name = 'manreet_sms_merge_v1')
+    `)
+    await tryRun(`
+      INSERT OR IGNORE INTO app_migrations (name, applied_at)
+      VALUES ('manreet_sms_merge_v1', CAST(strftime('%s', 'now') AS INTEGER))
+    `)
+
     // Email corrections for placeholder rows from the chamber batch —
     // runs AFTER the main schema work. Each UPDATE is idempotent (only
     // matches rows still on the placeholder email), so re-runs are
