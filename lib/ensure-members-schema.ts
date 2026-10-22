@@ -116,6 +116,16 @@ export async function ensureMembersRenewalSchema() {
       VALUES ('manreet_sms_merge_v1', CAST(strftime('%s', 'now') AS INTEGER))
     `)
 
+    // Raja Rani Indian Banquet is a duplicate of Raja Rani Cuisine —
+    // same business, counted twice in the source data. Delete the
+    // Banquet row. Idempotent: once gone, the WHERE stops matching,
+    // and if an admin edited the email away from the placeholder we
+    // won't touch it either.
+    await tryRun(`
+      DELETE FROM members
+      WHERE email = 'cb-raja-rani-banquet@noemail.cvicc.org'
+    `)
+
     // Email corrections for placeholder rows from the chamber batch —
     // runs AFTER the main schema work. Each UPDATE is idempotent (only
     // matches rows still on the placeholder email), so re-runs are
