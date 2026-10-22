@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { members } from '@/lib/schema'
+import { members, boardMembers } from '@/lib/schema'
 import { eq, desc, isNotNull, count } from 'drizzle-orm'
 import { sendMemberApprovedEmail } from '@/lib/email'
 import { ensureMembersRenewalSchema } from '@/lib/ensure-members-schema'
@@ -244,17 +244,34 @@ export async function PATCH(req: Request) {
   }
 
   if (action === 'update-profile') {
-    // Admin + moderator can edit the contact/profile fields on any member
-    // row. Reviewer is intentionally excluded — their scope is approve /
-    // reject only. Role/status/password/referrer stay out of this action
-    // (they have their own dedicated flows: /admin/team, approve/reject,
-    // reset-password, set-referrer).
+    // Admin edits anyone. Moderators are scoped to members THEY personally
+    // referred — attribution via members.referred_by → board_members.id,
+    // matched by session email. Reviewer is intentionally excluded —
+    // their scope is approve / reject only. Role/status/password/referrer
+    // stay out of this action (they have their own dedicated flows).
     if (role !== 'admin' && role !== 'moderator') {
       return NextResponse.json({ error: 'Only admins or moderators can edit members.' }, { status: 403 })
     }
     const [target] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
     if (!target) {
       return NextResponse.json({ error: 'Member not found' }, { status: 404 })
+    }
+    if (role === 'moderator') {
+      const sessionEmail = (session.user as { email?: string } | undefined)?.email?.toLowerCase()
+      if (!sessionEmail) {
+        return NextResponse.json({ error: 'Session email missing.' }, { status: 401 })
+      }
+      const [myBoard] = await db
+        .select({ id: boardMembers.id })
+        .from(boardMembers)
+        .where(eq(boardMembers.email, sessionEmail))
+        .limit(1)
+      if (!myBoard || target.referredBy !== myBoard.id) {
+        return NextResponse.json(
+          { error: 'Moderators can only edit members they personally referred.' },
+          { status: 403 },
+        )
+      }
     }
 
     const b = body as {

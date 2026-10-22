@@ -111,6 +111,10 @@ export default function AdminPage() {
   }>(null)
   const [editError, setEditError] = useState('')
   const [editSaving, setEditSaving] = useState(false)
+  // Moderators are scoped to editing members they personally referred.
+  // We fetch the current user's board_members.id on mount so the Edit
+  // button only shows for matching rows. Admins ignore this (null).
+  const [myBoardId, setMyBoardId] = useState<string | null>(null)
   // In-app confirm — replaces native browser confirm() for the password
   // actions so we don't flash a system alert over the admin UI.
   const [pendingConfirm, setPendingConfirm] = useState<{
@@ -166,6 +170,13 @@ export default function AdminPage() {
       fetch('/api/board-members-public')
         .then((r) => (r.ok ? r.json() : { boardMembers: [] }))
         .then((d) => setBoardOptions(d.boardMembers || []))
+        .catch(() => {})
+      // Resolve the current session user's own board id, if they're on
+      // the board. Moderators use this to scope Edit visibility to their
+      // own referrals. Admins get null and ignore it.
+      fetch('/api/admin/my-board-id')
+        .then((r) => (r.ok ? r.json() : { boardId: null }))
+        .then((d) => setMyBoardId(d.boardId || null))
         .catch(() => {})
     }
   }, [status, session, router, fetchMembers])
@@ -368,6 +379,15 @@ export default function AdminPage() {
 
   function isStaffRole(m: Member): boolean {
     return m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer'
+  }
+
+  // Admin edits anyone; moderator only edits members they referred.
+  // Reviewer never edits (canFinanceActions already excludes them).
+  function canEditRow(m: Member): boolean {
+    if (!canFinanceActions) return false
+    if (isAdmin) return true
+    if (uiRole === 'moderator') return !!myBoardId && m.referredBy === myBoardId
+    return false
   }
 
   const filteredMembers = members.filter((m) => {
@@ -969,7 +989,7 @@ export default function AdminPage() {
                             </button>
                           </>
                         )}
-                        {canFinanceActions && (
+                        {canEditRow(member) && (
                           <button
                             type="button"
                             onClick={() => openEdit(member)}
@@ -1209,7 +1229,7 @@ export default function AdminPage() {
                                   </button>
                                 </>
                               )}
-                              {canFinanceActions && (
+                              {canEditRow(member) && (
                                 <button
                                   type="button"
                                   onClick={() => openEdit(member)}
