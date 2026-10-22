@@ -77,6 +77,19 @@ export default function AdminPage() {
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState('')
   const [tempPasswordInfo, setTempPasswordInfo] = useState<{ name: string; email: string; tempPassword: string } | null>(null)
+  // Chamber batch import — triggers the one-shot migration that loads the
+  // 54 offline-collected members from the Oct 2026 founding cohort drive.
+  const [chamberBatchReport, setChamberBatchReport] = useState<null | {
+    totalInData: number
+    inserted: number
+    skipped: number
+    skippedReasons: Array<{ slug: string; email: string | null; reason: string }>
+    missingEmail: Array<{ slug: string; name: string; placeholderEmail: string }>
+    duplicateEmails: Array<{ slug: string; name: string; email: string; collidesWithSlug: string }>
+    notes: Array<{ slug: string; name: string; note: string }>
+    alreadyRanThisContainer: boolean
+  }>(null)
+  const [chamberBatchRunning, setChamberBatchRunning] = useState(false)
   // In-app confirm — replaces native browser confirm() for the password
   // actions so we don't flash a system alert over the admin UI.
   const [pendingConfirm, setPendingConfirm] = useState<{
@@ -453,6 +466,31 @@ export default function AdminPage() {
     setAddSaving(false)
   }
 
+  async function handleChamberBatchImport() {
+    setPendingConfirm({
+      title: 'Import 54-member chamber batch?',
+      body: 'This loads every offline-collected member from the Sept-Oct 2026 founding cohort drive (Sonia, Surdeep, Akash, Rajinder referrals). Idempotent — safe to run again, but anyone already in the DB stays. Report will show on completion.',
+      onConfirm: () => runChamberBatchImport(),
+    })
+  }
+
+  async function runChamberBatchImport() {
+    setChamberBatchRunning(true)
+    try {
+      const res = await fetch('/api/admin/members/seed-chamber-batch', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: data.error || 'Import failed.' })
+      } else {
+        setChamberBatchReport(data)
+        await fetchMembers()
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setChamberBatchRunning(false)
+  }
+
   const headerActions = (
     <>
       <ExportCsvButton
@@ -479,6 +517,18 @@ export default function AdminPage() {
           >
             <UserPlus className="w-3.5 h-3.5 text-accent" />
             <span className="hidden sm:inline">Add Member</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleChamberBatchImport}
+            disabled={chamberBatchRunning}
+            className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40 disabled:opacity-50"
+            title="One-shot import of 54 offline-collected members from the Sept-Oct 2026 founding cohort drive"
+          >
+            {chamberBatchRunning
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Users className="w-3.5 h-3.5 text-accent" />}
+            <span className="hidden sm:inline">Import Chamber Batch</span>
           </button>
           <button
             type="button"
@@ -1122,6 +1172,138 @@ export default function AdminPage() {
               >
                 Continue
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {chamberBatchReport && (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center p-4 overflow-y-auto"
+          onClick={() => setChamberBatchReport(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-hover w-full max-w-2xl my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-ivory-200">
+              <div>
+                <h2 className="text-sm font-medium text-brand inline-flex items-center gap-2">
+                  <Users className="w-4 h-4 text-accent" />
+                  Chamber batch import report
+                </h2>
+                <p className="text-xs text-hint">
+                  {chamberBatchReport.alreadyRanThisContainer
+                    ? 'Already ran once in this container — report shown is from the last successful pass.'
+                    : `Processed ${chamberBatchReport.totalInData} rows from the Sept-Oct 2026 founding cohort.`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setChamberBatchReport(null)}
+                className="text-mid hover:text-brand"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-emerald-50 border border-emerald-200 rounded p-3">
+                  <p className="text-[0.6rem] font-medium uppercase tracking-wide text-emerald-800">Inserted</p>
+                  <p className="text-2xl font-medium text-emerald-900">{chamberBatchReport.inserted}</p>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                  <p className="text-[0.6rem] font-medium uppercase tracking-wide text-amber-900">Skipped</p>
+                  <p className="text-2xl font-medium text-amber-900">{chamberBatchReport.skipped}</p>
+                </div>
+                <div className="bg-page-bg border border-ivory-200 rounded p-3">
+                  <p className="text-[0.6rem] font-medium uppercase tracking-wide text-mid">Missing email</p>
+                  <p className="text-2xl font-medium text-brand">{chamberBatchReport.missingEmail.length}</p>
+                </div>
+                <div className="bg-page-bg border border-ivory-200 rounded p-3">
+                  <p className="text-[0.6rem] font-medium uppercase tracking-wide text-mid">Duplicate email</p>
+                  <p className="text-2xl font-medium text-brand">{chamberBatchReport.duplicateEmails.length}</p>
+                </div>
+              </div>
+
+              {chamberBatchReport.missingEmail.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-mid mb-2">
+                    Missing email — needs a real address
+                  </h3>
+                  <div className="bg-page-bg border border-ivory-200 rounded divide-y divide-ivory-200 max-h-48 overflow-y-auto">
+                    {chamberBatchReport.missingEmail.map((row) => (
+                      <div key={row.slug} className="px-3 py-2 text-xs flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-brand font-medium">{row.name}</p>
+                          <p className="text-hint">{row.placeholderEmail}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {chamberBatchReport.duplicateEmails.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-mid mb-2">
+                    Duplicate emails in source data (second row dropped)
+                  </h3>
+                  <div className="bg-page-bg border border-ivory-200 rounded divide-y divide-ivory-200 max-h-48 overflow-y-auto">
+                    {chamberBatchReport.duplicateEmails.map((row) => (
+                      <div key={row.slug} className="px-3 py-2 text-xs">
+                        <p className="text-brand">
+                          <span className="font-medium">{row.name}</span> uses <code className="bg-white px-1 rounded">{row.email}</code>
+                        </p>
+                        <p className="text-hint">(collides with {row.collidesWithSlug})</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {chamberBatchReport.notes.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-mid mb-2">
+                    Notes ({chamberBatchReport.notes.length})
+                  </h3>
+                  <div className="bg-page-bg border border-ivory-200 rounded divide-y divide-ivory-200 max-h-48 overflow-y-auto">
+                    {chamberBatchReport.notes.map((row) => (
+                      <div key={row.slug} className="px-3 py-2 text-xs">
+                        <p className="text-brand font-medium">{row.name}</p>
+                        <p className="text-hint">{row.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {chamberBatchReport.skippedReasons.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-mid mb-2">
+                    Skipped (dropped by INSERT OR IGNORE or a real error)
+                  </h3>
+                  <div className="bg-red-50 border border-red-200 rounded divide-y divide-red-100 max-h-48 overflow-y-auto">
+                    {chamberBatchReport.skippedReasons.map((row) => (
+                      <div key={row.slug} className="px-3 py-2 text-xs">
+                        <p className="text-red-900 font-medium">{row.slug}</p>
+                        <p className="text-red-700">{row.email || '(no email)'}</p>
+                        <p className="text-red-800">{row.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end pt-2 border-t border-ivory-200">
+                <button
+                  type="button"
+                  onClick={() => setChamberBatchReport(null)}
+                  className="text-sm text-brand bg-page-bg px-4 py-2 rounded hover:bg-ivory-200"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
         </div>
