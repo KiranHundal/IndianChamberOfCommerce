@@ -91,6 +91,10 @@ export default function AdminPage() {
     alreadyRanThisContainer: boolean
   }>(null)
   const [chamberBatchRunning, setChamberBatchRunning] = useState(false)
+  // Hide board/admin/moderator/reviewer rows from the Members list by
+  // default — they're already on /admin/board-members or /admin/team.
+  // Only admin can flip this on, matching Kiran's "only I see them" ask.
+  const [showStaff, setShowStaff] = useState(false)
   // In-app confirm — replaces native browser confirm() for the password
   // actions so we don't flash a system alert over the admin UI.
   const [pendingConfirm, setPendingConfirm] = useState<{
@@ -346,7 +350,14 @@ export default function AdminPage() {
     return !paid
   }
 
+  function isStaffRole(m: Member): boolean {
+    return m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer'
+  }
+
   const filteredMembers = members.filter((m) => {
+    // Default view hides staff rows — admin opts in via the "Show staff"
+    // toggle. Moderators/reviewers never see them in this list.
+    if (!showStaff && isStaffRole(m)) return false
     if (referredByFilter && m.referredBy !== referredByFilter.id) return false
     if (filter === 'unpaid') {
       if (!isUnpaidPending(m)) return false
@@ -388,10 +399,10 @@ export default function AdminPage() {
     )
   }
 
-  // Counters exclude admin/moderator staff so they line up with the "Members"
-  // KPI on /admin, which is a paying-member count. Staff still show in the
-  // list itself for management.
-  const nonStaffAll = members.filter((m) => m.role !== 'admin' && m.role !== 'moderator')
+  // Counters always exclude staff (admin / moderator / reviewer) so the
+  // "Members" KPIs line up with /admin's paying-member count. Staff rows
+  // are also hidden from the list below unless the admin toggles them on.
+  const nonStaffAll = members.filter((m) => !isStaffRole(m))
   const staffCount = members.length - nonStaffAll.length
   const nonStaff = referredByFilter
     ? nonStaffAll.filter((m) => m.referredBy === referredByFilter.id)
@@ -607,12 +618,27 @@ export default function AdminPage() {
                 </button>
               ))}
             </div>
-            {staffCount > 0 && (
-              <p className="text-[0.65rem] text-hint mb-10">
-                Totals exclude {staffCount} admin/moderator {staffCount === 1 ? 'account' : 'accounts'}, listed below for management.
-              </p>
+            {isAdmin && staffCount > 0 ? (
+              <div className="flex items-center gap-2 mb-10 text-[0.65rem] text-hint">
+                <span>
+                  Totals exclude {staffCount} staff {staffCount === 1 ? 'account' : 'accounts'} (admin / moderator / reviewer).
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowStaff((v) => !v)}
+                  className={`inline-flex items-center font-label tracking-widest uppercase text-[0.6rem] px-2 py-1 rounded border transition-colors ${
+                    showStaff
+                      ? 'bg-navy-900 border-navy-800 text-white'
+                      : 'bg-white border-ivory-200 text-brand hover:border-accent/40'
+                  }`}
+                  title={showStaff ? 'Hide staff rows from the list below' : 'Show staff rows in the list below'}
+                >
+                  {showStaff ? 'Hide staff' : 'Show staff'}
+                </button>
+              </div>
+            ) : (
+              <div className="mb-10" />
             )}
-            {staffCount === 0 && <div className="mb-10" />}
           </AnimatedSection>
 
           {/* Search & Filters */}
