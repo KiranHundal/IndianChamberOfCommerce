@@ -390,8 +390,11 @@ export default function AdminPage() {
   // Counters exclude admin/moderator staff so they line up with the "Members"
   // KPI on /admin, which is a paying-member count. Staff still show in the
   // list itself for management.
-  const nonStaff = members.filter((m) => m.role !== 'admin' && m.role !== 'moderator')
-  const staffCount = members.length - nonStaff.length
+  const nonStaffAll = members.filter((m) => m.role !== 'admin' && m.role !== 'moderator')
+  const staffCount = members.length - nonStaffAll.length
+  const nonStaff = referredByFilter
+    ? nonStaffAll.filter((m) => m.referredBy === referredByFilter.id)
+    : nonStaffAll
   const unpaidCount = nonStaff.filter(isUnpaidPending).length
   const counts = {
     all: nonStaff.length,
