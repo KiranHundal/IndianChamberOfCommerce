@@ -359,31 +359,6 @@ export default async function LeadershipPage() {
         </div>
       </section>
 
-      {/* Join the Board CTA */}
-      <section className="bg-navy-900 py-20 relative overflow-hidden">
-        <div className="absolute top-6 right-6 w-16 h-16 border-t border-r border-gold-600/25 corner-bracket corner-bracket-tr" />
-        <div className="absolute bottom-6 left-6 w-16 h-16 border-b border-l border-gold-600/25 corner-bracket corner-bracket-bl" />
-
-        <div className="max-w-3xl mx-auto px-8 text-center">
-          <AnimatedSection>
-            <SectionLabel dark>Get Involved</SectionLabel>
-            <h2 className="font-display text-h2 text-white mt-4">
-              Interested in serving on the board?
-            </h2>
-            <p className="text-body text-white/55 mt-4 max-w-xl mx-auto">
-              CVICC welcomes nominations from dedicated professionals who want
-              to give back to the Indian-American business community. Board
-              elections are held annually at the General Membership Meeting.
-            </p>
-            <a
-              href="/contact"
-              className="cta-button-glow inline-block mt-8 bg-accent text-white rounded-sm px-8 py-3.5 font-label text-label tracking-label uppercase"
-            >
-              Contact Us
-            </a>
-          </AnimatedSection>
-        </div>
-      </section>
     </>
   );
 }
