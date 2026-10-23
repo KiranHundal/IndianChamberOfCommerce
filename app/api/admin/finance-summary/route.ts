@@ -62,18 +62,19 @@ export async function GET() {
   const corporateCount = approvedMembers.filter((m) => m.membershipTier === 'corporate').length
 
   // Estimate amount for members that don't have amountPaid explicitly set
-  // Revenue counts every penny the chamber received. amountPaid is the
-  // actual banked amount when recorded (members pay what they pay — any
-  // amount, not strictly the tier price). For approved rows without a
-  // logged amount, we floor at the tier price because they wouldn't be
-  // approved without paying at least that much; a $0 contribution would
-  // drop pennies that actually came in. Admin, moderator, reviewer
-  // accounts are staff — they never count toward revenue, even if they
-  // carry an amountPaid value.
+  // Revenue counts only payments actually received. amountPaid wins
+  // when > 0 (members can pay any amount — $200, $500, whatever).
+  // Tier floor applies ONLY to approved rows where a paymentMethod was
+  // logged but the amount wasn't — a known data gap for a payment
+  // that landed. Approved rows with no paymentMethod and no amountPaid
+  // contribute $0: status flipped to approved doesn't by itself mean
+  // money arrived. Admin / moderator / reviewer are staff — never
+  // counted even if they carry an amountPaid value.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
+    if (!m.paymentMethod) return 0 // no payment evidence
     return m.membershipTier === 'corporate' ? 395 : 95
   }
 

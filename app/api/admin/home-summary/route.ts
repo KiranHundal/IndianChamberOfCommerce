@@ -33,14 +33,15 @@ export async function GET() {
 
   const OFFLINE_METHODS = ['check', 'zelle', 'cash', 'other']
 
-  // Count every penny the chamber received. amountPaid is the actual
-  // banked amount when recorded; for approved rows without a logged
-  // amount, floor at the tier price so no revenue is dropped — the
-  // member paid at least that much to get approved.
+  // Count only payments actually received. amountPaid wins when > 0.
+  // Tier floor only applies to approved rows where a paymentMethod was
+  // logged but the amount wasn't recorded. Approved without a method
+  // means no payment evidence → $0.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
+    if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
   }
 
@@ -121,7 +122,11 @@ export async function GET() {
     })
     .slice(0, 8)
   for (const m of approvedByDate) {
-    const amount = m.amountPaid || (m.membershipTier === 'corporate' ? 395 : 95)
+    const amount = m.amountPaid
+      ? m.amountPaid
+      : m.paymentMethod
+        ? (m.membershipTier === 'corporate' ? 395 : 95)
+        : 0
     activityCandidates.push({
       id: `member-${m.id}`,
       type: 'payment',

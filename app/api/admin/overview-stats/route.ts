@@ -178,22 +178,26 @@ export async function GET(req: Request) {
     paymentsByBucket[key] += 1
   }
 
-  // Layer in offline approved members by their paymentDate. Count every
-  // approved non-Square row — amountPaid when recorded, tier price as a
-  // floor otherwise. The user asked for every penny the chamber received
-  // to show up; approved members paid at least the tier price to earn
-  // the status, so dropping them when amountPaid is unset would lie.
+  // Layer in offline approved members by their paymentDate. ONLY count
+  // rows where payment is actually recorded — amountPaid > 0 OR an
+  // offline paymentMethod on file. Approved members with no payment
+  // evidence (status flipped but no cash received) contribute $0.
+  // Tier price floor only kicks in when a paymentMethod was logged but
+  // the amount wasn't — a known data gap, not a free pass.
   for (const m of nonStaff) {
     if (m.status !== 'approved') continue
     if (m.paymentMethod === 'square') continue // Square ledger already counted it
+    const hasAmount = m.amountPaid != null && m.amountPaid > 0
+    const hasMethod = !!m.paymentMethod && m.paymentMethod !== 'square'
+    if (!hasAmount && !hasMethod) continue // no payment evidence — don't count
     const ref = m.paymentDate || m.approvedAt
     if (!ref) continue
     const dt = new Date(ref)
     if (!inRange(dt)) continue
     const key = useDays ? dayKey(dt) : monthKey(dt)
     if (!(key in revenueByBucket)) continue
-    const dollars = m.amountPaid && m.amountPaid > 0
-      ? m.amountPaid
+    const dollars = hasAmount
+      ? m.amountPaid!
       : m.membershipTier === 'corporate' ? 395 : 95
     revenueByBucket[key] += dollars
     paymentsByBucket[key] += 1
@@ -306,15 +310,14 @@ export async function GET(req: Request) {
     if (squareNetByMember.has(m.id)) {
       dollars = squareNetByMember.get(m.id) || 0
     } else if (m.paymentMethod !== 'square') {
-      // Offline / check / zelle / cash / other — trust amountPaid when
-      // recorded. If amountPaid is unset on an approved row, floor at
-      // the tier price so we don't drop revenue the member clearly
-      // sent in (they wouldn't be approved without paying at least that
-      // much). Members can still pay any amount; this is only a floor
-      // for the data-gap rows.
-      dollars = m.amountPaid && m.amountPaid > 0
-        ? m.amountPaid
-        : m.membershipTier === 'corporate' ? 395 : 95
+      // Offline branch — only count if payment is actually recorded.
+      // amountPaid wins when > 0; tier floor only when a paymentMethod
+      // was logged but the amount wasn't. Approved rows with no payment
+      // evidence contribute $0 (status alone doesn't mean money arrived).
+      const hasAmount = m.amountPaid != null && m.amountPaid > 0
+      const hasMethod = !!m.paymentMethod
+      if (hasAmount) dollars = m.amountPaid!
+      else if (hasMethod) dollars = m.membershipTier === 'corporate' ? 395 : 95
     }
     if (!m.referredBy) {
       unattributedCount += 1

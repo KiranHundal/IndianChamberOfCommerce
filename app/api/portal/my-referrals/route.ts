@@ -29,6 +29,7 @@ export async function GET() {
       membershipTier: members.membershipTier,
       status: members.status,
       amountPaid: members.amountPaid,
+      paymentMethod: members.paymentMethod,
       approvedAt: members.approvedAt,
       createdAt: members.createdAt,
     }).from(members).where(eq(members.referredBy, board.id))
@@ -42,16 +43,15 @@ export async function GET() {
       return bd - ad
     })
 
-    // Revenue brought in — don't drop any penny. amountPaid is the
-    // actual amount banked (can be any value — members pay what they
-    // pay, not strictly the tier price). When amountPaid is unset
-    // on an approved row, fall back to tier price as a conservative
-    // floor so we don't zero out revenue that we know came in — the
-    // member had to pay at least that much to be approved.
+    // Revenue brought in — only count payments actually received.
+    // amountPaid wins when > 0 (members can pay any amount). Tier
+    // floor only kicks in when a paymentMethod was logged but the
+    // amount wasn't — approved rows with no payment evidence at all
+    // contribute $0 (status alone doesn't mean money arrived).
     const totalRevenue = approved.reduce((sum, m) => {
-      const dollars = m.amountPaid && m.amountPaid > 0
-        ? m.amountPaid
-        : m.membershipTier === 'corporate' ? 395 : 95
+      let dollars = 0
+      if (m.amountPaid && m.amountPaid > 0) dollars = m.amountPaid
+      else if (m.paymentMethod) dollars = m.membershipTier === 'corporate' ? 395 : 95
       return sum + dollars
     }, 0)
 
@@ -73,7 +73,9 @@ export async function GET() {
           membershipTier: m.membershipTier,
           amountPaid: m.amountPaid && m.amountPaid > 0
             ? m.amountPaid
-            : m.membershipTier === 'corporate' ? 395 : 95,
+            : m.paymentMethod
+              ? (m.membershipTier === 'corporate' ? 395 : 95)
+              : 0,
           approvedAt: m.approvedAt,
           needsEmail: isPlaceholder,
         }
