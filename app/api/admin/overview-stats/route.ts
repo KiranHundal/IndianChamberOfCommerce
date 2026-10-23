@@ -260,9 +260,15 @@ export async function GET(req: Request) {
     .sort((a, b) => b.converted - a.converted)
 
   // ---------- Board-member referrals (who brought in whom) ----------
+  // Approved-only, matching the New Members KPI. Attributing a pending
+  // or unpaid signup to a board sponsor is premature — they may never
+  // pay, might get rejected, or might have the wrong referrer that an
+  // admin / moderator still needs to correct. Once a member is approved,
+  // their attribution is locked in and the donut counts them.
   const boardIdToName = new Map(allBoard.map((b) => [b.id, b.name]))
   const boardReferralMap: Record<string, { boardMemberId: string; boardMemberName: string; count: number; revenue: number }> = {}
   for (const m of nonStaff) {
+    if (m.status !== 'approved') continue
     if (!m.referredBy) continue
     const ref = m.paymentDate || m.approvedAt || m.createdAt
     if (!ref) continue
@@ -287,6 +293,7 @@ export async function GET(req: Request) {
   }
   const boardReferrals = Object.values(boardReferralMap).sort((a, b) => b.revenue - a.revenue || b.count - a.count)
   const unattributedCount = nonStaff.filter((m) => {
+    if (m.status !== 'approved') return false
     if (m.referredBy) return false
     const ref = m.paymentDate || m.approvedAt || m.createdAt
     return ref ? inRange(ref) : false
