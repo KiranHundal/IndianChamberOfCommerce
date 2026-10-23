@@ -291,6 +291,49 @@ export async function ensureMembersRenewalSchema() {
       WHERE email = 'cb-riya-sharma@noemail.cvicc.org'
     `)
 
+    // One-time duplicate cleanup — Kiran reviewed the "Potential
+    // duplicate members" diagnostic on 2026-10-23 and confirmed these
+    // four rows are true duplicates to delete, keeping the paired
+    // membership on each:
+    //
+    //   DELETE #1054 FadeHub Inc (buntysarhali@)      KEEP #0044 Baljit Kumar
+    //   DELETE #1002 Manreet Ladhar (manreetladhar@)  KEEP #0047 (build@smsconstruction.us)
+    //   DELETE #0004 Tushar Patel individual          KEEP #0025 corporate (tier upgrade)
+    //   DELETE #1006 Mandeep Sandhu                   KEEP #0012 Sharnjit Sandhu (Kartar Trucking)
+    //
+    // Each DELETE is guarded by (membership_number AND email) so a row
+    // that was edited post-deploy won't match and get accidentally
+    // removed. Also unlinks any Square payments matched to these rows
+    // first — the smarter sync (name/business fallback match) will
+    // re-attach them to the correct kept member on the next sync.
+    const DUP_CLEANUP_MARKER = 'dup_cleanup_2026_10_23_v1'
+    await tryRun(`
+      UPDATE square_payments
+      SET matched_member_id = NULL
+      WHERE matched_member_id IN (
+        SELECT id FROM members
+        WHERE (membership_number = '1054' AND email = 'buntysarhali@gmail.com')
+           OR (membership_number = '1002' AND email = 'manreetladhar@gmail.com')
+           OR (membership_number = '0004' AND email = 'pedierdoc@mac.com')
+           OR (membership_number = '1006' AND email = 'msandhu07@yahoo.com')
+      )
+      AND NOT EXISTS (SELECT 1 FROM app_migrations WHERE name = '${DUP_CLEANUP_MARKER}')
+    `)
+    await tryRun(`
+      DELETE FROM members
+      WHERE (
+        (membership_number = '1054' AND email = 'buntysarhali@gmail.com')
+        OR (membership_number = '1002' AND email = 'manreetladhar@gmail.com')
+        OR (membership_number = '0004' AND email = 'pedierdoc@mac.com')
+        OR (membership_number = '1006' AND email = 'msandhu07@yahoo.com')
+      )
+      AND NOT EXISTS (SELECT 1 FROM app_migrations WHERE name = '${DUP_CLEANUP_MARKER}')
+    `)
+    await tryRun(`
+      INSERT OR IGNORE INTO app_migrations (name, applied_at)
+      VALUES ('${DUP_CLEANUP_MARKER}', CAST(strftime('%s', 'now') AS INTEGER))
+    `)
+
     // Permanent superuser seed — Kiran Hundal's two emails (Treasurer/CFO).
     // Idempotent: creates missing rows, promotes to admin if downgraded,
     // one-time password rebootstrap via marker, then leaves passwords alone.
