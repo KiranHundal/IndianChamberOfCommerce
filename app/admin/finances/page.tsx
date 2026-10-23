@@ -1070,6 +1070,12 @@ export default function AdminFinancesPage() {
 
             {(() => {
               const matchesFilters = (m: MemberRow) => {
+                // Hide staff rows that contributed no money — they'd clutter
+                // the top of the Members & Payments table (sorted by date)
+                // with repeated "Staff / — / —" rows that have no financial
+                // signal. Staff who DID pay their own dues (amountPaid > 0)
+                // still show so their contribution is visible.
+                if (m.isStaff && m.inferredAmount === 0) return false
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (methodFilter !== 'all') {
                   const method = (m.paymentMethod || '').toLowerCase()
@@ -1113,6 +1119,9 @@ export default function AdminFinancesPage() {
 
             {(() => {
               const matchesFilters = (m: MemberRow) => {
+                // Same hide-staff-with-no-payment rule as the summary
+                // block above — keeps the two views consistent.
+                if (m.isStaff && m.inferredAmount === 0) return false
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (methodFilter !== 'all') {
                   const method = (m.paymentMethod || '').toLowerCase()
