@@ -392,22 +392,20 @@ export default function AdminPage() {
 
   // Admin acts on anyone; moderator only acts on members they referred.
   // Reviewer never acts here (canFinanceActions already excludes them).
-  // Covers Edit, Send Payment Link, Resend Welcome, and Set Referrer
-  // (claim) — the whole per-row finance-action surface.
+  // Covers Edit, Send Payment Link, Resend Welcome — the per-row
+  // finance-action surface.
   function canActOnRow(m: Member): boolean {
     if (!canFinanceActions) return false
     if (isAdmin) return true
     if (uiRole === 'moderator') return !!myBoardId && m.referredBy === myBoardId
     return false
   }
-  function canClaimRow(m: Member): boolean {
-    // Set-referrer only applies to unreferred rows. Admin can claim any
-    // unreferred member for anyone (dropdown); moderator claims only for
-    // themselves.
-    if (!canFinanceActions) return false
-    if (m.referredBy) return false
-    return isAdmin || uiRole === 'moderator'
-  }
+  // Set-referrer is open to admin / moderator / reviewer so all three
+  // can attribute unreferred members to the correct board sponsor.
+  // Attributing a member to another board member means the acting
+  // moderator loses their own tenancy on that row — expected trade-off
+  // for keeping chamber attribution accurate.
+  const canSetReferrer = isAdmin || uiRole === 'moderator' || uiRole === 'reviewer'
 
   const filteredMembers = members.filter((m) => {
     // Default view hides staff rows — admin opts in via the "Show staff"
@@ -928,28 +926,19 @@ export default function AdminPage() {
                           <span className="text-hint text-[0.65rem] uppercase tracking-wide mr-2">Referred by</span>
                           {member.referredBy ? (
                             <span className="text-charcoal">{boardIdToName.get(member.referredBy) || 'Unknown'}</span>
-                          ) : isAdmin ? (
+                          ) : canSetReferrer ? (
                             <select
                               defaultValue=""
                               disabled={actionLoading === `${member.id}-referrer`}
                               onChange={(e) => { if (e.target.value) handleSetReferrer(member, e.target.value) }}
                               className="bg-white border border-ivory-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand/30"
+                              title="Attribute this member to the board sponsor who brought them in"
                             >
-                              <option value="">— Not set —</option>
+                              <option value="">— Attribute to —</option>
                               {boardOptions.map((b) => (
                                 <option key={b.id} value={b.id}>{b.name}</option>
                               ))}
                             </select>
-                          ) : canClaimRow(member) && myBoardId ? (
-                            <button
-                              type="button"
-                              onClick={() => handleSetReferrer(member, myBoardId)}
-                              disabled={actionLoading === `${member.id}-referrer`}
-                              title="Attribute this member to me"
-                              className="bg-white border border-accent/40 text-accent rounded px-2 py-1 text-[0.65rem] font-label tracking-widest uppercase hover:bg-accent/5 disabled:opacity-50"
-                            >
-                              {actionLoading === `${member.id}-referrer` ? 'Claiming…' : 'Claim as mine'}
-                            </button>
                           ) : (
                             <span className="text-hint italic">— Not set —</span>
                           )}
@@ -1331,7 +1320,7 @@ export default function AdminPage() {
                               <p className="text-[0.7rem] text-charcoal truncate max-w-[8rem]" title={boardIdToName.get(member.referredBy) || member.referredBy}>
                                 {boardIdToName.get(member.referredBy) || 'Unknown'}
                               </p>
-                            ) : isAdmin ? (
+                            ) : canSetReferrer ? (
                               <select
                                 defaultValue=""
                                 disabled={actionLoading === `${member.id}-referrer`}
@@ -1339,23 +1328,13 @@ export default function AdminPage() {
                                   if (e.target.value) handleSetReferrer(member, e.target.value)
                                 }}
                                 className="bg-white border border-ivory-200 rounded px-1 py-0.5 text-[0.7rem] w-full max-w-[8rem] focus:outline-none focus:ring-1 focus:ring-brand/30"
-                                title="Set who referred this member"
+                                title="Attribute this member to the board sponsor who brought them in"
                               >
                                 <option value="">Set…</option>
                                 {boardOptions.map((b) => (
                                   <option key={b.id} value={b.id}>{b.name}</option>
                                 ))}
                               </select>
-                            ) : canClaimRow(member) && myBoardId ? (
-                              <button
-                                type="button"
-                                onClick={() => handleSetReferrer(member, myBoardId)}
-                                disabled={actionLoading === `${member.id}-referrer`}
-                                title="Attribute this member to me"
-                                className="bg-white border border-accent/40 text-accent rounded px-2 py-0.5 text-[0.65rem] font-label tracking-widest uppercase hover:bg-accent/5 disabled:opacity-50"
-                              >
-                                {actionLoading === `${member.id}-referrer` ? '…' : 'Claim'}
-                              </button>
                             ) : (
                               <span className="text-hint italic text-[0.7rem]">—</span>
                             )}

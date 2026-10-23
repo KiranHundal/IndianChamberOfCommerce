@@ -196,35 +196,18 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Only admins or the reviewer can approve or deny members.' }, { status: 403 })
   }
 
-  // Set-referrer: admin / moderator / reviewer can all attribute a member to
-  // a board sponsor. Existing values are protected — Gigi (reviewer) can
-  // fill blanks but not overwrite what was set at signup. Moderator is
-  // further scoped: they can only claim members for themselves (can't
-  // attribute to another board member).
+  // Set-referrer: admin / moderator / reviewer can all attribute an
+  // unreferred member to any board sponsor. Existing values are protected
+  // — blanks only. Attributing a member to someone else means the
+  // moderator doing the attribution loses their own tenancy on that
+  // row (edit/send actions key off referredBy), which is the expected
+  // trade-off for keeping chamber attribution accurate.
   if (action === 'set-referrer') {
-    const sessionUser = session.user as { role?: string; email?: string }
-    const requested = typeof (body as { referredBy?: unknown }).referredBy === 'string'
+    const referredBy = typeof (body as { referredBy?: unknown }).referredBy === 'string'
       ? (body as { referredBy: string }).referredBy.trim()
       : ''
-    if (!requested) {
+    if (!referredBy) {
       return NextResponse.json({ error: 'referredBy is required' }, { status: 400 })
-    }
-    let referredBy = requested
-    if (role === 'moderator') {
-      const myBoardId = await getSessionBoardId(sessionUser.email)
-      if (!myBoardId) {
-        return NextResponse.json(
-          { error: 'Moderator board attribution not found. Contact admin.' },
-          { status: 403 },
-        )
-      }
-      if (requested !== myBoardId) {
-        return NextResponse.json(
-          { error: 'Moderators can only claim members as their own referral.' },
-          { status: 403 },
-        )
-      }
-      referredBy = myBoardId
     }
     const [existing] = await db.select().from(members).where(eq(members.id, memberId)).limit(1)
     if (!existing) return NextResponse.json({ error: 'Member not found' }, { status: 404 })
