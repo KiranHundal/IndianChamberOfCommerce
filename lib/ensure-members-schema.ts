@@ -293,20 +293,61 @@ export async function ensureMembersRenewalSchema() {
 
     // One-time duplicate cleanup — Kiran reviewed the "Potential
     // duplicate members" diagnostic on 2026-10-23 and confirmed these
-    // four rows are true duplicates to delete, keeping the paired
+    // three rows are true duplicates to delete, keeping the paired
     // membership on each:
     //
     //   DELETE #1054 FadeHub Inc (buntysarhali@)      KEEP #0044 Baljit Kumar
     //   DELETE #1002 Manreet Ladhar (manreetladhar@)  KEEP #0047 (build@smsconstruction.us)
-    //   DELETE #0004 Tushar Patel individual          KEEP #0025 corporate (tier upgrade)
     //   DELETE #1006 Mandeep Sandhu                   KEEP #0012 Sharnjit Sandhu (Kartar Trucking)
     //
+    // Tushar Patel was initially planned for deletion as #0004 (keep
+    // #0025 corporate), but Kiran reversed that call — both #0004
+    // ($95 individual) AND #0025 ($395 corporate) are legitimate and
+    // stay. If #0004 was deleted by an earlier run of the v1 marker,
+    // the re-insert statement below restores it from the known
+    // diagnostic data; the DELETE loop below no longer targets it.
+    //
     // Each DELETE is guarded by (membership_number AND email) so a row
-    // that was edited post-deploy won't match and get accidentally
-    // removed. Also unlinks any Square payments matched to these rows
-    // first — the smarter sync (name/business fallback match) will
-    // re-attach them to the correct kept member on the next sync.
-    const DUP_CLEANUP_MARKER = 'dup_cleanup_2026_10_23_v1'
+    // that was edited post-deploy won't match. Square payments are
+    // unlinked first — the smarter sync re-attaches on next sync.
+    //
+    // Marker bumped to v2 so this corrected set runs regardless of
+    // whether v1 fired. Previously-run v1 is retained in the table
+    // (it's historical).
+    const DUP_CLEANUP_MARKER = 'dup_cleanup_2026_10_24_v2'
+
+    // Restore #0004 Tushar Patel if the v1 run deleted it. INSERT OR
+    // IGNORE handles the PRIMARY KEY and UNIQUE(email) constraints, so
+    // if the row still exists we no-op.
+    await tryRun(`
+      INSERT OR IGNORE INTO members (
+        id, email, password_hash, name, phone, business_name, city, sector,
+        membership_tier, status, role, membership_number,
+        created_at, approved_at, payment_method, amount_paid,
+        payment_reference, payment_date
+      )
+      VALUES (
+        'restored-tushar-patel-0004',
+        'pedierdoc@mac.com',
+        '',
+        'Tushar Patel',
+        '5593499092',
+        'Children''s Medical Centers of Fresno',
+        NULL,
+        'Healthcare',
+        'individual',
+        'approved',
+        'member',
+        '0004',
+        CAST(strftime('%s', '2026-06-03 15:37:47') AS INTEGER),
+        CAST(strftime('%s', '2026-06-03 15:37:47') AS INTEGER),
+        'square',
+        95,
+        NULL,
+        CAST(strftime('%s', '2026-06-03 15:38:31') AS INTEGER)
+      )
+    `)
+
     await tryRun(`
       UPDATE square_payments
       SET matched_member_id = NULL
@@ -314,7 +355,6 @@ export async function ensureMembersRenewalSchema() {
         SELECT id FROM members
         WHERE (membership_number = '1054' AND email = 'buntysarhali@gmail.com')
            OR (membership_number = '1002' AND email = 'manreetladhar@gmail.com')
-           OR (membership_number = '0004' AND email = 'pedierdoc@mac.com')
            OR (membership_number = '1006' AND email = 'msandhu07@yahoo.com')
       )
       AND NOT EXISTS (SELECT 1 FROM app_migrations WHERE name = '${DUP_CLEANUP_MARKER}')
@@ -324,7 +364,6 @@ export async function ensureMembersRenewalSchema() {
       WHERE (
         (membership_number = '1054' AND email = 'buntysarhali@gmail.com')
         OR (membership_number = '1002' AND email = 'manreetladhar@gmail.com')
-        OR (membership_number = '0004' AND email = 'pedierdoc@mac.com')
         OR (membership_number = '1006' AND email = 'msandhu07@yahoo.com')
       )
       AND NOT EXISTS (SELECT 1 FROM app_migrations WHERE name = '${DUP_CLEANUP_MARKER}')
