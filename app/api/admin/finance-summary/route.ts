@@ -92,12 +92,17 @@ export async function GET() {
   const hasSquareReceipt = (m: typeof allMembers[number]) =>
     squareLinkedMemberIds.has(m.id)
 
-  // Verified offline revenue: members WITHOUT a Square receipt, WITH an
-  // explicit offline payment method (check / Zelle / cash / other).
+  // Offline revenue — count every approved non-Square row. amountPaid
+  // when recorded, tier floor otherwise; same formula as the Overview
+  // KPI's revenue trend so the two totals reconcile exactly.
+  // Previously excluded rows with no paymentMethod (the "unverified"
+  // bucket), which dropped revenue the chamber had clearly received —
+  // the user's rule: don't drop any penny, add an orphan row instead.
   const verifiedOfflineRevenue = allMembers.reduce((sum, m) => {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return sum
+    if (m.status !== 'approved') return sum
     if (hasSquareReceipt(m)) return sum
-    if (!m.paymentMethod || !OFFLINE_METHODS.includes(m.paymentMethod)) return sum
+    if (m.paymentMethod === 'square') return sum // handled by Square ledger
     return sum + inferredAmount(m)
   }, 0)
 

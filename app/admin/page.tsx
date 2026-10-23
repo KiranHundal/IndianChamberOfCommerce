@@ -42,6 +42,8 @@ interface Stats {
   boardReferrals: BoardReferralRow[]
   unattributedCount: number
   unattributedRevenue: number
+  orphanSquarePayments: number
+  orphanSquareRevenue: number
   bucketSize: 'day' | 'month'
 }
 
@@ -383,25 +385,27 @@ export default function AdminHomePage() {
             title="Members by Board Referrer"
             total={(() => {
               const attributedCount = stats.boardReferrals.reduce((s, r) => s + r.count, 0)
-              const totalCount = attributedCount + stats.unattributedCount
-              const totalRevenue = stats.boardReferrals.reduce((s, r) => s + r.revenue, 0) + (stats.unattributedRevenue || 0)
-              return `${totalCount} approved · ${money(totalRevenue)} collected`
+              const totalCount = attributedCount + stats.unattributedCount + (stats.orphanSquarePayments || 0)
+              const totalRevenue = stats.boardReferrals.reduce((s, r) => s + r.revenue, 0) + (stats.unattributedRevenue || 0) + (stats.orphanSquareRevenue || 0)
+              return `${totalCount} entries · ${money(totalRevenue)} collected`
             })()}
             className="lg:col-span-2"
           >
-            {stats.boardReferrals.length === 0 && stats.unattributedCount === 0 ? (
+            {stats.boardReferrals.length === 0 && stats.unattributedCount === 0 && (stats.orphanSquarePayments || 0) === 0 ? (
               <div className="py-8 text-center text-sm text-hint">
                 <Award className="w-8 h-8 text-hint mx-auto mb-2" />
-                No approved members in this period.
+                No approved members or orphan payments in this period.
               </div>
             ) : (
               (() => {
-                // Build the pie dataset — board sponsors first (color-palette
-                // order from REFERRER_PALETTE), then an "Unreferred" slice in
-                // a neutral gray so it reads as the catch-all, not another
-                // sponsor. Each entry carries its own fill so the legend
-                // swatches match the pie exactly.
+                // Build the pie dataset — board sponsors first, then an
+                // "Unreferred" slice (approved members with no board sponsor
+                // on record) in neutral gray, then an "Orphan Square" slice
+                // (Square payments the chamber banked but hasn't linked to
+                // a member yet) in a darker gray. Each entry carries its
+                // own fill so the legend swatches match the pie exactly.
                 const UNREFERRED_COLOR = '#9CA3AF'
+                const ORPHAN_COLOR = '#6B7280'
                 const pieData: Array<{ boardMemberId: string; boardMemberName: string; count: number; revenue: number; fill: string }> = [
                   ...stats.boardReferrals.map((r, i) => ({
                     ...r,
@@ -415,6 +419,15 @@ export default function AdminHomePage() {
                     count: stats.unattributedCount,
                     revenue: stats.unattributedRevenue || 0,
                     fill: UNREFERRED_COLOR,
+                  })
+                }
+                if ((stats.orphanSquarePayments || 0) > 0) {
+                  pieData.push({
+                    boardMemberId: '__orphan_square__',
+                    boardMemberName: 'Orphan Square payments',
+                    count: stats.orphanSquarePayments,
+                    revenue: stats.orphanSquareRevenue || 0,
+                    fill: ORPHAN_COLOR,
                   })
                 }
                 const totalCount = pieData.reduce((s, r) => s + r.count, 0)
@@ -442,6 +455,8 @@ export default function AdminHomePage() {
                               if (!row) return
                               if (row.boardMemberId === '__unreferred__') {
                                 router.push(`/admin/members?filter=unreferred`)
+                              } else if (row.boardMemberId === '__orphan_square__') {
+                                router.push(`/admin/finances`)
                               } else {
                                 router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
                               }
@@ -459,7 +474,7 @@ export default function AdminHomePage() {
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                         <p className="text-5xl font-medium text-brand leading-none">{totalCount}</p>
-                        <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1.5">Approved</p>
+                        <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1.5">Entries</p>
                         <p className="text-2xl font-medium text-accent leading-none mt-3 tabular-nums">
                           {money(totalRevenue)}
                         </p>
@@ -497,23 +512,39 @@ export default function AdminHomePage() {
                           <button
                             type="button"
                             onClick={() => router.push(`/admin/members?filter=unreferred`)}
-                            title="Members not yet attributed to a board sponsor — click to open the Unreferred filter"
+                            title="Approved members not yet attributed to a board sponsor — click to open the Unreferred filter"
                             className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 py-2.5 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group bg-page-bg/40"
                           >
                             <span
                               className="w-4 h-4 rounded-sm flex-shrink-0"
                               style={{ background: UNREFERRED_COLOR }}
                             />
-                            <span className="text-sm text-mid italic group-hover:underline truncate">Unreferred</span>
+                            <span className="text-sm text-mid italic group-hover:underline truncate">Unreferred members</span>
                             <span className="text-sm text-mid font-medium tabular-nums text-right">{stats.unattributedCount}</span>
                             <span className="text-sm text-mid font-medium tabular-nums text-right min-w-[4rem]">{money(stats.unattributedRevenue || 0)}</span>
+                          </button>
+                        )}
+                        {(stats.orphanSquarePayments || 0) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/admin/finances`)}
+                            title="Square payments banked by the chamber but not yet linked to a member — click to open Finances → Square orphans"
+                            className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 py-2.5 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group bg-page-bg/40"
+                          >
+                            <span
+                              className="w-4 h-4 rounded-sm flex-shrink-0"
+                              style={{ background: ORPHAN_COLOR }}
+                            />
+                            <span className="text-sm text-mid italic group-hover:underline truncate">Orphan Square payments</span>
+                            <span className="text-sm text-mid font-medium tabular-nums text-right">{stats.orphanSquarePayments}</span>
+                            <span className="text-sm text-mid font-medium tabular-nums text-right min-w-[4rem]">{money(stats.orphanSquareRevenue || 0)}</span>
                           </button>
                         )}
                       </div>
                     </div>
 
                     <p className="text-[0.65rem] text-hint mt-4 text-center">
-                      Tap a name or slice to see those members. Unreferred opens the Unreferred filter so you can attribute them.
+                      Tap a sponsor to see their referrals. Unreferred opens the attribution flow. Orphan Square payments open Finances so you can link them to a member.
                     </p>
                   </>
                 )

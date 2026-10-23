@@ -178,18 +178,24 @@ export async function GET(req: Request) {
     paymentsByBucket[key] += 1
   }
 
-  // Layer in offline verified members by their paymentDate
+  // Layer in offline approved members by their paymentDate. Count every
+  // approved non-Square row — amountPaid when recorded, tier price as a
+  // floor otherwise. The user asked for every penny the chamber received
+  // to show up; approved members paid at least the tier price to earn
+  // the status, so dropping them when amountPaid is unset would lie.
   for (const m of nonStaff) {
     if (m.status !== 'approved') continue
-    if (!m.amountPaid || m.amountPaid <= 0) continue
-    if (m.paymentMethod === 'square') continue // already counted via Square payments
+    if (m.paymentMethod === 'square') continue // Square ledger already counted it
     const ref = m.paymentDate || m.approvedAt
     if (!ref) continue
     const dt = new Date(ref)
     if (!inRange(dt)) continue
     const key = useDays ? dayKey(dt) : monthKey(dt)
     if (!(key in revenueByBucket)) continue
-    revenueByBucket[key] += m.amountPaid
+    const dollars = m.amountPaid && m.amountPaid > 0
+      ? m.amountPaid
+      : m.membershipTier === 'corporate' ? 395 : 95
+    revenueByBucket[key] += dollars
     paymentsByBucket[key] += 1
   }
 
@@ -327,11 +333,17 @@ export async function GET(req: Request) {
     boardReferralMap[key].count += 1
     boardReferralMap[key].revenue += dollars
   }
-  // Orphan Square payments boost Unreferred revenue so the donut's
-  // revenue total ties out to the KPI exactly. Count stays member-based
-  // (orphans aren't member rows yet — they'll be once the admin runs
-  // "Send Invite" from /admin/finances).
-  unattributedRevenue += orphanSquareRevenue
+  // Orphan Square payments stay in their own bucket — surfaced in the
+  // donut as its own legend row so the user can see them distinctly
+  // from "unreferred members." Revenue total across all rows still
+  // ties out to the KPI exactly: board slices + Unreferred + Orphan
+  // Square payments = total chamber revenue.
+  const orphanSquarePayments = allPayments.filter((p) => {
+    if (p.status !== 'COMPLETED') return false
+    if (!p.paidAt) return false
+    if (!inRange(new Date(p.paidAt))) return false
+    return !p.matchedMemberId
+  }).length
   const boardReferrals = Object.values(boardReferralMap).sort((a, b) => b.revenue - a.revenue || b.count - a.count)
 
   // ---------- KPI totals inside period ----------
@@ -398,6 +410,8 @@ export async function GET(req: Request) {
     boardReferrals,
     unattributedCount,
     unattributedRevenue,
+    orphanSquarePayments,
+    orphanSquareRevenue,
     bucketSize: useDays ? 'day' : 'month',
   })
 }
