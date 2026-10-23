@@ -299,6 +299,7 @@ export default function AdminFinancesPage() {
 
   const [fetchError, setFetchError] = useState('')
   const { effectiveRole } = useEffectiveRole()
+  const isAdmin = effectiveRole === 'admin'
 
   // Sort state for both tables. Held at top level so hooks stay above the
   // early return, and applied inside the IIFEs that render each table.
@@ -603,15 +604,17 @@ export default function AdminFinancesPage() {
 
   const headerActions = (
     <>
-      <button
-        type="button"
-        onClick={openDriftReport}
-        title="Surface specific rows likely to cause a mismatch between Overview YTD and Finances all-time totals"
-        className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
-      >
-        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-        <span className="hidden sm:inline">Diagnose drift</span>
-      </button>
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={openDriftReport}
+          title="Surface specific rows likely to cause a mismatch between Overview YTD and Finances all-time totals"
+          className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
+        >
+          <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+          <span className="hidden sm:inline">Diagnose drift</span>
+        </button>
+      )}
       <button
         type="button"
         onClick={handleSyncSquare}
