@@ -36,14 +36,17 @@ export async function GET() {
   const hasSquareReceipt = (m: typeof allMembers[number]) =>
     squareLinkedMemberIds.has(m.id) || m.paymentMethod === 'square'
 
-  // Treasurer PDF revenue uses actual money banked only. We no longer
-  // fall back to the tier price for approved rows without amountPaid —
-  // members can pay any amount, so guessing from the tier is a lie.
-  // Those rows show as $0 until the real payment is recorded.
+  // Treasurer PDF revenue — count every penny the chamber received.
+  // amountPaid is the actual banked amount when recorded; for approved
+  // rows without a logged amount, use the tier price as a conservative
+  // floor (they wouldn't have been approved without paying at least
+  // that much). Admin, moderator, reviewer accounts are staff and
+  // never count toward revenue, even if they carry an amountPaid value.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    return 0
+    if (m.status !== 'approved') return 0
+    return m.membershipTier === 'corporate' ? 395 : 95
   }
 
   const completedSquare = allPayments.filter((p) => p.status === 'COMPLETED')

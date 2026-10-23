@@ -33,14 +33,15 @@ export async function GET() {
 
   const OFFLINE_METHODS = ['check', 'zelle', 'cash', 'other']
 
-  // Actual money banked only — no tier-price fallback. Members can pay
-  // any amount, so guessing from the tier overstates revenue. Rows with
-  // amountPaid still unset contribute $0 until the real payment is
-  // recorded.
+  // Count every penny the chamber received. amountPaid is the actual
+  // banked amount when recorded; for approved rows without a logged
+  // amount, floor at the tier price so no revenue is dropped — the
+  // member paid at least that much to get approved.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    return 0
+    if (m.status !== 'approved') return 0
+    return m.membershipTier === 'corporate' ? 395 : 95
   }
 
   const squareLinkedMemberIds = new Set<string>()
@@ -120,7 +121,7 @@ export async function GET() {
     })
     .slice(0, 8)
   for (const m of approvedByDate) {
-    const amount = m.amountPaid || 0
+    const amount = m.amountPaid || (m.membershipTier === 'corporate' ? 395 : 95)
     activityCandidates.push({
       id: `member-${m.id}`,
       type: 'payment',

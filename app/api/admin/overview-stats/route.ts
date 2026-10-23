@@ -300,10 +300,15 @@ export async function GET(req: Request) {
     if (squareNetByMember.has(m.id)) {
       dollars = squareNetByMember.get(m.id) || 0
     } else if (m.paymentMethod !== 'square') {
-      // Offline / check / zelle / cash / other — trust amountPaid.
-      // Square-method members without a matched payment contribute 0,
-      // consistent with the KPI's logic.
-      dollars = m.amountPaid && m.amountPaid > 0 ? m.amountPaid : 0
+      // Offline / check / zelle / cash / other — trust amountPaid when
+      // recorded. If amountPaid is unset on an approved row, floor at
+      // the tier price so we don't drop revenue the member clearly
+      // sent in (they wouldn't be approved without paying at least that
+      // much). Members can still pay any amount; this is only a floor
+      // for the data-gap rows.
+      dollars = m.amountPaid && m.amountPaid > 0
+        ? m.amountPaid
+        : m.membershipTier === 'corporate' ? 395 : 95
     }
     if (!m.referredBy) {
       unattributedCount += 1
