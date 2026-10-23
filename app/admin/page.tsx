@@ -41,6 +41,7 @@ interface Stats {
   attribution: AttributionRow[]
   boardReferrals: BoardReferralRow[]
   unattributedCount: number
+  unattributedRevenue: number
   bucketSize: 'day' | 'month'
 }
 
@@ -380,94 +381,143 @@ export default function AdminHomePage() {
           {/* Board Referrals — how many members each board sponsor brought in */}
           <ChartCard
             title="Members by Board Referrer"
-            total={`${stats.boardReferrals.reduce((s, r) => s + r.count, 0)} attributed · ${money(stats.boardReferrals.reduce((s, r) => s + r.revenue, 0))}${stats.unattributedCount > 0 ? ` · ${stats.unattributedCount} unattributed` : ''}`}
+            total={(() => {
+              const attributedCount = stats.boardReferrals.reduce((s, r) => s + r.count, 0)
+              const totalCount = attributedCount + stats.unattributedCount
+              const totalRevenue = stats.boardReferrals.reduce((s, r) => s + r.revenue, 0) + (stats.unattributedRevenue || 0)
+              return `${totalCount} approved · ${money(totalRevenue)} collected`
+            })()}
             className="lg:col-span-2"
           >
-            {stats.boardReferrals.length === 0 ? (
+            {stats.boardReferrals.length === 0 && stats.unattributedCount === 0 ? (
               <div className="py-8 text-center text-sm text-hint">
                 <Award className="w-8 h-8 text-hint mx-auto mb-2" />
-                No members attributed to a board referrer in this period.
+                No approved members in this period.
               </div>
             ) : (
-              <>
-                {/* Big donut, centered, matches the reference layout — the
-                    slice colors read directly against the legend rows below,
-                    so the split is obvious without any hover. */}
-                <div className="relative w-full max-w-[440px] mx-auto">
-                  <ResponsiveContainer width="100%" height={380}>
-                    <PieChart>
-                      <Pie
-                        data={stats.boardReferrals}
-                        dataKey="count"
-                        nameKey="boardMemberName"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={95}
-                        outerRadius={170}
-                        paddingAngle={2}
-                        stroke="#FFFFFF"
-                        strokeWidth={3}
-                        onClick={(data: unknown) => {
-                          const row = (data as { payload?: BoardReferralRow })?.payload
-                          if (row?.boardMemberId) {
-                            router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
-                          }
-                        }}
-                      >
-                        {stats.boardReferrals.map((_, i) => (
-                          <Cell key={i} fill={REFERRER_PALETTE[i % REFERRER_PALETTE.length]} cursor="pointer" />
+              (() => {
+                // Build the pie dataset — board sponsors first (color-palette
+                // order from REFERRER_PALETTE), then an "Unreferred" slice in
+                // a neutral gray so it reads as the catch-all, not another
+                // sponsor. Each entry carries its own fill so the legend
+                // swatches match the pie exactly.
+                const UNREFERRED_COLOR = '#9CA3AF'
+                const pieData: Array<{ boardMemberId: string; boardMemberName: string; count: number; revenue: number; fill: string }> = [
+                  ...stats.boardReferrals.map((r, i) => ({
+                    ...r,
+                    fill: REFERRER_PALETTE[i % REFERRER_PALETTE.length],
+                  })),
+                ]
+                if (stats.unattributedCount > 0) {
+                  pieData.push({
+                    boardMemberId: '__unreferred__',
+                    boardMemberName: 'Unreferred',
+                    count: stats.unattributedCount,
+                    revenue: stats.unattributedRevenue || 0,
+                    fill: UNREFERRED_COLOR,
+                  })
+                }
+                const totalCount = pieData.reduce((s, r) => s + r.count, 0)
+                const totalRevenue = pieData.reduce((s, r) => s + r.revenue, 0)
+                return (
+                  <>
+                    {/* Big donut, centered — slice colors align with the
+                        legend rows below so the split reads at a glance. */}
+                    <div className="relative w-full max-w-[440px] mx-auto">
+                      <ResponsiveContainer width="100%" height={380}>
+                        <PieChart>
+                          <Pie
+                            data={pieData}
+                            dataKey="count"
+                            nameKey="boardMemberName"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={95}
+                            outerRadius={170}
+                            paddingAngle={2}
+                            stroke="#FFFFFF"
+                            strokeWidth={3}
+                            onClick={(data: unknown) => {
+                              const row = (data as { payload?: { boardMemberId: string; boardMemberName: string } })?.payload
+                              if (!row) return
+                              if (row.boardMemberId === '__unreferred__') {
+                                router.push(`/admin/members?filter=unreferred`)
+                              } else {
+                                router.push(`/admin/members?referredBy=${encodeURIComponent(row.boardMemberId)}&referredByName=${encodeURIComponent(row.boardMemberName)}`)
+                              }
+                            }}
+                          >
+                            {pieData.map((d, i) => (
+                              <Cell key={i} fill={d.fill} cursor="pointer" />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]}
+                            labelStyle={{ color: '#1E3A5F' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <p className="text-5xl font-medium text-brand leading-none">{totalCount}</p>
+                        <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1.5">Approved</p>
+                        <p className="text-2xl font-medium text-accent leading-none mt-3 tabular-nums">
+                          {money(totalRevenue)}
+                        </p>
+                        <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1.5">Collected</p>
+                      </div>
+                    </div>
+
+                    {/* Legend rows — board sponsors first, Unreferred last
+                        in a muted style so the hierarchy is obvious. */}
+                    <div className="max-w-[560px] mx-auto mt-6">
+                      <div className="border-b border-ivory-200 pb-1.5 mb-1 grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 text-[0.65rem] font-medium uppercase tracking-wide text-hint">
+                        <span className="w-4" />
+                        <span>Board member</span>
+                        <span className="text-right">Members</span>
+                        <span className="text-right min-w-[4rem]">Revenue</span>
+                      </div>
+                      <div className="divide-y divide-ivory-200">
+                        {stats.boardReferrals.map((r, i) => (
+                          <button
+                            key={r.boardMemberId}
+                            type="button"
+                            onClick={() => router.push(`/admin/members?referredBy=${encodeURIComponent(r.boardMemberId)}&referredByName=${encodeURIComponent(r.boardMemberName)}`)}
+                            className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 py-2.5 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group"
+                          >
+                            <span
+                              className="w-4 h-4 rounded-sm flex-shrink-0"
+                              style={{ background: REFERRER_PALETTE[i % REFERRER_PALETTE.length] }}
+                            />
+                            <span className="text-sm text-brand group-hover:underline truncate">{r.boardMemberName}</span>
+                            <span className="text-sm text-brand font-medium tabular-nums text-right">{r.count}</span>
+                            <span className="text-sm text-brand font-medium tabular-nums text-right min-w-[4rem]">{money(r.revenue)}</span>
+                          </button>
                         ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'Brought in'] as [string, string]}
-                        labelStyle={{ color: '#1E3A5F' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-5xl font-medium text-brand leading-none">
-                      {stats.boardReferrals.reduce((s, r) => s + r.count, 0)}
-                    </p>
-                    <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1.5">Attributed</p>
-                    <p className="text-2xl font-medium text-accent leading-none mt-3 tabular-nums">
-                      {money(stats.boardReferrals.reduce((s, r) => s + r.revenue, 0))}
-                    </p>
-                    <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1.5">Revenue</p>
-                  </div>
-                </div>
+                        {stats.unattributedCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/admin/members?filter=unreferred`)}
+                            title="Members not yet attributed to a board sponsor — click to open the Unreferred filter"
+                            className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 py-2.5 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group bg-page-bg/40"
+                          >
+                            <span
+                              className="w-4 h-4 rounded-sm flex-shrink-0"
+                              style={{ background: UNREFERRED_COLOR }}
+                            />
+                            <span className="text-sm text-mid italic group-hover:underline truncate">Unreferred</span>
+                            <span className="text-sm text-mid font-medium tabular-nums text-right">{stats.unattributedCount}</span>
+                            <span className="text-sm text-mid font-medium tabular-nums text-right min-w-[4rem]">{money(stats.unattributedRevenue || 0)}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
 
-                {/* Legend rows — big color swatches + names + counts + $ brought in, all clickable */}
-                <div className="max-w-[560px] mx-auto mt-6">
-                  <div className="border-b border-ivory-200 pb-1.5 mb-1 grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 text-[0.65rem] font-medium uppercase tracking-wide text-hint">
-                    <span className="w-4" />
-                    <span>Board member</span>
-                    <span className="text-right">Members</span>
-                    <span className="text-right min-w-[4rem]">Revenue</span>
-                  </div>
-                  <div className="divide-y divide-ivory-200">
-                    {stats.boardReferrals.map((r, i) => (
-                      <button
-                        key={r.boardMemberId}
-                        type="button"
-                        onClick={() => router.push(`/admin/members?referredBy=${encodeURIComponent(r.boardMemberId)}&referredByName=${encodeURIComponent(r.boardMemberName)}`)}
-                        className="w-full grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 py-2.5 px-2 -mx-2 rounded hover:bg-page-bg transition-all text-left group"
-                      >
-                        <span
-                          className="w-4 h-4 rounded-sm flex-shrink-0"
-                          style={{ background: REFERRER_PALETTE[i % REFERRER_PALETTE.length] }}
-                        />
-                        <span className="text-sm text-brand group-hover:underline truncate">{r.boardMemberName}</span>
-                        <span className="text-sm text-brand font-medium tabular-nums text-right">{r.count}</span>
-                        <span className="text-sm text-brand font-medium tabular-nums text-right min-w-[4rem]">{money(r.revenue)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <p className="text-[0.65rem] text-hint mt-4 text-center">
-                  Tap a name or slice to see the members that referrer brought in.
-                </p>
-              </>
+                    <p className="text-[0.65rem] text-hint mt-4 text-center">
+                      Tap a name or slice to see those members. Unreferred opens the Unreferred filter so you can attribute them.
+                    </p>
+                  </>
+                )
+              })()
             )}
           </ChartCard>
 

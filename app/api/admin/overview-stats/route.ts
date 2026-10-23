@@ -267,12 +267,23 @@ export async function GET(req: Request) {
   // their attribution is locked in and the donut counts them.
   const boardIdToName = new Map(allBoard.map((b) => [b.id, b.name]))
   const boardReferralMap: Record<string, { boardMemberId: string; boardMemberName: string; count: number; revenue: number }> = {}
+  let unattributedCount = 0
+  let unattributedRevenue = 0
   for (const m of nonStaff) {
     if (m.status !== 'approved') continue
-    if (!m.referredBy) continue
     const ref = m.paymentDate || m.approvedAt || m.createdAt
     if (!ref) continue
     if (!inRange(ref)) continue
+    // Revenue is the ACTUAL amount banked — amountPaid when recorded,
+    // zero otherwise. Falling back to the tier price inflated the figure
+    // for approved rows that never had a payment logged; we want the
+    // donut's revenue to match what the chamber has actually collected.
+    const dollars = m.amountPaid && m.amountPaid > 0 ? m.amountPaid : 0
+    if (!m.referredBy) {
+      unattributedCount += 1
+      unattributedRevenue += dollars
+      continue
+    }
     const key = m.referredBy
     if (!boardReferralMap[key]) {
       boardReferralMap[key] = {
@@ -283,21 +294,9 @@ export async function GET(req: Request) {
       }
     }
     boardReferralMap[key].count += 1
-    // Revenue brought in by this referrer. Use the explicit amountPaid
-    // when present, fall back to the tier price so pending-but-unpaid
-    // sign-ups don't look like zero contribution.
-    const dollars = m.amountPaid && m.amountPaid > 0
-      ? m.amountPaid
-      : m.membershipTier === 'corporate' ? 395 : 95
     boardReferralMap[key].revenue += dollars
   }
   const boardReferrals = Object.values(boardReferralMap).sort((a, b) => b.revenue - a.revenue || b.count - a.count)
-  const unattributedCount = nonStaff.filter((m) => {
-    if (m.status !== 'approved') return false
-    if (m.referredBy) return false
-    const ref = m.paymentDate || m.approvedAt || m.createdAt
-    return ref ? inRange(ref) : false
-  }).length
 
   // ---------- KPI totals inside period ----------
   const totalRevenue = revenueTrend.reduce((s, r) => s + r.revenue, 0)
@@ -362,6 +361,7 @@ export async function GET(req: Request) {
     attribution,
     boardReferrals,
     unattributedCount,
+    unattributedRevenue,
     bucketSize: useDays ? 'day' : 'month',
   })
 }
