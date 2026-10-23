@@ -167,11 +167,17 @@ export async function GET(req: Request) {
     paymentsByBucket[b] = 0
   }
 
+  // Skip Square payments matched to deactivated/rejected members —
+  // those represent refunded transactions and don't count as revenue.
+  const skippedMemberIds = new Set(
+    allMembers.filter((m) => m.status === 'deactivated' || m.status === 'rejected').map((m) => m.id)
+  )
   for (const p of allPayments) {
     if (p.status !== 'COMPLETED') continue
     if (!p.paidAt) continue
     const paid = new Date(p.paidAt)
     if (!inRange(paid)) continue
+    if (p.matchedMemberId && skippedMemberIds.has(p.matchedMemberId)) continue
     const key = useDays ? dayKey(paid) : monthKey(paid)
     if (!(key in revenueByBucket)) continue
     revenueByBucket[key] += (p.amountCents - p.refundedCents) / 100
@@ -296,6 +302,8 @@ export async function GET(req: Request) {
     if (p.status !== 'COMPLETED') continue
     if (!p.paidAt) continue
     if (!inRange(new Date(p.paidAt))) continue
+    // Skip payments matched to deactivated/rejected members (refunded).
+    if (p.matchedMemberId && skippedMemberIds.has(p.matchedMemberId)) continue
     const net = (p.amountCents - p.refundedCents) / 100
     if (p.matchedMemberId) {
       squareNetByMember.set(p.matchedMemberId, (squareNetByMember.get(p.matchedMemberId) || 0) + net)

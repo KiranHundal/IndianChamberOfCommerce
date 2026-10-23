@@ -33,27 +33,31 @@ export async function GET() {
 
   const OFFLINE_METHODS = ['check', 'zelle', 'cash', 'other']
 
+  // Rejected/deactivated members are treated as refunded — their
+  // Square ledger entries and amountPaid both drop out of revenue.
+  const skippedMemberIds = new Set(
+    allMembers.filter((m) => m.status === 'deactivated' || m.status === 'rejected').map((m) => m.id)
+  )
   const squareLinkedMemberIds = new Set<string>()
   const squareNetByMember = new Map<string, number>()
   const completedSquare = await db.select().from(squarePayments).catch(() => [])
   for (const p of completedSquare) {
     if (p.matchedMemberId) {
       squareLinkedMemberIds.add(p.matchedMemberId)
-      if (p.status === 'COMPLETED') {
+      if (p.status === 'COMPLETED' && !skippedMemberIds.has(p.matchedMemberId)) {
         const net = (p.amountCents - p.refundedCents) / 100
         squareNetByMember.set(p.matchedMemberId, (squareNetByMember.get(p.matchedMemberId) || 0) + net)
       }
     }
   }
 
-  // Revenue — count money actually received. Square-matched members
-  // use ledger net; offline uses amountPaid or tier floor; status
-  // includes pending so money-received-but-awaiting-approval still
-  // counts. Role is NOT a filter.
+  // Revenue — count money actually received and still held. Rejected
+  // and deactivated → $0 (refunded).
   function inferredAmount(m: typeof allMembers[number]): number {
+    if (m.status === 'rejected' || m.status === 'deactivated') return 0
+    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
   }
@@ -61,9 +65,10 @@ export async function GET() {
   const hasSquareReceipt = (m: typeof allMembers[number]) =>
     squareLinkedMemberIds.has(m.id) || m.paymentMethod === 'square'
 
-  // Revenue
+  // Revenue — exclude Square payments matched to deactivated/rejected
+  // members (refunded).
   const squareGross = completedSquare
-    .filter((p) => p.status === 'COMPLETED')
+    .filter((p) => p.status === 'COMPLETED' && !(p.matchedMemberId && skippedMemberIds.has(p.matchedMemberId)))
     .reduce((sum, p) => sum + (p.amountCents - p.refundedCents) / 100, 0)
   const verifiedOffline = allMembers.reduce((sum, m) => {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return sum

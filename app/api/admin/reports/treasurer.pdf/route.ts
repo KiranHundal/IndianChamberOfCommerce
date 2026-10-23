@@ -29,12 +29,17 @@ export async function GET() {
   // Treasurer's Report — the board is signing off on live position.
   const allExpenses = allExpenseRows.filter((e) => !e.deletedAt)
 
+  // Rejected/deactivated rows represent refunded payments and don't
+  // count toward revenue (even their Square ledger entry is skipped).
+  const skippedMemberIds = new Set(
+    allMembers.filter((m) => m.status === 'deactivated' || m.status === 'rejected').map((m) => m.id)
+  )
   const squareLinkedMemberIds = new Set<string>()
   const squareNetByMember = new Map<string, number>()
   for (const p of allPayments) {
     if (p.matchedMemberId) {
       squareLinkedMemberIds.add(p.matchedMemberId)
-      if (p.status === 'COMPLETED') {
+      if (p.status === 'COMPLETED' && !skippedMemberIds.has(p.matchedMemberId)) {
         const net = (p.amountCents - p.refundedCents) / 100
         squareNetByMember.set(p.matchedMemberId, (squareNetByMember.get(p.matchedMemberId) || 0) + net)
       }
@@ -43,22 +48,25 @@ export async function GET() {
   const hasSquareReceipt = (m: typeof allMembers[number]) =>
     squareLinkedMemberIds.has(m.id) || m.paymentMethod === 'square'
 
-  // Treasurer PDF revenue — count money actually received. Order:
-  //   1. Matched Square payment → Square ledger net
-  //   2. amountPaid > 0 → that amount
-  //   3. (approved OR pending) + paymentMethod → tier floor
-  //   4. Otherwise → $0
-  // Status includes pending so money-received-but-not-yet-approved
-  // still shows in revenue. Role is not a filter.
+  // Treasurer PDF revenue — count money actually received and still
+  // held. Rejected/deactivated → $0 (refunded). For live rows:
+  //   1. Square ledger net; 2. amountPaid > 0; 3. tier floor;
+  //   4. otherwise $0. Role is not a filter.
   function inferredAmount(m: typeof allMembers[number]): number {
+    if (m.status === 'rejected' || m.status === 'deactivated') return 0
+    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
   }
 
-  const completedSquare = allPayments.filter((p) => p.status === 'COMPLETED')
+  // Square aggregate — exclude payments matched to deactivated/
+  // rejected members so the Treasurer PDF top-line matches the live
+  // "held" revenue.
+  const completedSquare = allPayments.filter(
+    (p) => p.status === 'COMPLETED' && !(p.matchedMemberId && skippedMemberIds.has(p.matchedMemberId))
+  )
   const squareGrossCents = completedSquare.reduce((s, p) => s + (p.amountCents - p.refundedCents), 0)
   const squareFeesCents = completedSquare.reduce((s, p) => s + p.feeCents, 0)
   const squareGross = squareGrossCents / 100

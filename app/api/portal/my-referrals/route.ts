@@ -34,10 +34,11 @@ export async function GET() {
       createdAt: members.createdAt,
     }).from(members).where(eq(members.referredBy, board.id))
 
-    // Surface approved members AND pending-with-payment (money already
-    // in the chamber's account, awaiting admin approval). Rejected and
-    // deactivated rows stay hidden.
+    // Surface approved members AND pending-with-payment (money in the
+    // chamber's account, awaiting admin approval). Rejected and
+    // deactivated rows stay hidden — those were refunded.
     const approved = referredMembers.filter((m) => {
+      if (m.status === 'rejected' || m.status === 'deactivated') return false
       if (m.status === 'approved') return true
       if (m.status === 'pending') {
         const hasAmount = m.amountPaid != null && m.amountPaid > 0

@@ -62,13 +62,16 @@ export async function GET() {
   const corporateCount = approvedMembers.filter((m) => m.membershipTier === 'corporate').length
 
   // Build Square ledger net per matched member — same source of truth
-  // the Overview KPI uses. For a Square-matched member, this is the
-  // authoritative amount (post-refund); it supersedes amountPaid on the
-  // member row, which can drift after a refund.
+  // the Overview KPI uses. Skip payments matched to deactivated or
+  // rejected members (treated as refunded; see inferredAmount above).
+  const skippedMemberIds = new Set(
+    allMembers.filter((m) => m.status === 'deactivated' || m.status === 'rejected').map((m) => m.id)
+  )
   const squareNetByMember = new Map<string, number>()
   for (const p of allSquarePayments) {
     if (p.status !== 'COMPLETED') continue
     if (!p.matchedMemberId) continue
+    if (skippedMemberIds.has(p.matchedMemberId)) continue
     const net = (p.amountCents - p.refundedCents) / 100
     squareNetByMember.set(p.matchedMemberId, (squareNetByMember.get(p.matchedMemberId) || 0) + net)
   }
@@ -80,23 +83,24 @@ export async function GET() {
     allSquarePayments.map((p) => p.matchedMemberId).filter((id): id is string => Boolean(id))
   )
 
-  // Revenue counts money the chamber has actually received. Decision
-  // order:
-  //   1. Matched Square payment → Square ledger net (money is banked
-  //      regardless of status)
-  //   2. amountPaid > 0 → that amount (any status: money is money)
-  //   3. (approved OR pending) + paymentMethod recorded → tier floor
-  //      (admin logged a payment that's waiting on approval)
+  // Revenue counts money the chamber has actually received and still
+  // holds. Rejected or deactivated rows mean the payment was refunded,
+  // so they contribute $0 regardless of amountPaid/Square-ledger
+  // (admin refunded the money when they deactivated/rejected).
+  //
+  // Decision order (for approved OR pending rows):
+  //   1. Matched Square payment → Square ledger net
+  //   2. amountPaid > 0 → that amount
+  //   3. paymentMethod recorded → tier floor (data gap)
   //   4. Otherwise → $0
-  // Rejected and deactivated rows with no amountPaid/method
-  // contribute $0 — but if they did pay (amountPaid > 0), that money
-  // is in step 2 regardless of status until a refund is logged.
+  //
   // Role is NOT a filter — moderators/reviewer paying their own dues
   // count as revenue same as any other paying row.
   function inferredAmount(m: typeof allMembers[number]): number {
+    if (m.status === 'rejected' || m.status === 'deactivated') return 0
+    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
   }
@@ -155,7 +159,12 @@ export async function GET() {
   let squareFeesAreReal = false
 
   if (hasSquareData) {
-    const completed = allSquarePayments.filter((p) => p.status === 'COMPLETED')
+    // Exclude payments matched to deactivated/rejected members — those
+    // are treated as refunded (admin's rule: deactivating a member
+    // means we refunded them).
+    const completed = allSquarePayments.filter(
+      (p) => p.status === 'COMPLETED' && !(p.matchedMemberId && skippedMemberIds.has(p.matchedMemberId))
+    )
     squareTransactionCount = completed.length
     squareGross = completed.reduce((sum, p) => sum + (p.amountCents - p.refundedCents) / 100, 0)
     estimatedSquareFees = Math.round(completed.reduce((sum, p) => sum + p.feeCents, 0)) / 100
