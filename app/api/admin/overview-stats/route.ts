@@ -269,16 +269,42 @@ export async function GET(req: Request) {
   const boardReferralMap: Record<string, { boardMemberId: string; boardMemberName: string; count: number; revenue: number }> = {}
   let unattributedCount = 0
   let unattributedRevenue = 0
+
+  // Revenue accounting mirrors the KPI's Revenue tile so the two numbers
+  // reconcile exactly:
+  //   - Square-paid members: use the Square ledger net (amount − refunds),
+  //     not members.amountPaid (which can drift after a refund)
+  //   - Offline members: use members.amountPaid as recorded
+  //   - Orphan Square payments (no matched member): credit to Unreferred,
+  //     since the chamber banked that money even if nobody is attributed
+  const squareNetByMember = new Map<string, number>()
+  let orphanSquareRevenue = 0
+  for (const p of allPayments) {
+    if (p.status !== 'COMPLETED') continue
+    if (!p.paidAt) continue
+    if (!inRange(new Date(p.paidAt))) continue
+    const net = (p.amountCents - p.refundedCents) / 100
+    if (p.matchedMemberId) {
+      squareNetByMember.set(p.matchedMemberId, (squareNetByMember.get(p.matchedMemberId) || 0) + net)
+    } else {
+      orphanSquareRevenue += net
+    }
+  }
+
   for (const m of nonStaff) {
     if (m.status !== 'approved') continue
     const ref = m.paymentDate || m.approvedAt || m.createdAt
     if (!ref) continue
     if (!inRange(ref)) continue
-    // Revenue is the ACTUAL amount banked — amountPaid when recorded,
-    // zero otherwise. Falling back to the tier price inflated the figure
-    // for approved rows that never had a payment logged; we want the
-    // donut's revenue to match what the chamber has actually collected.
-    const dollars = m.amountPaid && m.amountPaid > 0 ? m.amountPaid : 0
+    let dollars = 0
+    if (squareNetByMember.has(m.id)) {
+      dollars = squareNetByMember.get(m.id) || 0
+    } else if (m.paymentMethod !== 'square') {
+      // Offline / check / zelle / cash / other — trust amountPaid.
+      // Square-method members without a matched payment contribute 0,
+      // consistent with the KPI's logic.
+      dollars = m.amountPaid && m.amountPaid > 0 ? m.amountPaid : 0
+    }
     if (!m.referredBy) {
       unattributedCount += 1
       unattributedRevenue += dollars
@@ -296,6 +322,11 @@ export async function GET(req: Request) {
     boardReferralMap[key].count += 1
     boardReferralMap[key].revenue += dollars
   }
+  // Orphan Square payments boost Unreferred revenue so the donut's
+  // revenue total ties out to the KPI exactly. Count stays member-based
+  // (orphans aren't member rows yet — they'll be once the admin runs
+  // "Send Invite" from /admin/finances).
+  unattributedRevenue += orphanSquareRevenue
   const boardReferrals = Object.values(boardReferralMap).sort((a, b) => b.revenue - a.revenue || b.count - a.count)
 
   // ---------- KPI totals inside period ----------
