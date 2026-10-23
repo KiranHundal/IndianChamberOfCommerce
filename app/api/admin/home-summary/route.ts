@@ -33,22 +33,31 @@ export async function GET() {
 
   const OFFLINE_METHODS = ['check', 'zelle', 'cash', 'other']
 
-  // Count only payments actually received. amountPaid wins when > 0.
-  // Tier floor only applies to approved rows where a paymentMethod was
-  // logged but the amount wasn't recorded. Approved without a method
-  // means no payment evidence → $0.
+  const squareLinkedMemberIds = new Set<string>()
+  const squareNetByMember = new Map<string, number>()
+  const completedSquare = await db.select().from(squarePayments).catch(() => [])
+  for (const p of completedSquare) {
+    if (p.matchedMemberId) {
+      squareLinkedMemberIds.add(p.matchedMemberId)
+      if (p.status === 'COMPLETED') {
+        const net = (p.amountCents - p.refundedCents) / 100
+        squareNetByMember.set(p.matchedMemberId, (squareNetByMember.get(p.matchedMemberId) || 0) + net)
+      }
+    }
+  }
+
+  // Revenue — count only payments actually received. Square-matched
+  // members use the ledger net (authoritative, matches the KPI);
+  // offline uses amountPaid when > 0, tier floor only for rows where
+  // a paymentMethod was logged but the amount is blank. No payment
+  // evidence → $0.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
+    if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
     if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
-  }
-
-  const squareLinkedMemberIds = new Set<string>()
-  const completedSquare = await db.select().from(squarePayments).catch(() => [])
-  for (const p of completedSquare) {
-    if (p.matchedMemberId) squareLinkedMemberIds.add(p.matchedMemberId)
   }
 
   const hasSquareReceipt = (m: typeof allMembers[number]) =>

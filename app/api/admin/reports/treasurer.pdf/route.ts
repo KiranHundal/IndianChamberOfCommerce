@@ -30,22 +30,33 @@ export async function GET() {
   const allExpenses = allExpenseRows.filter((e) => !e.deletedAt)
 
   const squareLinkedMemberIds = new Set<string>()
+  const squareNetByMember = new Map<string, number>()
   for (const p of allPayments) {
-    if (p.matchedMemberId) squareLinkedMemberIds.add(p.matchedMemberId)
+    if (p.matchedMemberId) {
+      squareLinkedMemberIds.add(p.matchedMemberId)
+      if (p.status === 'COMPLETED') {
+        const net = (p.amountCents - p.refundedCents) / 100
+        squareNetByMember.set(p.matchedMemberId, (squareNetByMember.get(p.matchedMemberId) || 0) + net)
+      }
+    }
   }
   const hasSquareReceipt = (m: typeof allMembers[number]) =>
     squareLinkedMemberIds.has(m.id) || m.paymentMethod === 'square'
 
   // Treasurer PDF revenue — count only payments actually received.
-  // amountPaid wins when > 0. Tier floor only applies to approved rows
-  // where a paymentMethod was logged but the amount wasn't recorded
-  // (a known data gap, not a free pass for approved-without-payment
-  // rows). Admin / moderator / reviewer are staff — never counted.
+  // Decision order:
+  //   1. Matched Square payment → Square ledger net (post-refund) —
+  //      authoritative, same source the Overview KPI uses
+  //   2. amountPaid > 0 → that amount
+  //   3. Approved + paymentMethod logged but amount blank → tier floor
+  //   4. Otherwise → $0 (no payment evidence)
+  // Admin / moderator / reviewer are staff — never counted.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
+    if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
-    if (!m.paymentMethod) return 0 // no payment evidence
+    if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
   }
 

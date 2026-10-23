@@ -61,28 +61,40 @@ export async function GET() {
   const individualCount = approvedMembers.filter((m) => m.membershipTier === 'individual').length
   const corporateCount = approvedMembers.filter((m) => m.membershipTier === 'corporate').length
 
-  // Estimate amount for members that don't have amountPaid explicitly set
-  // Revenue counts only payments actually received. amountPaid wins
-  // when > 0 (members can pay any amount — $200, $500, whatever).
-  // Tier floor applies ONLY to approved rows where a paymentMethod was
-  // logged but the amount wasn't — a known data gap for a payment
-  // that landed. Approved rows with no paymentMethod and no amountPaid
-  // contribute $0: status flipped to approved doesn't by itself mean
-  // money arrived. Admin / moderator / reviewer are staff — never
-  // counted even if they carry an amountPaid value.
-  function inferredAmount(m: typeof allMembers[number]): number {
-    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
-    if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    if (m.status !== 'approved') return 0
-    if (!m.paymentMethod) return 0 // no payment evidence
-    return m.membershipTier === 'corporate' ? 395 : 95
+  // Build Square ledger net per matched member — same source of truth
+  // the Overview KPI uses. For a Square-matched member, this is the
+  // authoritative amount (post-refund); it supersedes amountPaid on the
+  // member row, which can drift after a refund.
+  const squareNetByMember = new Map<string, number>()
+  for (const p of allSquarePayments) {
+    if (p.status !== 'COMPLETED') continue
+    if (!p.matchedMemberId) continue
+    const net = (p.amountCents - p.refundedCents) / 100
+    squareNetByMember.set(p.matchedMemberId, (squareNetByMember.get(p.matchedMemberId) || 0) + net)
   }
 
-  // Members that ARE linked to a Square payment — their money is already in
-  // squareGross (below), so we mustn't double-count their inferred amount.
+  // Members that ARE linked to a Square payment — their money is in the
+  // Square ledger; we route them through squareNetByMember rather than
+  // trusting members.amountPaid.
   const squareLinkedMemberIds = new Set(
     allSquarePayments.map((p) => p.matchedMemberId).filter((id): id is string => Boolean(id))
   )
+
+  // Revenue counts only payments actually received. Decision order:
+  //   1. Matched Square payment → Square ledger net (same as KPI)
+  //   2. amountPaid > 0 → that amount (offline payments can be any value)
+  //   3. Approved + paymentMethod logged but amount blank → tier floor
+  //      (data gap, we know a payment arrived but not the exact amount)
+  //   4. Otherwise → $0 (no payment evidence)
+  // Admin / moderator / reviewer are staff — never counted.
+  function inferredAmount(m: typeof allMembers[number]): number {
+    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
+    if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
+    if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
+    if (m.status !== 'approved') return 0
+    if (!m.paymentMethod) return 0
+    return m.membershipTier === 'corporate' ? 395 : 95
+  }
 
   const OFFLINE_METHODS = ['check', 'zelle', 'cash', 'other']
 
