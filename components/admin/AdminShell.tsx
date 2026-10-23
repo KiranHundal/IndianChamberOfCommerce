@@ -219,14 +219,24 @@ export default function AdminShell({
         <div className="p-4 border-t border-navy-800">
           <p className="text-xs text-white/90 truncate">{displayName}</p>
           <p className="text-[0.65rem] text-white/40 truncate mb-3">{displayEmail}</p>
-          <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="w-full inline-flex items-center justify-center gap-1 text-[0.65rem] text-white/60 hover:text-red-300 bg-white/5 rounded px-2 py-1.5"
-          >
-            <LogOut className="w-3 h-3" />
-            Sign out
-          </button>
+          <div className="flex gap-2">
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+              className="flex-1 inline-flex items-center justify-center gap-1 text-[0.65rem] text-white/60 hover:text-white bg-white/5 rounded px-2 py-1.5"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Site
+            </Link>
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="flex-1 inline-flex items-center justify-center gap-1 text-[0.65rem] text-white/60 hover:text-red-300 bg-white/5 rounded px-2 py-1.5"
+            >
+              <LogOut className="w-3 h-3" />
+              Sign out
+            </button>
+          </div>
         </div>
       </aside>
 
