@@ -46,15 +46,14 @@ export async function GET() {
     }
   }
 
-  // Revenue — count only payments actually received. Square-matched
-  // members use the ledger net; offline uses amountPaid when > 0, tier
-  // floor only when a paymentMethod was logged but the amount is
-  // blank. No payment evidence → $0. Role is NOT a filter — staff
-  // (moderators, reviewer) who paid their own dues contribute revenue.
+  // Revenue — count money actually received. Square-matched members
+  // use ledger net; offline uses amountPaid or tier floor; status
+  // includes pending so money-received-but-awaiting-approval still
+  // counts. Role is NOT a filter.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    if (m.status !== 'approved') return 0
+    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
   }

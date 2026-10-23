@@ -80,21 +80,23 @@ export async function GET() {
     allSquarePayments.map((p) => p.matchedMemberId).filter((id): id is string => Boolean(id))
   )
 
-  // Revenue counts only payments actually received. Decision order:
-  //   1. Matched Square payment → Square ledger net (same as KPI)
-  //   2. amountPaid > 0 → that amount (offline payments can be any value)
-  //   3. Approved + paymentMethod logged but amount blank → tier floor
-  //      (data gap, we know a payment arrived but not the exact amount)
-  //   4. Otherwise → $0 (no payment evidence)
-  // Role is NOT a filter — a moderator or reviewer who paid their own
-  // dues contributes revenue same as any other paying row. The Members
-  // KPI count still excludes staff from the "paying members" headcount,
-  // but every penny the chamber banked shows up in revenue regardless
-  // of who sent it.
+  // Revenue counts money the chamber has actually received. Decision
+  // order:
+  //   1. Matched Square payment → Square ledger net (money is banked
+  //      regardless of status)
+  //   2. amountPaid > 0 → that amount (any status: money is money)
+  //   3. (approved OR pending) + paymentMethod recorded → tier floor
+  //      (admin logged a payment that's waiting on approval)
+  //   4. Otherwise → $0
+  // Rejected and deactivated rows with no amountPaid/method
+  // contribute $0 — but if they did pay (amountPaid > 0), that money
+  // is in step 2 regardless of status until a refund is logged.
+  // Role is NOT a filter — moderators/reviewer paying their own dues
+  // count as revenue same as any other paying row.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    if (m.status !== 'approved') return 0
+    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
   }
@@ -108,14 +110,13 @@ export async function GET() {
   const hasSquareReceipt = (m: typeof allMembers[number]) =>
     squareLinkedMemberIds.has(m.id)
 
-  // Offline revenue — count every approved non-Square row. amountPaid
-  // when recorded, tier floor otherwise; same formula as the Overview
-  // KPI's revenue trend so the two totals reconcile exactly. Includes
-  // staff rows (moderator/reviewer) that paid their own membership —
-  // the money is money regardless of what the sender's dashboard role
-  // happens to be.
+  // Offline revenue — count every paid non-Square row (approved OR
+  // pending with payment evidence). amountPaid when recorded, tier
+  // floor otherwise. Same formula as the Overview KPI's revenue trend
+  // so the two totals reconcile exactly. Includes staff rows and
+  // pending-but-paid rows (money arrived, approval just hasn't fired).
   const verifiedOfflineRevenue = allMembers.reduce((sum, m) => {
-    if (m.status !== 'approved') return sum
+    if (m.status !== 'approved' && m.status !== 'pending') return sum
     if (hasSquareReceipt(m)) return sum
     if (m.paymentMethod === 'square') return sum // handled by Square ledger
     return sum + inferredAmount(m)

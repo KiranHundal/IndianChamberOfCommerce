@@ -34,9 +34,18 @@ export async function GET() {
       createdAt: members.createdAt,
     }).from(members).where(eq(members.referredBy, board.id))
 
-    // Only surface approved members. Pending applicants can be a noisy
-    // vanity metric before the admin has a chance to review them.
-    const approved = referredMembers.filter((m) => m.status === 'approved')
+    // Surface approved members AND pending-with-payment (money already
+    // in the chamber's account, awaiting admin approval). Rejected and
+    // deactivated rows stay hidden.
+    const approved = referredMembers.filter((m) => {
+      if (m.status === 'approved') return true
+      if (m.status === 'pending') {
+        const hasAmount = m.amountPaid != null && m.amountPaid > 0
+        const hasMethod = !!m.paymentMethod
+        return hasAmount || hasMethod
+      }
+      return false
+    })
     approved.sort((a, b) => {
       const ad = a.approvedAt ? new Date(a.approvedAt).getTime() : new Date(a.createdAt).getTime()
       const bd = b.approvedAt ? new Date(b.approvedAt).getTime() : new Date(b.createdAt).getTime()

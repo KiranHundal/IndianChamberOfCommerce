@@ -178,24 +178,22 @@ export async function GET(req: Request) {
     paymentsByBucket[key] += 1
   }
 
-  // Layer in offline approved members (any role, including staff) by
-  // their paymentDate. ONLY count rows where payment is actually
-  // recorded — amountPaid > 0 OR an offline paymentMethod on file.
-  // Approved members with no payment evidence contribute $0. Tier
-  // price floor only kicks in when a paymentMethod was logged but the
-  // amount wasn't — a known data gap, not a free pass.
-  //
-  // Role is NOT a filter — a moderator or reviewer who paid their own
-  // dues contributes revenue same as a regular member. The Members KPI
-  // count still uses nonStaff for the "paying members" headcount, but
-  // revenue counts every penny the chamber received.
+  // Layer in offline paid members (approved OR pending with payment
+  // evidence; any role, including staff). amountPaid > 0 wins; tier
+  // floor only when a paymentMethod was recorded but the amount wasn't.
+  // Pending-with-payment counts so money sitting in the chamber's
+  // account while awaiting approval shows up in revenue — the user's
+  // explicit rule: don't drop any penny we've received.
+  // Role is NOT a filter — moderators/reviewer paying their own dues
+  // count. The Members KPI headcount still uses nonStaff for "Paying
+  // members"; revenue counts every penny regardless of sender.
   for (const m of allMembers) {
-    if (m.status !== 'approved') continue
+    if (m.status !== 'approved' && m.status !== 'pending') continue
     if (m.paymentMethod === 'square') continue // Square ledger already counted it
     const hasAmount = m.amountPaid != null && m.amountPaid > 0
     const hasMethod = !!m.paymentMethod && m.paymentMethod !== 'square'
     if (!hasAmount && !hasMethod) continue // no payment evidence — don't count
-    const ref = m.paymentDate || m.approvedAt
+    const ref = m.paymentDate || m.approvedAt || m.createdAt
     if (!ref) continue
     const dt = new Date(ref)
     if (!inRange(dt)) continue
@@ -307,7 +305,10 @@ export async function GET(req: Request) {
   }
 
   for (const m of allMembers) {
-    if (m.status !== 'approved') continue
+    // Approved or pending-with-payment both count — money the chamber
+    // received should attribute to a sponsor regardless of whether the
+    // approval button has been clicked yet.
+    if (m.status !== 'approved' && m.status !== 'pending') continue
     const ref = m.paymentDate || m.approvedAt || m.createdAt
     if (!ref) continue
     if (!inRange(ref)) continue
@@ -315,12 +316,9 @@ export async function GET(req: Request) {
     if (squareNetByMember.has(m.id)) {
       dollars = squareNetByMember.get(m.id) || 0
     } else if (m.paymentMethod !== 'square') {
-      // Offline branch — only count if payment is actually recorded.
-      // amountPaid wins when > 0; tier floor only when a paymentMethod
-      // was logged but the amount wasn't. Approved rows with no payment
-      // evidence contribute $0. Role is NOT a filter — moderators or
-      // reviewer who paid their own dues contribute revenue same as
-      // any other row.
+      // Offline branch — amountPaid wins when > 0; tier floor only
+      // when a paymentMethod was recorded but the amount wasn't.
+      // Pending rows with no payment evidence contribute $0.
       const hasAmount = m.amountPaid != null && m.amountPaid > 0
       const hasMethod = !!m.paymentMethod
       if (hasAmount) dollars = m.amountPaid!

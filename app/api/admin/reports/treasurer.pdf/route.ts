@@ -43,18 +43,17 @@ export async function GET() {
   const hasSquareReceipt = (m: typeof allMembers[number]) =>
     squareLinkedMemberIds.has(m.id) || m.paymentMethod === 'square'
 
-  // Treasurer PDF revenue — count only payments actually received.
-  // Decision order:
-  //   1. Matched Square payment → Square ledger net (post-refund)
+  // Treasurer PDF revenue — count money actually received. Order:
+  //   1. Matched Square payment → Square ledger net
   //   2. amountPaid > 0 → that amount
-  //   3. Approved + paymentMethod logged but amount blank → tier floor
-  //   4. Otherwise → $0 (no payment evidence)
-  // Role is NOT a filter — a moderator or reviewer who paid their own
-  // dues contributes revenue same as any other paying row.
+  //   3. (approved OR pending) + paymentMethod → tier floor
+  //   4. Otherwise → $0
+  // Status includes pending so money-received-but-not-yet-approved
+  // still shows in revenue. Role is not a filter.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    if (m.status !== 'approved') return 0
+    if (m.status !== 'approved' && m.status !== 'pending') return 0
     if (!m.paymentMethod) return 0
     return m.membershipTier === 'corporate' ? 395 : 95
   }
