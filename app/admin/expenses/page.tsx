@@ -3,7 +3,8 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, FormEvent } from 'react'
-import { Plus, Trash2, Loader2, X, Receipt } from 'lucide-react'
+import { Plus, Trash2, Loader2, X, Receipt, Upload, Paperclip, Sparkles } from 'lucide-react'
+import Image from 'next/image'
 import AdminShell from '@/components/admin/AdminShell'
 import ExportCsvButton from '@/components/admin/ExportCsvButton'
 import SortableTh from '@/components/admin/SortableTh'
@@ -19,6 +20,7 @@ interface Expense {
   paymentReference: string | null
   expenseDate: string | number
   createdBy: string | null
+  receiptUrl?: string | null
   isSynthetic?: boolean
 }
 
@@ -45,6 +47,31 @@ export default function AdminExpensesPage() {
   const [showExpense, setShowExpense] = useState(false)
   const [expenseSaving, setExpenseSaving] = useState(false)
   const [expenseError, setExpenseError] = useState('')
+  // Controlled form state so OCR can pre-fill. Blank defaults; populated
+  // either by hand or by the receipt-extraction flow.
+  type ExpenseForm = {
+    category: string
+    vendor: string
+    amount: string
+    description: string
+    paymentMethod: string
+    expenseDate: string
+    paymentReference: string
+  }
+  const BLANK_FORM = (): ExpenseForm => ({
+    category: '',
+    vendor: '',
+    amount: '',
+    description: '',
+    paymentMethod: '',
+    expenseDate: new Date().toISOString().slice(0, 10),
+    paymentReference: '',
+  })
+  const [expenseForm, setExpenseForm] = useState<ExpenseForm>(BLANK_FORM())
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null)
+  const [extracting, setExtracting] = useState(false)
+  const [extractNotice, setExtractNotice] = useState<string | null>(null)
+  const [extractedConfidence, setExtractedConfidence] = useState<Record<string, 'high' | 'medium' | 'low'>>({})
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null)
   const [deleteReason, setDeleteReason] = useState('')
@@ -79,20 +106,53 @@ export default function AdminExpensesPage() {
     }
   }, [status, session, router, fetchSummary])
 
+  function resetExpenseModal() {
+    setExpenseForm(BLANK_FORM())
+    setReceiptUrl(null)
+    setExtractNotice(null)
+    setExtractedConfidence({})
+    setExpenseError('')
+  }
+
+  async function handleReceiptUpload(file: File) {
+    setExtracting(true)
+    setExtractNotice(null)
+    try {
+      const fd = new FormData()
+      fd.append('receipt', file)
+      const res = await fetch('/api/admin/expenses/extract-receipt', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) {
+        setExtractNotice(data.error || 'Upload failed.')
+      } else {
+        setReceiptUrl(data.receiptUrl)
+        if (data.extracted) {
+          setExpenseForm({
+            category: data.extracted.category || '',
+            vendor: data.extracted.vendor || '',
+            amount: data.extracted.amount ? String(data.extracted.amount) : '',
+            description: data.extracted.description || '',
+            paymentMethod: data.extracted.paymentMethod || '',
+            expenseDate: data.extracted.expenseDate || new Date().toISOString().slice(0, 10),
+            paymentReference: '',
+          })
+          setExtractedConfidence(data.extracted.confidence || {})
+          setExtractNotice('Pre-filled from receipt. Review each field — low-confidence values are flagged below the inputs.')
+        } else if (data.extractionError) {
+          setExtractNotice(`Receipt attached but extraction couldn't complete: ${data.extractionError} Fill the fields manually.`)
+        }
+      }
+    } catch (err) {
+      setExtractNotice(err instanceof Error ? err.message : 'Network error.')
+    }
+    setExtracting(false)
+  }
+
   async function handleExpense(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setExpenseSaving(true)
     setExpenseError('')
-    const fd = new FormData(e.currentTarget)
-    const payload = {
-      category: fd.get('category'),
-      vendor: fd.get('vendor'),
-      description: fd.get('description'),
-      amount: fd.get('amount'),
-      paymentMethod: fd.get('paymentMethod'),
-      paymentReference: fd.get('paymentReference'),
-      expenseDate: fd.get('expenseDate'),
-    }
+    const payload = { ...expenseForm, receiptUrl }
     try {
       const res = await fetch('/api/admin/expenses', {
         method: 'POST',
@@ -104,6 +164,7 @@ export default function AdminExpensesPage() {
         setExpenseError(data.error || 'Failed to log expense.')
       } else {
         setShowExpense(false)
+        resetExpenseModal()
         await fetchSummary()
         setNotice({ type: 'success', text: `Expense of $${payload.amount} logged.` })
       }
@@ -267,7 +328,22 @@ export default function AdminExpensesPage() {
                         {e.category}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 font-medium text-brand">{e.vendor}</td>
+                    <td className="px-4 py-2.5 font-medium text-brand">
+                      <div className="flex items-center gap-1.5">
+                        <span>{e.vendor}</span>
+                        {e.receiptUrl && (
+                          <a
+                            href={e.receiptUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View attached receipt"
+                            className="text-accent hover:text-gold-900"
+                          >
+                            <Paperclip className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-2.5 text-xs text-mid max-w-[16rem] truncate">{e.description || '—'}</td>
                     <td className="px-4 py-2.5 text-xs text-hint">
                       {e.paymentMethod || '—'}
@@ -331,32 +407,88 @@ export default function AdminExpensesPage() {
 
       {/* Add Expense modal */}
       {showExpense && (
-        <div className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4" onClick={() => !expenseSaving && setShowExpense(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-[500] flex items-start justify-center p-4 overflow-y-auto" onClick={() => { if (!expenseSaving && !extracting) { setShowExpense(false); resetExpenseModal() } }}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-brand">Log expense</h3>
-              <button type="button" onClick={() => !expenseSaving && setShowExpense(false)} className="text-mid hover:text-brand"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => { if (!expenseSaving && !extracting) { setShowExpense(false); resetExpenseModal() } }} className="text-mid hover:text-brand"><X className="w-5 h-5" /></button>
             </div>
+
+            {/* Receipt upload / OCR section */}
+            <div className="mb-4 rounded-lg border border-dashed border-accent/40 bg-accent/5 p-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <Sparkles className="w-4 h-4 text-accent flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-brand">Upload a receipt to auto-fill</p>
+                  <p className="text-[0.7rem] text-mid">
+                    Image (JPG / PNG / HEIC) or PDF, up to 10 MB. Fields pre-fill from the receipt — you review before saving.
+                  </p>
+                </div>
+                <label className={`inline-flex items-center gap-1.5 bg-accent text-white text-xs font-medium px-3 py-2 rounded cursor-pointer hover:bg-gold-900 ${extracting ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {extracting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {extracting ? 'Reading…' : 'Upload receipt'}
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) handleReceiptUpload(f)
+                      e.target.value = ''
+                    }}
+                    disabled={extracting || expenseSaving}
+                  />
+                </label>
+              </div>
+              {receiptUrl && (
+                <div className="mt-3 flex items-start gap-3">
+                  {/^https?:\/\/.+\.(jpg|jpeg|png|webp|heic|gif)$/i.test(receiptUrl) ? (
+                    <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                      <Image src={receiptUrl} alt="Receipt preview" width={64} height={64} className="w-16 h-16 object-cover rounded border border-ivory-200" unoptimized />
+                    </a>
+                  ) : (
+                    <a href={receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-brand hover:text-accent border border-ivory-200 rounded px-2 py-1">
+                      <Paperclip className="w-3 h-3" /> View receipt
+                    </a>
+                  )}
+                  <div className="text-[0.7rem] text-mid flex-1 min-w-0">
+                    Receipt attached — will be saved with the expense.
+                  </div>
+                </div>
+              )}
+              {extractNotice && (
+                <div className="mt-3 text-[0.7rem] text-brand bg-white border border-ivory-200 rounded px-3 py-2">
+                  {extractNotice}
+                </div>
+              )}
+            </div>
+
             <form onSubmit={handleExpense} className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">
-                <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">Category *</label>
-                <input name="category" required placeholder="e.g. Event, Marketing, Office, Insurance" className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
+                <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">
+                  Category *{extractedConfidence.category && extractedConfidence.category !== 'high' && <span className="ml-2 text-amber-700 normal-case">⚠ low confidence — double-check</span>}
+                </label>
+                <input value={expenseForm.category} onChange={(e) => setExpenseForm((f) => ({ ...f, category: e.target.value }))} required placeholder="e.g. Event, Marketing, Office, Insurance" className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">Vendor *</label>
-                <input name="vendor" required className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
+                <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">
+                  Vendor *{extractedConfidence.vendor && extractedConfidence.vendor !== 'high' && <span className="ml-2 text-amber-700 normal-case">⚠ check</span>}
+                </label>
+                <input value={expenseForm.vendor} onChange={(e) => setExpenseForm((f) => ({ ...f, vendor: e.target.value }))} required className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">Amount ($) *</label>
-                <input name="amount" type="number" min="1" step="1" required className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
+                <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">
+                  Amount ($) *{extractedConfidence.amount && extractedConfidence.amount !== 'high' && <span className="ml-2 text-amber-700 normal-case">⚠ check</span>}
+                </label>
+                <input value={expenseForm.amount} onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))} type="number" min="1" step="1" required className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
               </div>
               <div className="md:col-span-2">
                 <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">Description</label>
-                <input name="description" className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
+                <input value={expenseForm.description} onChange={(e) => setExpenseForm((f) => ({ ...f, description: e.target.value }))} className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">Payment method</label>
-                <select name="paymentMethod" defaultValue="" className="w-full border border-ivory-200 rounded px-3 py-2 text-sm">
+                <select value={expenseForm.paymentMethod} onChange={(e) => setExpenseForm((f) => ({ ...f, paymentMethod: e.target.value }))} className="w-full border border-ivory-200 rounded px-3 py-2 text-sm">
                   <option value="">—</option>
                   <option value="check">Check</option>
                   <option value="zelle">Zelle</option>
@@ -367,17 +499,19 @@ export default function AdminExpensesPage() {
                 </select>
               </div>
               <div>
-                <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">Date</label>
-                <input name="expenseDate" type="date" defaultValue={new Date().toISOString().slice(0,10)} className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
+                <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">
+                  Date{extractedConfidence.expenseDate && extractedConfidence.expenseDate !== 'high' && <span className="ml-2 text-amber-700 normal-case">⚠ check</span>}
+                </label>
+                <input value={expenseForm.expenseDate} onChange={(e) => setExpenseForm((f) => ({ ...f, expenseDate: e.target.value }))} type="date" className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
               </div>
               <div className="md:col-span-2">
                 <label className="text-[0.65rem] font-medium uppercase tracking-wide text-brand block mb-1">Reference (check #, invoice #, memo)</label>
-                <input name="paymentReference" className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
+                <input value={expenseForm.paymentReference} onChange={(e) => setExpenseForm((f) => ({ ...f, paymentReference: e.target.value }))} className="w-full border border-ivory-200 rounded px-3 py-2 text-sm" />
               </div>
               {expenseError && <div className="md:col-span-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{expenseError}</div>}
               <div className="md:col-span-2 flex gap-2 pt-1">
-                <button type="button" onClick={() => setShowExpense(false)} disabled={expenseSaving} className="flex-1 bg-white border border-ivory-200 text-mid text-xs font-medium px-4 py-2.5 rounded hover:border-brand/30 disabled:opacity-50">Cancel</button>
-                <button type="submit" disabled={expenseSaving} className="flex-1 inline-flex items-center justify-center gap-1.5 bg-accent text-white text-xs font-medium px-4 py-2.5 rounded hover:bg-gold-900 disabled:opacity-50">
+                <button type="button" onClick={() => { setShowExpense(false); resetExpenseModal() }} disabled={expenseSaving} className="flex-1 bg-white border border-ivory-200 text-mid text-xs font-medium px-4 py-2.5 rounded hover:border-brand/30 disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={expenseSaving || extracting} className="flex-1 inline-flex items-center justify-center gap-1.5 bg-accent text-white text-xs font-medium px-4 py-2.5 rounded hover:bg-gold-900 disabled:opacity-50">
                   {expenseSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Saving…</> : 'Save expense'}
                 </button>
               </div>

@@ -6,6 +6,7 @@ import { members, expenses, invitations, squarePayments, squareSync, events, eve
 import { desc } from 'drizzle-orm'
 import { nameSimilarity } from '@/lib/name-match'
 import { ensureEventsSchema } from '@/lib/ensure-events-schema'
+import { ensureExpensesSchema } from '@/lib/ensure-expenses-schema'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -17,6 +18,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  await ensureExpensesSchema().catch(() => {})
   const allMembers = await db.select().from(members).catch(() => [])
   const allExpenseRows = await db
     .select()
@@ -226,6 +228,7 @@ export async function GET() {
     paymentReference: string | null
     expenseDate: string | number | Date
     createdBy: string | null
+    receiptUrl?: string | null
     isSynthetic?: boolean
   }> = []
 
@@ -266,6 +269,7 @@ export async function GET() {
     paymentReference: e.paymentReference,
     expenseDate: e.expenseDate,
     createdBy: displayActor(e.createdBy),
+    receiptUrl: e.receiptUrl,
   })))
 
   const invitationsSent = allInvitations.length

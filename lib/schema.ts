@@ -54,6 +54,10 @@ export const expenses = sqliteTable('expenses', {
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
   deletedBy: text('deleted_by'),
   deletionReason: text('deletion_reason'),
+  // Optional link to the receipt image stored in Vercel Blob. Attached
+  // via the Receipt → OCR flow in the Add Expense modal. Nullable so
+  // older rows and manually-logged expenses stay valid.
+  receiptUrl: text('receipt_url'),
 })
 
 export const squarePayments = sqliteTable('square_payments', {

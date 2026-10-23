@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { expenses } from '@/lib/schema'
 import { desc } from 'drizzle-orm'
+import { ensureExpensesSchema } from '@/lib/ensure-expenses-schema'
 
 async function requireAdmin() {
   const session = await getServerSession(authOptions)
@@ -17,6 +18,7 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  await ensureExpensesSchema().catch(() => {})
   const rows = await db.select().from(expenses).orderBy(desc(expenses.expenseDate))
   // Soft-deleted expenses are hidden from the live list.
   return NextResponse.json({ expenses: rows.filter((e) => !e.deletedAt) })
@@ -27,10 +29,11 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  await ensureExpensesSchema().catch(() => {})
 
   try {
     const body = await req.json()
-    const { category, vendor, description, amount, paymentMethod, paymentReference, expenseDate } = body
+    const { category, vendor, description, amount, paymentMethod, paymentReference, expenseDate, receiptUrl } = body
 
     if (!category || !vendor) {
       return NextResponse.json({ error: 'Category and vendor are required.' }, { status: 400 })
@@ -56,6 +59,7 @@ export async function POST(req: NextRequest) {
       expenseDate: date,
       createdAt: new Date(),
       createdBy: session.user?.email || null,
+      receiptUrl: typeof receiptUrl === 'string' && receiptUrl.trim() ? receiptUrl.trim() : null,
     })
 
     return NextResponse.json({ success: true, id })
