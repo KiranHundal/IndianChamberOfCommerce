@@ -62,15 +62,17 @@ export async function GET() {
   const corporateCount = approvedMembers.filter((m) => m.membershipTier === 'corporate').length
 
   // Estimate amount for members that don't have amountPaid explicitly set
-  // (older records from before manual payment tracking was added).
-  // Uses founding-member pricing: $95 individual, $395 corporate.
-  // Admin and moderator accounts are staff, not paying members — they never
-  // count toward revenue even if they have an amountPaid on record.
+  // Revenue uses actual money banked only — no tier-price fallback.
+  // Members can pay any amount (a $200 contribution isn't magically
+  // $395 just because the row is on the corporate tier), so guessing
+  // from the tier overstates revenue. Approved rows without amountPaid
+  // show as $0 until the real payment is recorded.
+  // Admin, moderator, reviewer accounts are staff — they never count
+  // toward revenue even if they have an amountPaid on record.
   function inferredAmount(m: typeof allMembers[number]): number {
     if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
-    if (m.status !== 'approved') return 0
-    return m.membershipTier === 'corporate' ? 395 : 95
+    return 0
   }
 
   // Members that ARE linked to a Square payment — their money is already in

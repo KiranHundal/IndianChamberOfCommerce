@@ -42,13 +42,13 @@ export async function GET() {
       return bd - ad
     })
 
-    // Revenue brought in: explicit amountPaid when present, else fall
-    // back to tier price so pending-but-unpaid rows don't look like zero.
+    // Revenue brought in = actual money banked. We use amountPaid as
+    // recorded; we don't fall back to the tier price because members
+    // can pay any amount — a $200 contribution isn't magically $395
+    // just because the member row is on the corporate tier. Rows with
+    // amountPaid still unset contribute $0, which is honest.
     const totalRevenue = approved.reduce((sum, m) => {
-      const dollars = m.amountPaid && m.amountPaid > 0
-        ? m.amountPaid
-        : m.membershipTier === 'corporate' ? 395 : 95
-      return sum + dollars
+      return sum + (m.amountPaid && m.amountPaid > 0 ? m.amountPaid : 0)
     }, 0)
 
     return NextResponse.json({
@@ -67,9 +67,7 @@ export async function GET() {
           city: m.city,
           sector: m.sector,
           membershipTier: m.membershipTier,
-          amountPaid: m.amountPaid && m.amountPaid > 0
-            ? m.amountPaid
-            : m.membershipTier === 'corporate' ? 395 : 95,
+          amountPaid: m.amountPaid && m.amountPaid > 0 ? m.amountPaid : 0,
           approvedAt: m.approvedAt,
           needsEmail: isPlaceholder,
         }
