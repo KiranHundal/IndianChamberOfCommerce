@@ -414,7 +414,11 @@ export default function AdminHomePage() {
                     <p className="text-5xl font-medium text-brand leading-none">
                       {stats.boardReferrals.reduce((s, r) => s + r.count, 0)}
                     </p>
-                    <p className="text-xs text-hint uppercase tracking-wide mt-2">Attributed</p>
+                    <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1.5">Attributed</p>
+                    <p className="text-2xl font-medium text-accent leading-none mt-3 tabular-nums">
+                      {money(stats.boardReferrals.reduce((s, r) => s + r.revenue, 0))}
+                    </p>
+                    <p className="text-[0.65rem] text-hint uppercase tracking-wide mt-1.5">Revenue</p>
                   </div>
                 </div>
 
