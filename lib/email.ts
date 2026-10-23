@@ -1,4 +1,15 @@
 import { Resend } from 'resend'
+import {
+  moderatorUpdateSubject,
+  moderatorUpdateBodyHtml,
+  moderatorUpdatePlainText,
+  reviewerUpdateSubject,
+  reviewerUpdateBodyHtml,
+  reviewerUpdatePlainText,
+  adminUpdateSubject,
+  adminUpdateBodyHtml,
+  adminUpdatePlainText,
+} from './team-update-emails'
 
 let resendClient: Resend | null = null
 
@@ -923,5 +934,38 @@ export async function sendRenewalReminderEmail(input: {
         </div>
       </div>
     `,
+  })
+}
+
+/**
+ * Role-aware "what's new / how to use the dashboard" update email.
+ * Content lives in lib/team-update-emails.ts (one subject + HTML body +
+ * plaintext fallback per role) so the strings can be edited without
+ * touching the email service wiring. Call once per team member — the
+ * blast endpoint iterates and reports per-recipient status.
+ */
+export async function sendTeamUpdateEmail(invite: {
+  name: string
+  email: string
+  role: 'admin' | 'moderator' | 'reviewer'
+}) {
+  const resend = getResend()
+  if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
+
+  const { fromEmail, siteUrl } = getConfig()
+
+  const bodyFor =
+    invite.role === 'admin'
+      ? { subject: adminUpdateSubject, html: adminUpdateBodyHtml, text: adminUpdatePlainText }
+      : invite.role === 'reviewer'
+        ? { subject: reviewerUpdateSubject, html: reviewerUpdateBodyHtml, text: reviewerUpdatePlainText }
+        : { subject: moderatorUpdateSubject, html: moderatorUpdateBodyHtml, text: moderatorUpdatePlainText }
+
+  return resend.emails.send({
+    from: `CVICC <${fromEmail}>`,
+    to: invite.email,
+    subject: bodyFor.subject,
+    html: bodyFor.html(invite.name, invite.email, siteUrl),
+    text: bodyFor.text(invite.name, invite.email, siteUrl),
   })
 }

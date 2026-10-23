@@ -54,6 +54,19 @@ export default function AdminTeamPage() {
   const [showManual, setShowManual] = useState(false)
   const [manualSaving, setManualSaving] = useState(false)
   const [manualError, setManualError] = useState('')
+  // Team-update blast: preview recipients, confirm, send. Results are
+  // kept so the admin can see which addresses went through and which
+  // bounced (deactivated or placeholder email).
+  const [showBlast, setShowBlast] = useState(false)
+  const [blastPreview, setBlastPreview] = useState<Array<{ name: string; email: string; role: string; willReceive: string }> | null>(null)
+  const [blastSending, setBlastSending] = useState(false)
+  const [blastResults, setBlastResults] = useState<null | {
+    sent: number
+    failed: number
+    skipped: number
+    total: number
+    results: Array<{ name: string; email: string; role: string; status: 'sent' | 'failed' | 'skipped'; reason?: string }>
+  }>(null)
 
   const currentEmail = ((session?.user as { email?: string })?.email || '').toLowerCase()
 
@@ -167,6 +180,36 @@ export default function AdminTeamPage() {
     setActionId(null)
   }
 
+  async function openBlast() {
+    setShowBlast(true)
+    setBlastPreview(null)
+    setBlastResults(null)
+    try {
+      const res = await fetch('/api/admin/team/send-team-update-blast', { method: 'GET' })
+      const body = await res.json()
+      if (res.ok) setBlastPreview(body.recipients || [])
+      else setNotice({ type: 'error', text: body.error || 'Failed to load recipients.' })
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+  }
+
+  async function handleSendBlast() {
+    setBlastSending(true)
+    try {
+      const res = await fetch('/api/admin/team/send-team-update-blast', { method: 'POST' })
+      const body = await res.json()
+      if (!res.ok) {
+        setNotice({ type: 'error', text: body.error || 'Blast failed.' })
+      } else {
+        setBlastResults(body)
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+    }
+    setBlastSending(false)
+  }
+
   async function handleSendAccess(m: TeamMember) {
     setActionId(`send-${m.id}`)
     setNotice(null)
@@ -232,6 +275,14 @@ export default function AdminTeamPage() {
           { header: 'Approved', get: (m) => m.approvedAt ? new Date(m.approvedAt).toISOString().slice(0, 10) : '' },
         ]}
       />
+      <button
+        type="button"
+        onClick={openBlast}
+        className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
+      >
+        <Mail className="w-3.5 h-3.5 text-accent" />
+        <span className="hidden sm:inline">Send Team Update</span>
+      </button>
       <button
         type="button"
         onClick={() => { setManualError(''); setShowManual(true) }}
@@ -480,6 +531,119 @@ export default function AdminTeamPage() {
             </div>
           </AnimatedSection>
       </div>
+
+      {/* Team Update Blast Modal — preview recipients, send, show results */}
+      {showBlast && (
+        <div
+          className="fixed inset-0 bg-black/50 z-[500] flex items-start justify-center p-4 overflow-y-auto"
+          onClick={() => !blastSending && setShowBlast(false)}
+        >
+          <div className="bg-white rounded-xl p-6 max-w-xl w-full shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-accent" />
+                </div>
+                <h3 className="font-display text-h4 text-brand">Send Team Update</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => !blastSending && setShowBlast(false)}
+                className="text-mid hover:text-brand"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {!blastResults ? (
+              <>
+                <p className="text-small text-mid mb-4">
+                  Sends a role-specific &ldquo;what&rsquo;s new / how to use the dashboard&rdquo; email to every
+                  current admin, moderator, and reviewer. Each person gets the version matching their role.
+                </p>
+                {!blastPreview ? (
+                  <div className="py-6 text-small text-hint flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Loading recipients…
+                  </div>
+                ) : (
+                  <div className="border border-ivory-200 rounded-md divide-y divide-ivory-200 max-h-80 overflow-y-auto mb-4">
+                    {blastPreview.map((r) => (
+                      <div key={r.email} className="flex items-center justify-between gap-3 px-3 py-2 text-small">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-brand truncate">{r.name}</p>
+                          <p className="text-hint text-xs truncate">{r.email}</p>
+                        </div>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[0.6rem] font-label tracking-widest uppercase flex-shrink-0 ${
+                          r.role === 'admin'
+                            ? 'bg-navy-900/5 border-navy-900/20 text-brand'
+                            : r.role === 'reviewer'
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              : 'bg-accent/10 border-accent/30 text-accent'
+                        }`}>{r.role}</span>
+                        <span className={`text-[0.65rem] italic text-right w-32 ${r.willReceive === 'will send' ? 'text-emerald-700' : 'text-hint'}`}>
+                          {r.willReceive}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-ivory-200">
+                  <button
+                    type="button"
+                    onClick={() => !blastSending && setShowBlast(false)}
+                    disabled={blastSending}
+                    className="text-small text-mid px-3 py-2 hover:text-brand"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendBlast}
+                    disabled={blastSending || !blastPreview || blastPreview.length === 0}
+                    className="inline-flex items-center gap-1.5 bg-accent text-white font-label text-label tracking-label uppercase px-5 py-2 rounded-sm hover:bg-gold-900 disabled:opacity-60"
+                  >
+                    {blastSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                    {blastSending ? 'Sending…' : `Send to ${blastPreview?.filter((r) => r.willReceive === 'will send').length ?? 0} recipients`}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded px-4 py-3 text-small">
+                  Done — {blastResults.sent} sent, {blastResults.failed} failed, {blastResults.skipped} skipped.
+                </div>
+                <div className="border border-ivory-200 rounded-md divide-y divide-ivory-200 max-h-80 overflow-y-auto mb-4">
+                  {blastResults.results.map((r) => (
+                    <div key={r.email} className="flex items-center justify-between gap-3 px-3 py-2 text-small">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-brand truncate">{r.name}</p>
+                        <p className="text-hint text-xs truncate">{r.email}</p>
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[0.6rem] font-label tracking-widest uppercase flex-shrink-0 ${
+                        r.status === 'sent'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : r.status === 'failed'
+                            ? 'bg-red-50 text-red-700 border border-red-200'
+                            : 'bg-gray-50 text-gray-600 border border-gray-200'
+                      }`}>{r.status}{r.reason ? ` · ${r.reason}` : ''}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-end pt-3 border-t border-ivory-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowBlast(false)}
+                    className="text-small text-brand bg-page-bg px-4 py-2 rounded hover:bg-ivory-200"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Manual Grant Modal */}
       {showManual && (
