@@ -93,7 +93,11 @@ export default function AdminHomePage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [period, setPeriod] = useState<Period>('ytd')
+  // Default to "all time" — small chamber, admins want the lifetime
+  // revenue number by default. Matches /admin/finances' unfiltered
+  // "Sum of amounts shown" so the two totals reconcile out of the box.
+  // YTD / 90d / 30d / 7d stay available via the period pills.
+  const [period, setPeriod] = useState<Period>('all')
 
   const { effectiveRole, realRole } = useEffectiveRole()
   const uiRole = effectiveRole || summary?.role || realRole

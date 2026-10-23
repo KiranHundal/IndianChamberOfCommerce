@@ -229,6 +229,18 @@ export default function AdminFinancesPage() {
   // to true automatically on first render if there are orphans so they
   // don't get missed.
   const [showSquareDetails, setShowSquareDetails] = useState(false)
+  // Revenue-drift diagnostic modal — surfaces specific rows that are
+  // likely causing a mismatch between Overview YTD and this page's
+  // all-time sum. Loaded on open from /api/admin/revenue-drift.
+  type DriftRow = Record<string, unknown>
+  type DriftSection = { label: string; rows: DriftRow[]; totalAmountPaid?: number; totalDelta?: number }
+  const [driftReport, setDriftReport] = useState<null | {
+    ytdStart: string
+    now: string
+    sections: Record<string, DriftSection>
+  }>(null)
+  const [driftOpen, setDriftOpen] = useState(false)
+  const [driftLoading, setDriftLoading] = useState(false)
   const [modalSaving, setModalSaving] = useState(false)
   const [modalError, setModalError] = useState('')
 
@@ -380,6 +392,26 @@ export default function AdminFinancesPage() {
       setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
     }
     setInvitingOrphan(null)
+  }
+
+  async function openDriftReport() {
+    setDriftOpen(true)
+    setDriftReport(null)
+    setDriftLoading(true)
+    try {
+      const res = await fetch('/api/admin/revenue-drift')
+      if (res.ok) {
+        setDriftReport(await res.json())
+      } else {
+        const body = await res.json().catch(() => ({}))
+        setNotice({ type: 'error', text: (body as { error?: string }).error || 'Failed to load drift report.' })
+        setDriftOpen(false)
+      }
+    } catch (err) {
+      setNotice({ type: 'error', text: err instanceof Error ? err.message : 'Network error.' })
+      setDriftOpen(false)
+    }
+    setDriftLoading(false)
   }
 
   async function handleSyncSquare() {
@@ -571,6 +603,15 @@ export default function AdminFinancesPage() {
 
   const headerActions = (
     <>
+      <button
+        type="button"
+        onClick={openDriftReport}
+        title="Surface specific rows likely to cause a mismatch between Overview YTD and Finances all-time totals"
+        className="inline-flex items-center gap-1.5 bg-white border border-ivory-200 text-brand text-xs font-medium px-3 py-1.5 rounded hover:border-accent/40"
+      >
+        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+        <span className="hidden sm:inline">Diagnose drift</span>
+      </button>
       <button
         type="button"
         onClick={handleSyncSquare}
@@ -1258,6 +1299,95 @@ export default function AdminFinancesPage() {
           </div>
 
         </div>
+
+      {/* Drift Diagnostic Modal */}
+      {driftOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[500] flex items-start justify-center p-4 overflow-y-auto" onClick={() => setDriftOpen(false)}>
+          <div className="bg-white rounded-xl p-6 max-w-3xl w-full shadow-xl my-8" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+                <h3 className="font-display text-h4 text-brand">Revenue drift diagnostic</h3>
+              </div>
+              <button onClick={() => setDriftOpen(false)} className="text-mid hover:text-brand"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-small text-mid mb-5">
+              Shows the specific rows that could cause the Overview YTD total to differ from the Finances all-time sum.
+              Fix any surprising row by editing the member (/admin/members) or logging the correct payment amount.
+            </p>
+            {driftLoading && (
+              <div className="py-10 text-center text-small text-hint flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Analyzing data…
+              </div>
+            )}
+            {driftReport && (
+              <div className="space-y-5">
+                {Object.entries(driftReport.sections).map(([key, section]) => (
+                  <div key={key} className="border border-ivory-200 rounded-lg">
+                    <div className="px-4 py-2.5 bg-page-bg border-b border-ivory-200 flex items-center justify-between">
+                      <p className="text-sm font-medium text-brand">{section.label}</p>
+                      {typeof section.totalDelta === 'number' ? (
+                        <p className="text-xs text-mid tabular-nums">
+                          Σ delta: <strong className={section.totalDelta !== 0 ? 'text-amber-700' : 'text-emerald-700'}>${section.totalDelta.toFixed(2)}</strong>
+                        </p>
+                      ) : typeof section.totalAmountPaid === 'number' && section.totalAmountPaid > 0 ? (
+                        <p className="text-xs text-mid tabular-nums">
+                          Σ amountPaid: <strong className="text-brand">${section.totalAmountPaid.toLocaleString()}</strong>
+                        </p>
+                      ) : null}
+                    </div>
+                    {section.rows.length === 0 ? (
+                      <p className="px-4 py-3 text-xs text-emerald-700">✓ Clean — no rows match this condition.</p>
+                    ) : (
+                      <div className="divide-y divide-ivory-200">
+                        {section.rows.slice(0, 20).map((row, i) => (
+                          <div key={i} className="px-4 py-2.5 text-xs">
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              <p className="font-medium text-brand">
+                                {String(row.name || row.memberName || row.id || '—')}
+                              </p>
+                              <code className="text-[0.65rem] text-mid font-mono">
+                                {String(row.email || row.memberEmail || '')}
+                              </code>
+                            </div>
+                            <div className="text-[0.7rem] text-mid mt-1 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-0.5">
+                              {Object.entries(row).filter(([k]) => !['id','name','email','memberName','memberEmail','note'].includes(k)).map(([k, v]) => (
+                                <div key={k}>
+                                  <span className="text-hint">{k}:</span> <span className="text-charcoal">{v === null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                                </div>
+                              ))}
+                            </div>
+                            {row.note ? (
+                              <p className="text-[0.65rem] text-amber-700 italic mt-1">{String(row.note)}</p>
+                            ) : null}
+                          </div>
+                        ))}
+                        {section.rows.length > 20 && (
+                          <p className="px-4 py-2 text-[0.7rem] text-hint italic">
+                            + {section.rows.length - 20} more rows (truncated)
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <p className="text-[0.65rem] text-hint">
+                  YTD boundary used: {new Date(driftReport.ytdStart).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+            <div className="mt-5 pt-3 border-t border-ivory-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setDriftOpen(false)}
+                className="text-sm text-brand bg-page-bg px-4 py-2 rounded hover:bg-ivory-200"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Expense Modal */}
       {showExpense && (
