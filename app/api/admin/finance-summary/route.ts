@@ -86,9 +86,12 @@ export async function GET() {
   //   3. Approved + paymentMethod logged but amount blank → tier floor
   //      (data gap, we know a payment arrived but not the exact amount)
   //   4. Otherwise → $0 (no payment evidence)
-  // Admin / moderator / reviewer are staff — never counted.
+  // Role is NOT a filter — a moderator or reviewer who paid their own
+  // dues contributes revenue same as any other paying row. The Members
+  // KPI count still excludes staff from the "paying members" headcount,
+  // but every penny the chamber banked shows up in revenue regardless
+  // of who sent it.
   function inferredAmount(m: typeof allMembers[number]): number {
-    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
@@ -107,12 +110,11 @@ export async function GET() {
 
   // Offline revenue — count every approved non-Square row. amountPaid
   // when recorded, tier floor otherwise; same formula as the Overview
-  // KPI's revenue trend so the two totals reconcile exactly.
-  // Previously excluded rows with no paymentMethod (the "unverified"
-  // bucket), which dropped revenue the chamber had clearly received —
-  // the user's rule: don't drop any penny, add an orphan row instead.
+  // KPI's revenue trend so the two totals reconcile exactly. Includes
+  // staff rows (moderator/reviewer) that paid their own membership —
+  // the money is money regardless of what the sender's dashboard role
+  // happens to be.
   const verifiedOfflineRevenue = allMembers.reduce((sum, m) => {
-    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return sum
     if (m.status !== 'approved') return sum
     if (hasSquareReceipt(m)) return sum
     if (m.paymentMethod === 'square') return sum // handled by Square ledger

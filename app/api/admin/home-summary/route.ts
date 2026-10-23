@@ -47,12 +47,11 @@ export async function GET() {
   }
 
   // Revenue — count only payments actually received. Square-matched
-  // members use the ledger net (authoritative, matches the KPI);
-  // offline uses amountPaid when > 0, tier floor only for rows where
-  // a paymentMethod was logged but the amount is blank. No payment
-  // evidence → $0.
+  // members use the ledger net; offline uses amountPaid when > 0, tier
+  // floor only when a paymentMethod was logged but the amount is
+  // blank. No payment evidence → $0. Role is NOT a filter — staff
+  // (moderators, reviewer) who paid their own dues contribute revenue.
   function inferredAmount(m: typeof allMembers[number]): number {
-    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0

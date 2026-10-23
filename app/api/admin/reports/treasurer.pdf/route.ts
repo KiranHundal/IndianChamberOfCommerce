@@ -45,14 +45,13 @@ export async function GET() {
 
   // Treasurer PDF revenue — count only payments actually received.
   // Decision order:
-  //   1. Matched Square payment → Square ledger net (post-refund) —
-  //      authoritative, same source the Overview KPI uses
+  //   1. Matched Square payment → Square ledger net (post-refund)
   //   2. amountPaid > 0 → that amount
   //   3. Approved + paymentMethod logged but amount blank → tier floor
   //   4. Otherwise → $0 (no payment evidence)
-  // Admin / moderator / reviewer are staff — never counted.
+  // Role is NOT a filter — a moderator or reviewer who paid their own
+  // dues contributes revenue same as any other paying row.
   function inferredAmount(m: typeof allMembers[number]): number {
-    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return 0
     if (squareNetByMember.has(m.id)) return squareNetByMember.get(m.id) || 0
     if (m.amountPaid && m.amountPaid > 0) return m.amountPaid
     if (m.status !== 'approved') return 0
@@ -66,8 +65,10 @@ export async function GET() {
   const squareGross = squareGrossCents / 100
   const squareFees = squareFeesCents / 100
 
+  // Offline revenue — count every approved row with a non-Square
+  // method, including staff rows (moderators who paid their own
+  // membership). Role is not a revenue filter here.
   const verifiedOffline = allMembers.reduce((sum, m) => {
-    if (m.role === 'admin' || m.role === 'moderator' || m.role === 'reviewer') return sum
     if (hasSquareReceipt(m)) return sum
     if (!m.paymentMethod || !OFFLINE_METHODS.includes(m.paymentMethod)) return sum
     return sum + inferredAmount(m)

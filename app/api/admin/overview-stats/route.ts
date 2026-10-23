@@ -178,13 +178,18 @@ export async function GET(req: Request) {
     paymentsByBucket[key] += 1
   }
 
-  // Layer in offline approved members by their paymentDate. ONLY count
-  // rows where payment is actually recorded — amountPaid > 0 OR an
-  // offline paymentMethod on file. Approved members with no payment
-  // evidence (status flipped but no cash received) contribute $0.
-  // Tier price floor only kicks in when a paymentMethod was logged but
-  // the amount wasn't — a known data gap, not a free pass.
-  for (const m of nonStaff) {
+  // Layer in offline approved members (any role, including staff) by
+  // their paymentDate. ONLY count rows where payment is actually
+  // recorded — amountPaid > 0 OR an offline paymentMethod on file.
+  // Approved members with no payment evidence contribute $0. Tier
+  // price floor only kicks in when a paymentMethod was logged but the
+  // amount wasn't — a known data gap, not a free pass.
+  //
+  // Role is NOT a filter — a moderator or reviewer who paid their own
+  // dues contributes revenue same as a regular member. The Members KPI
+  // count still uses nonStaff for the "paying members" headcount, but
+  // revenue counts every penny the chamber received.
+  for (const m of allMembers) {
     if (m.status !== 'approved') continue
     if (m.paymentMethod === 'square') continue // Square ledger already counted it
     const hasAmount = m.amountPaid != null && m.amountPaid > 0
@@ -301,7 +306,7 @@ export async function GET(req: Request) {
     }
   }
 
-  for (const m of nonStaff) {
+  for (const m of allMembers) {
     if (m.status !== 'approved') continue
     const ref = m.paymentDate || m.approvedAt || m.createdAt
     if (!ref) continue
@@ -313,12 +318,15 @@ export async function GET(req: Request) {
       // Offline branch — only count if payment is actually recorded.
       // amountPaid wins when > 0; tier floor only when a paymentMethod
       // was logged but the amount wasn't. Approved rows with no payment
-      // evidence contribute $0 (status alone doesn't mean money arrived).
+      // evidence contribute $0. Role is NOT a filter — moderators or
+      // reviewer who paid their own dues contribute revenue same as
+      // any other row.
       const hasAmount = m.amountPaid != null && m.amountPaid > 0
       const hasMethod = !!m.paymentMethod
       if (hasAmount) dollars = m.amountPaid!
       else if (hasMethod) dollars = m.membershipTier === 'corporate' ? 395 : 95
     }
+    if (dollars === 0) continue // nothing to attribute
     if (!m.referredBy) {
       unattributedCount += 1
       unattributedRevenue += dollars
