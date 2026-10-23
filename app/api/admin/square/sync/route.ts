@@ -50,11 +50,24 @@ export async function POST() {
     await ensureEventsSchema()
     const payments = await fetchAllSquarePayments()
 
-    // Load all members once for email lookup
+    // Load all members once for lookup. We index by email (strict),
+    // business name (normalized), and personal name (normalized) so a
+    // Square payment that comes in with a different email than the
+    // member registered with can still be matched to the right row
+    // instead of becoming an orphan — the FadeHub Inc duplicate
+    // scenario (same person pays with a different inbox address).
     const allMembers = await db.select().from(members)
+    const normalize = (s: string | null | undefined) =>
+      (s || '').toLowerCase().trim().replace(/\s+/g, ' ').replace(/[.,'"]/g, '')
     const membersByEmail = new Map<string, typeof allMembers[number]>()
+    const membersByBusiness = new Map<string, typeof allMembers[number]>()
+    const membersByName = new Map<string, typeof allMembers[number]>()
     for (const m of allMembers) {
       membersByEmail.set(m.email.toLowerCase(), m)
+      const biz = normalize(m.businessName)
+      if (biz && !membersByBusiness.has(biz)) membersByBusiness.set(biz, m)
+      const nm = normalize(m.name)
+      if (nm && !membersByName.has(nm)) membersByName.set(nm, m)
     }
 
     // Same trick for RSVPs — we consult this map before deciding a Square
@@ -119,12 +132,29 @@ export async function POST() {
 
       const paymentKind: 'event' | 'membership' = eventRsvpId ? 'event' : 'membership'
 
-      // Membership matching. Prefer explicit renewal id when present —
-      // that's a hard signal from our own checkout link. Fall back to
-      // email lookup for legacy Square payments.
-      const matched = paymentKind === 'membership'
-        ? (renewalMemberId ? allMembers.find((m) => m.id === renewalMemberId) : email ? membersByEmail.get(email) : undefined)
-        : undefined
+      // Membership matching. Signal order (strongest → weakest):
+      //   1. Explicit renewal id from our own checkout link
+      //   2. Email exact-match (lowercased)
+      //   3. Buyer name matches an existing member's name (normalized)
+      //   4. Buyer name matches an existing member's businessName
+      // Fallbacks 3-4 prevent duplicate rows when the same person pays
+      // with a different inbox address than they registered with
+      // (FadeHub Inc / Baljit Kumar case: sarhalibunty@ vs buntysarhali@).
+      let matched: typeof allMembers[number] | undefined
+      if (paymentKind === 'membership') {
+        if (renewalMemberId) {
+          matched = allMembers.find((m) => m.id === renewalMemberId)
+        }
+        if (!matched && email) {
+          matched = membersByEmail.get(email)
+        }
+        if (!matched && name) {
+          const nmKey = normalize(name)
+          if (nmKey) {
+            matched = membersByName.get(nmKey) || membersByBusiness.get(nmKey)
+          }
+        }
+      }
 
       const [existing] = await db
         .select({ id: squarePayments.id, matchedMemberId: squarePayments.matchedMemberId })

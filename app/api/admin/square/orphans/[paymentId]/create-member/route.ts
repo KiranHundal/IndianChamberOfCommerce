@@ -33,10 +33,13 @@ export async function POST(req: NextRequest, { params }: { params: { paymentId: 
 
   // Every created member needs a board sponsor. Orphan payments don't
   // know who referred the payer, so the admin picks before clicking Send
-  // Invite — the UI puts a dropdown next to the button.
-  const body = await req.json().catch(() => ({})) as { referredBy?: unknown }
+  // Invite — the UI puts a dropdown next to the button. forceCreateNew
+  // bypasses the duplicate-detection match (used when admin has
+  // reviewed the suggested match and said "no, this is a new member").
+  const body = await req.json().catch(() => ({})) as { referredBy?: unknown; forceCreateNew?: unknown }
   const referredBy =
     typeof body.referredBy === 'string' && body.referredBy.trim() ? body.referredBy.trim() : null
+  const forceCreateNew = body.forceCreateNew === true
   if (!referredBy) {
     return NextResponse.json(
       { error: 'Please pick who referred this member — every member needs a board sponsor on record.' },
@@ -61,8 +64,24 @@ export async function POST(req: NextRequest, { params }: { params: { paymentId: 
   }
   const name = payment.buyerName?.trim() || email.split('@')[0]
 
-  // If a member with this email already exists (edge case), just link and email.
-  const [existing] = await db.select().from(members).where(eq(members.email, email)).limit(1)
+  // Try hardest to find an existing member for this payment before
+  // creating a new one. Signal order: exact email → normalized name →
+  // normalized business name. Prevents the FadeHub-style duplicate
+  // where the same person pays with a different inbox address.
+  const normalize = (s: string | null | undefined) =>
+    (s || '').toLowerCase().trim().replace(/\s+/g, ' ').replace(/[.,'"]/g, '')
+  const [emailMatch] = await db.select().from(members).where(eq(members.email, email)).limit(1)
+  type MemberRow = typeof members.$inferSelect
+  let existing: MemberRow | undefined = emailMatch
+  if (!existing && name) {
+    const allMembersForMatch = await db.select().from(members)
+    const nmKey = normalize(name)
+    if (nmKey) {
+      existing = allMembersForMatch.find((m) => normalize(m.name) === nmKey)
+        || allMembersForMatch.find((m) => normalize(m.businessName) === nmKey)
+    }
+  }
+  if (forceCreateNew) existing = undefined
 
   const amountDollars = Math.round((payment.amountCents - payment.refundedCents) / 100)
   const tier = amountDollars >= 300 ? 'corporate' : 'individual'

@@ -135,9 +135,9 @@ export async function GET() {
       note: 'No paymentDate AND no approvedAt — Overview excludes, Finances counts',
     }))
 
-  // ----- E. Staff rows with amountPaid > 0 (should contribute $0
-  // everywhere, confirmed by inferredAmount guard, but surface for
-  // review).
+  // ----- E. Staff rows with amountPaid > 0 (previously hard-guarded
+  // to $0 everywhere; now counts toward revenue if payment evidence
+  // exists, since moderators often pay their own dues).
   const staffWithAmount = allMembers
     .filter((m) => isStaff(m))
     .filter((m) => (m.amountPaid || 0) > 0)
@@ -146,8 +146,95 @@ export async function GET() {
       name: m.name,
       role: m.role,
       amountPaid: m.amountPaid,
-      note: 'Staff row with amountPaid — hard-guarded to $0 everywhere',
+      note: 'Staff row with amountPaid — now counts toward revenue (moderator-paid dues)',
     }))
+
+  // ----- F. Potential duplicate members. Same person likely paid twice
+  // with different inbox addresses. Grouped by:
+  //   - normalized business name (same company → likely one entity)
+  //   - normalized phone (same number → almost certainly same person)
+  //   - normalized personal name (same name → possible same person)
+  // Each group shows the N candidate rows so admin can review and
+  // merge/delete the extras.
+  const normalize = (s: string | null | undefined) =>
+    (s || '').toLowerCase().trim().replace(/\s+/g, ' ').replace(/[.,'"()]/g, '')
+  const digitsOnly = (s: string | null | undefined) => (s || '').replace(/\D/g, '')
+
+  type DupSlim = {
+    id: string
+    name: string
+    email: string
+    businessName: string | null
+    phone: string | null
+    membershipNumber: string | null
+    membershipTier: string
+    status: string
+    amountPaid: number | null
+    paymentMethod: string | null
+    paymentDate: Date | null
+    createdAt: Date | null
+  }
+  const slim = (m: MemberRow): DupSlim => ({
+    id: m.id,
+    name: m.name,
+    email: m.email,
+    businessName: m.businessName,
+    phone: m.phone,
+    membershipNumber: m.membershipNumber,
+    membershipTier: m.membershipTier,
+    status: m.status,
+    amountPaid: m.amountPaid,
+    paymentMethod: m.paymentMethod,
+    paymentDate: m.paymentDate,
+    createdAt: m.createdAt,
+  })
+
+  const byBusiness = new Map<string, MemberRow[]>()
+  const byPhone = new Map<string, MemberRow[]>()
+  const byName = new Map<string, MemberRow[]>()
+  for (const m of allMembers) {
+    if (isStaff(m)) continue
+    const biz = normalize(m.businessName)
+    if (biz) {
+      const arr = byBusiness.get(biz) || []
+      arr.push(m)
+      byBusiness.set(biz, arr)
+    }
+    const ph = digitsOnly(m.phone)
+    if (ph && ph.length >= 10) {
+      const arr = byPhone.get(ph.slice(-10)) || []
+      arr.push(m)
+      byPhone.set(ph.slice(-10), arr)
+    }
+    const nm = normalize(m.name)
+    if (nm) {
+      const arr = byName.get(nm) || []
+      arr.push(m)
+      byName.set(nm, arr)
+    }
+  }
+  type DupGroup = { key: string; signal: 'business' | 'phone' | 'name'; rows: DupSlim[] }
+  const duplicateGroups: DupGroup[] = []
+  byBusiness.forEach((rows: MemberRow[], key: string) => {
+    if (rows.length < 2) return
+    duplicateGroups.push({ key, signal: 'business', rows: rows.map(slim) })
+  })
+  byPhone.forEach((rows: MemberRow[], key: string) => {
+    if (rows.length < 2) return
+    // Skip if already represented by a business-name group with the same row set
+    const ids = new Set(rows.map((r) => r.id))
+    const already = duplicateGroups.some((g) => g.rows.every((r) => ids.has(r.id)) && g.rows.length === rows.length)
+    if (already) return
+    duplicateGroups.push({ key, signal: 'phone', rows: rows.map(slim) })
+  })
+  byName.forEach((rows: MemberRow[], key: string) => {
+    if (rows.length < 2) return
+    const ids = new Set(rows.map((r) => r.id))
+    const already = duplicateGroups.some((g) => g.rows.every((r) => ids.has(r.id)) && g.rows.length === rows.length)
+    if (already) return
+    duplicateGroups.push({ key, signal: 'name', rows: rows.map(slim) })
+  })
+  const totalDuplicateRows = duplicateGroups.reduce((s, g) => s + g.rows.length, 0)
 
   return NextResponse.json({
     ytdStart: ytdStart.toISOString(),
@@ -177,6 +264,18 @@ export async function GET() {
         label: `Staff rows carrying amountPaid (${staffWithAmount.length})`,
         rows: staffWithAmount,
         totalAmountPaid: staffWithAmount.reduce((s, r) => s + (r.amountPaid || 0), 0),
+      },
+      potentialDuplicates: {
+        label: `Potential duplicate members — ${duplicateGroups.length} group${duplicateGroups.length === 1 ? '' : 's'}, ${totalDuplicateRows} rows`,
+        rows: duplicateGroups.flatMap((g) =>
+          g.rows.map((r) => ({
+            ...r,
+            dupSignal: g.signal,
+            dupKey: g.key,
+            note: `Grouped by ${g.signal} = "${g.key}" — review and keep the row with the complete business/payment info; delete the extras.`,
+          }))
+        ),
+        totalAmountPaid: duplicateGroups.flatMap((g) => g.rows).reduce((s, r) => s + (r.amountPaid || 0), 0),
       },
     },
   })
