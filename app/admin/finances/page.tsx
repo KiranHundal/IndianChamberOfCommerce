@@ -223,6 +223,12 @@ export default function AdminFinancesPage() {
   const [extractedConfidence, setExtractedConfidence] = useState<Record<string, 'high' | 'medium' | 'low'>>({})
   const [showExpense, setShowExpense] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
+  // Square details are collapsed by default — the strip above the main
+  // Members & Payments section shows totals + an orphans alert, admin
+  // expands only when they need to inspect the full Square ledger. Set
+  // to true automatically on first render if there are orphans so they
+  // don't get missed.
+  const [showSquareDetails, setShowSquareDetails] = useState(false)
   const [modalSaving, setModalSaving] = useState(false)
   const [modalError, setModalError] = useState('')
 
@@ -692,27 +698,69 @@ export default function AdminFinancesPage() {
             </div>
           )}
 
-          {/* All Square Payments — one flat table incl. matched + orphans */}
+          {/* Collapsed Square summary — expands into the full ledger table
+              on demand. The amber row surfaces orphans so admin never
+              misses a Square payment that didn't auto-match a member. */}
           {summary.square.allPayments.length > 0 && (() => {
             const allPayments = summary.square.allPayments
-            // Sort at top level via squareSort, then apply filter here.
-            const rows = squareSort.sortedRows.filter((p) => {
-              if (squareFilter === 'matched') return p.matched
-              if (squareFilter === 'orphan') return !p.matched
-              return true
-            })
-            const grossTotal = rows.reduce((sum, r) => sum + (r.amountCents - r.refundedCents) / 100, 0)
-            const feeTotal = rows.reduce((sum, r) => sum + r.feeCents / 100, 0)
             const matchedCount = allPayments.filter((p) => p.matched).length
             const orphanCount = allPayments.length - matchedCount
+            const summaryGross = allPayments.reduce((sum, r) => sum + (r.amountCents - r.refundedCents) / 100, 0)
+            const summaryFees = allPayments.reduce((sum, r) => sum + r.feeCents / 100, 0)
             return (
-              <div className="bg-white border border-emerald-200 rounded-xl p-6 mb-8">
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-emerald-600" />
-                    <h3 className="font-label text-label tracking-widest uppercase text-brand">
-                      Square Payments ({rows.length}{squareFilter !== 'all' && ` of ${allPayments.length}`})
-                    </h3>
+              <div className="mb-8 space-y-2">
+                <div className="bg-white border border-ivory-200 rounded-lg p-4 flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-brand">Square payments</p>
+                      <p className="text-xs text-mid">
+                        {allPayments.length} synced · {money(summaryGross)} gross · {money(summaryFees)} fees · net <strong>{money(summaryGross - summaryFees)}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSquareDetails((v) => !v)}
+                    className="text-xs font-medium text-accent hover:text-gold-900 uppercase tracking-wide"
+                  >
+                    {showSquareDetails ? 'Hide details ↑' : 'View all →'}
+                  </button>
+                </div>
+                {orphanCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowSquareDetails(true); setSquareFilter('orphan') }}
+                    className="w-full bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center justify-between gap-3 hover:bg-amber-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                      <p className="text-sm font-medium text-amber-800">
+                        {orphanCount} orphan Square payment{orphanCount === 1 ? '' : 's'} need attention
+                      </p>
+                    </div>
+                    <span className="text-xs font-medium text-amber-700 uppercase tracking-wide">
+                      Open orphans →
+                    </span>
+                  </button>
+                )}
+                {showSquareDetails && (() => {
+                  // Sort at top level via squareSort, then apply filter here.
+                  const rows = squareSort.sortedRows.filter((p) => {
+                    if (squareFilter === 'matched') return p.matched
+                    if (squareFilter === 'orphan') return !p.matched
+                    return true
+                  })
+                  const grossTotal = rows.reduce((sum, r) => sum + (r.amountCents - r.refundedCents) / 100, 0)
+                  const feeTotal = rows.reduce((sum, r) => sum + r.feeCents / 100, 0)
+                  return (
+                    <div className="bg-white border border-emerald-200 rounded-xl p-6">
+                      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="w-5 h-5 text-emerald-600" />
+                          <h3 className="font-label text-label tracking-widest uppercase text-brand">
+                            Square Payments ({rows.length}{squareFilter !== 'all' && ` of ${allPayments.length}`})
+                          </h3>
                     <ExportCsvButton
                       filename={`cvicc-square-payments-${squareFilter}-${new Date().toISOString().slice(0, 10)}.csv`}
                       rows={rows}
@@ -890,6 +938,9 @@ export default function AdminFinancesPage() {
                     </tfoot>
                   </table>
                 </div>
+                    </div>
+                  )
+                })()}
               </div>
             )
           })()}
@@ -967,15 +1018,11 @@ export default function AdminFinancesPage() {
                   className="border border-ivory-200 rounded-md px-3 py-1.5 text-small focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
                   <option value="all">All payment methods</option>
-                  <option value="has_square_receipt">Has Square receipt ✓</option>
-                  <option value="no_square_receipt">No Square receipt ✗</option>
-                  <option value="square">Method: Square</option>
-                  <option value="offline">Offline (Check / Zelle / Cash / Other)</option>
-                  <option value="check">Check only</option>
-                  <option value="zelle">Zelle only</option>
-                  <option value="cash">Cash only</option>
-                  <option value="other">Other only</option>
-                  <option value="unknown">Method not recorded (—)</option>
+                  <option value="square">Square</option>
+                  <option value="check">Check</option>
+                  <option value="zelle">Zelle</option>
+                  <option value="cash">Cash</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
             </div>
@@ -985,15 +1032,7 @@ export default function AdminFinancesPage() {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (methodFilter !== 'all') {
                   const method = (m.paymentMethod || '').toLowerCase()
-                  if (methodFilter === 'has_square_receipt') {
-                    if (!m.hasSquareReceipt) return false
-                  } else if (methodFilter === 'no_square_receipt') {
-                    if (m.hasSquareReceipt) return false
-                  } else if (methodFilter === 'unknown') {
-                    if (method !== '') return false
-                  } else if (methodFilter === 'offline') {
-                    if (!['check', 'zelle', 'cash', 'other'].includes(method)) return false
-                  } else if (method !== methodFilter) return false
+                  if (method !== methodFilter) return false
                 }
                 if (memberSearch) {
                   const q = memberSearch.toLowerCase()
@@ -1036,15 +1075,7 @@ export default function AdminFinancesPage() {
                 if (memberFilter !== 'all' && m.status !== memberFilter) return false
                 if (methodFilter !== 'all') {
                   const method = (m.paymentMethod || '').toLowerCase()
-                  if (methodFilter === 'has_square_receipt') {
-                    if (!m.hasSquareReceipt) return false
-                  } else if (methodFilter === 'no_square_receipt') {
-                    if (m.hasSquareReceipt) return false
-                  } else if (methodFilter === 'unknown') {
-                    if (method !== '') return false
-                  } else if (methodFilter === 'offline') {
-                    if (!['check', 'zelle', 'cash', 'other'].includes(method)) return false
-                  } else if (method !== methodFilter) return false
+                  if (method !== methodFilter) return false
                 }
                 if (memberSearch) {
                   const q = memberSearch.toLowerCase()
