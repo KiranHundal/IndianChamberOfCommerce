@@ -12,17 +12,27 @@ import AnimatedSection from '@/components/ui/AnimatedSection'
 const inputClass =
   'w-full bg-page-bg border border-ivory-200 rounded-md px-4 py-3 text-body font-body text-charcoal placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all'
 
+// Role-aware landing: staff go to the admin dashboard, members to their
+// portal. The dashboard also has its own fallback redirect for non-staff
+// (/admin → /portal), but routing here directly avoids the brief
+// in-between render.
+function landingPathFor(role: string | undefined | null): string {
+  if (role === 'admin' || role === 'moderator' || role === 'reviewer') return '/admin'
+  return '/portal'
+}
+
 export default function LoginPage() {
-  const { status } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.push('/portal')
+      const role = (session?.user as { role?: string } | undefined)?.role
+      router.push(landingPathFor(role))
     }
-  }, [status, router])
+  }, [status, session, router])
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -45,7 +55,16 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/portal')
+    // Fetch the just-created session so we can route by role immediately
+    // instead of waiting for the useEffect's useSession to catch up.
+    try {
+      const sessionRes = await fetch('/api/auth/session')
+      const sess = await sessionRes.json()
+      const role = sess?.user?.role
+      router.push(landingPathFor(role))
+    } catch {
+      router.push('/admin')
+    }
   }
 
   if (status === 'loading' || status === 'authenticated') {

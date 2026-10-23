@@ -335,18 +335,17 @@ export async function sendTeamAccessEmail(invite: {
   if (!resend) throw new Error('Email service not configured (RESEND_API_KEY missing)')
 
   const { fromEmail, siteUrl } = getConfig()
-  const roleLabel = invite.role === 'admin' ? 'Admin' : invite.role === 'reviewer' ? 'Reviewer' : 'Moderator'
-  const canDo = invite.role === 'admin'
-    ? 'You have full access: approve members, log payments, add expenses, sync Square, send invitations, manage the board, run reports, and grant access to others.'
-    : invite.role === 'reviewer'
-      ? 'You can see the members list and approve or deny pending membership applications. That is the extent of your access — no finances, board content, or reports.'
-      : 'You can add expenses, log offline payments, sync Square, and send membership invitations. Approve/deny of pending members stays with the reviewer and admins.'
+  // Role is tracked in the DB and determines what the user actually sees
+  // after sign-in, but we deliberately don't advertise it in this email.
+  // The recipient discovers their scope by using the dashboard; the
+  // welcome message stays warm, neutral, and doesn't force us to update
+  // this copy whenever role boundaries shift.
   const senderLine = invite.invitedBy ? ` (invited by ${invite.invitedBy})` : ''
 
   return resend.emails.send({
     from: `CVICC <${fromEmail}>`,
     to: invite.email,
-    subject: `Your CVICC ${roleLabel} Access`,
+    subject: `Your CVICC Admin Dashboard Access`,
     html: `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1E3A5F;">
         <div style="background: #1E3A5F; padding: 40px 32px; text-align: center;">
@@ -355,12 +354,12 @@ export async function sendTeamAccessEmail(invite: {
           </h1>
         </div>
         <div style="padding: 40px 32px; background: #FAFAF7;">
-          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">Team Access${senderLine}</p>
+          <p style="color: #D4A830; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; margin: 0 0 12px;">Dashboard Access${senderLine}</p>
           <h2 style="color: #1E3A5F; font-size: 22px; font-weight: 300; margin: 0 0 16px;">
             Hi ${invite.name},
           </h2>
           <p style="color: #5A6A7A; line-height: 1.7; margin: 0 0 16px;">
-            You now have <strong>${roleLabel}</strong> access to the CVICC admin dashboard. ${canDo}
+            You now have access to the CVICC admin dashboard. Set your password below and sign in whenever you&rsquo;re ready — you&rsquo;ll land on the dashboard where everything you can do is right in front of you.
           </p>
           <div style="background: #FFFFFF; border: 1px solid #EDE6D3; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
             <p style="color: #1E3A5F; margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;">To set your password</p>
