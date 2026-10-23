@@ -1192,19 +1192,17 @@ export default function AdminFinancesPage() {
                                 </span>
                               </td>
                               <td className="px-3 py-2.5 text-right">
-                                {m.isStaff ? (
-                                  <span className="text-hint text-[0.7rem] italic">—</span>
-                                ) : (
+                                {m.inferredAmount > 0 ? (
                                   <p className="font-medium text-brand">
                                     {money(m.inferredAmount)}
                                     {m.isEstimated && <span className="text-hint text-[0.6rem] ml-1">est.</span>}
                                   </p>
+                                ) : (
+                                  <span className="text-hint text-[0.7rem] italic">—</span>
                                 )}
                               </td>
                               <td className="px-3 py-2.5">
-                                {m.isStaff ? (
-                                  <span className="text-hint text-[0.7rem] italic">n/a</span>
-                                ) : m.paymentMethod ? (
+                                {m.paymentMethod ? (
                                   <span className="capitalize text-charcoal">{m.paymentMethod}</span>
                                 ) : (
                                   <span className="text-hint text-[0.7rem]">—</span>
@@ -1246,17 +1244,15 @@ export default function AdminFinancesPage() {
                               <p className="text-[0.65rem] text-hint truncate">{m.email}</p>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              {m.isStaff ? (
-                                <span className="inline-flex px-2 py-0.5 rounded-full bg-navy-50 border border-navy-100 text-[0.6rem] font-medium text-brand">
-                                  Staff
-                                </span>
-                              ) : (
+                              {m.inferredAmount > 0 ? (
                                 <>
                                   <p className="font-display text-h5 text-brand leading-none">
                                     {money(m.inferredAmount)}
                                   </p>
                                   {m.isEstimated && <p className="text-hint text-[0.55rem] mt-0.5">est.</p>}
                                 </>
+                              ) : (
+                                <span className="text-hint text-[0.7rem] italic">—</span>
                               )}
                             </div>
                           </div>
@@ -1275,7 +1271,7 @@ export default function AdminFinancesPage() {
                             <span className={`inline-flex px-2 py-0.5 rounded-full border text-[0.6rem] capitalize font-medium ${badge}`}>
                               {m.status}
                             </span>
-                            {!m.isStaff && m.paymentMethod && (
+                            {m.paymentMethod && (
                               <span className="inline-flex px-2 py-0.5 rounded-full bg-gold-50 border border-gold-100 text-[0.6rem] capitalize text-brand font-medium">
                                 {m.paymentMethod}
                               </span>
