@@ -333,10 +333,17 @@ export default function AdminHomePage() {
               {stats.revenueTrend.every((r) => r.revenue === 0) ? (
                 <EmptyChart />
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={stats.revenueTrend} margin={{ top: 10, right: 8, left: 8, bottom: 5 }}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={stats.revenueTrend} margin={{ top: 10, right: 8, left: 8, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#EDE6D3" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#5A6A7A' }} interval={stats.bucketSize === 'day' ? 3 : 0} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: '#5A6A7A' }}
+                      interval={stats.bucketSize === 'day' ? 3 : 0}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
                     <YAxis tick={{ fontSize: 11, fill: '#5A6A7A' }} tickFormatter={(v) => `$${v}`} />
                     <Tooltip formatter={(v: unknown) => [`$${Number(v).toLocaleString()}`, 'Revenue'] as [string, string]} labelStyle={{ color: '#1E3A5F' }} />
                     <Bar dataKey="revenue" fill="#D4A830" radius={[4, 4, 0, 0]} />
@@ -351,10 +358,17 @@ export default function AdminHomePage() {
             {stats.newMembersTrend.every((r) => r.count === 0) ? (
               <EmptyChart />
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={stats.newMembersTrend} margin={{ top: 10, right: 8, left: 8, bottom: 5 }}>
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={stats.newMembersTrend} margin={{ top: 10, right: 8, left: 8, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#EDE6D3" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#5A6A7A' }} interval={stats.bucketSize === 'day' ? 3 : 0} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: '#5A6A7A' }}
+                    interval={stats.bucketSize === 'day' ? 3 : 0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
                   <YAxis tick={{ fontSize: 11, fill: '#5A6A7A' }} allowDecimals={false} />
                   <Tooltip formatter={(v: unknown) => [`${Number(v)} member${Number(v) === 1 ? '' : 's'}`, 'New'] as [string, string]} labelStyle={{ color: '#1E3A5F' }} />
                   <Line type="monotone" dataKey="count" stroke="#1E3A5F" strokeWidth={2} dot={{ fill: '#D4A830', r: 3 }} />
